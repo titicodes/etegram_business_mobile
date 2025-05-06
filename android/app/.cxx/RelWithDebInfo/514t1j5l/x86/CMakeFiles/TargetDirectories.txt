@@ -1,0 +1,2 @@
+C:/Users/9jato/StudioProjects/etegram_business/android/app/.cxx/RelWithDebInfo/514t1j5l/x86/CMakeFiles/edit_cache.dir
+C:/Users/9jato/StudioProjects/etegram_business/android/app/.cxx/RelWithDebInfo/514t1j5l/x86/CMakeFiles/rebuild_cache.dir

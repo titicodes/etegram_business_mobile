@@ -1,31 +1,101 @@
+import 'package:etegram_business/core/model/checkout_response.dart';
+import 'package:etegram_business/core/model/get_scan_response.dart';
+import 'package:etegram_business/locator.dart';
 import 'package:etegram_business/service/web/sales_api_service.dart';
 
-import '../core/model/checkout_response.dart';
-import '../core/model/get_scan_response.dart';
-import '../locator.dart';
-import '../service/local/cache.dart';
-import '../service/local/storage_service.dart';
-
 class SalesRepository {
-  StorageService storageService = locator<StorageService>();
-  AppCache appCache = locator<AppCache>();
-  SalesApiService salesApiService = locator<SalesApiService>();
+  final SalesApiService _salesApiService = locator<SalesApiService>();
+
+  // FIXED: Improved error handling in getScanProduct
+  Future<GetScanResponse?> getScanProduct({
+    required int code,
+    required String ownerId,
+    required String storeId,
+  }) async {
+    try {
+      // Validate inputs
+      if (code <= 0) {
+        return GetScanResponse(
+          success: false,
+          message: 'Invalid barcode',
+          data: null,
+        );
+      }
+
+      if (ownerId.isEmpty || storeId.isEmpty) {
+        return GetScanResponse(
+          success: false,
+          message: 'Owner ID or Store ID missing',
+          data: null,
+        );
+      }
+
+      // Make API call and handle response
+      final response = await _salesApiService.getScanProduct(
+        code: code,
+        ownerId: ownerId,
+        storeId: storeId,
+      );
+
+      // Return the response (which might be null, success=true, or success=false)
+      return response;
+    } catch (e) {
+      print('Error in SalesRepository.getScanProduct: $e');
+
+      // Return a valid response object with the error message
+      return GetScanResponse(
+        success: false,
+        message: 'Failed to get product: $e',
+        data: null,
+      );
+    }
+  }
 
   Future<CheckoutResponse?> checkout({
     required List<Map<String, dynamic>> cartItems,
-    double discount = 0.0, // Optional discount with default value 0.0
-    double tax = 0.0, // Optional tax with default value 0.0
+    double discount = 0.0,
+    double tax = 0.0,
     required String paymentMethod,
+    required String storeId,
   }) async {
-    return await salesApiService.checkout(
-        cartItems: cartItems, paymentMethod: paymentMethod);
-  }
+    try {
+      // Validate inputs
+      if (cartItems.isEmpty) {
+        return CheckoutResponse(
+          success: false,
+          message: 'Cart is empty',
+          data: null,
+        );
+      }
 
-  Future<GetScanResponse?> getScanProduct({required int? code}) async {
-    return await salesApiService.getScanProduct(code: code);
-  }
+      if (storeId.isEmpty) {
+        return CheckoutResponse(
+          success: false,
+          message: 'Store ID is missing',
+          data: null,
+        );
+      }
 
-  Future<void> sendFcmToken(String userId, String fcmToken) async {
-    return await salesApiService.sendFcmToken(userId, fcmToken);
+      // Make API call and handle response
+      final response = await _salesApiService.checkout(
+        cartItems: cartItems,
+        discount: discount,
+        tax: tax,
+        paymentMethod: paymentMethod,
+        storeId: storeId,
+      );
+
+      // Return the response (which might be null, success=true, or success=false)
+      return response;
+    } catch (e) {
+      print('Error in SalesRepository.checkout: $e');
+
+      // Return a valid response object with the error message
+      return CheckoutResponse(
+        success: false,
+        message: 'Failed to process checkout: $e',
+        data: null,
+      );
+    }
   }
 }

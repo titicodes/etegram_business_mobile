@@ -29,15 +29,55 @@ class CustomerService {
   Product product = Product();
   PaymentMethod paymentMethod = PaymentMethod();
 
-  storeToken(AuthResponse? response) async {
+  Future<void> storeToken(AuthResponse? response) async {
     final box = GetStorage();
-    box.write(DbTable.tokenTableName, response?.data?.accessToken);
+    box.write(DbTable.tokenTableName,
+        response?.customer?.accessToken); // Use response.data for accessToken
     await storageService.storeItem(
         key: DbTable.tokenTableName, value: jsonEncode(response));
-    loginResponse = response ?? AuthResponse();
+    loginResponse = response ?? AuthResponse(); // Use response.data
+
+    // Extract and store ownerId
+    if (loginResponse.customer?.id != null) {
+      // Use loginResponse.id
+      box.write('ownerId', loginResponse.customer?.id);
+      await storageService.storeItem(
+          key: 'ownerId', value: loginResponse.customer?.id);
+      print("SAVED OWNER ID::: ${loginResponse.customer?.id}");
+    }
+
+    // Extract and store storeId (assuming you want the first store as default initially)
+    if (loginResponse.customer?.stores?.isNotEmpty == true) {
+      box.write('storeId', loginResponse.customer?.stores!.first);
+      await storageService.storeItem(
+          key: 'storeId', value: loginResponse.customer?.stores!.first);
+      print(
+          "SAVED STORE ID (first)::: ${loginResponse.customer?.stores!.first}");
+      // You might want to navigate the user to a store selection screen here
+    }
+
     String? userToken = box.read(DbTable.tokenTableName);
     print("SAVED TOKEN::: $userToken");
     locator<CustomerService>().initializer();
+  }
+  // Method to retrieve the stored ownerId
+
+  Future<String?> getOwnerId() async {
+    final box = GetStorage();
+    String? ownerIdFromBox = box.read('ownerId');
+    if (ownerIdFromBox != null) {
+      return ownerIdFromBox;
+    }
+    return await storageService.readItem(key: 'ownerId');
+  }
+
+  Future<String?> getStoreId() async {
+    final box = GetStorage();
+    String? storeIdFromBox = box.read('storeId');
+    if (storeIdFromBox != null) {
+      return storeIdFromBox;
+    }
+    return await storageService.readItem(key: 'storeId');
   }
 
   storeCustomer(CustomerData? response) async {
@@ -84,7 +124,7 @@ class CustomerService {
 
   Future<void> logout() async {
     final box = GetStorage();
-    String? token = loginResponse.data?.accessToken;
+    String? token = loginResponse.customer?.accessToken;
     if (token != null) {
       bool logoutSuccess = await auth.logout(token);
 

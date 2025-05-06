@@ -126,7 +126,7 @@ class ChangePasswordView extends StatelessWidget {
                     ? ColorValues.primaryColor
                     : Colors.grey, // Disable color when form is invalid
                 onTap: logic.isFormValid ? logic.submit : null, // Disable button if form is invalid
-                isLoading: logic.isLoading,
+                isLoading: logic.isLoading.value,
               ),
             ],
           ),

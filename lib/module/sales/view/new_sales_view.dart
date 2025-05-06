@@ -68,7 +68,7 @@ class NewSalesView extends StatelessWidget {
               30.0.sbH,
               InkWell(
                 onTap: () {
-                  navigationService.navigateToWidget(BarcodeScannerView(purpose: ScanPurpose.checkout,));
+                  navigationService.navigateToWidget(CheckoutScannerView());
                 },
                 child: SvgPicture.asset(SvgAssets.scan),
               )

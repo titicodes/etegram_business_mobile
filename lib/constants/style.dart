@@ -63,7 +63,7 @@ TextStyle bodyTextStyle2 = TextStyle(
 
 TextStyle headerTextStyle = TextStyle(
   fontFamily: 'Poppins',
-  fontSize: 20.sp,
+  fontSize: 18.sp,
   color: ColorValues.appTextColor,
   fontWeight: FontWeight.bold,
 );
@@ -125,7 +125,7 @@ TextStyle titleLarge = TextStyle(
   fontWeight: FontWeight.w600,
 );
 TextStyle titleMedium = TextStyle(
-  color: const Color(0XFFFFFFFF),
+  color: Colors.black,
   fontSize: 16.sp,
   fontFamily: 'Poppins',
   fontWeight: FontWeight.w600,

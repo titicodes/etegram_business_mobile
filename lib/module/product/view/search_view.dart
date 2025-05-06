@@ -2,6 +2,7 @@ import 'package:etegram_business/app_widget/custom_appbar.dart';
 import 'package:etegram_business/constants/assets.dart';
 import 'package:etegram_business/constants/reuseable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:etegram_business/app_widget/app_text.dart';
@@ -42,8 +43,12 @@ class SearchProductView extends StatelessWidget {
               ),
               20.0.sbH,
               Expanded(
-                child: model.isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                child: model.isLoading.value
+                    ? Center(
+                        child: SpinKitChasingDots(
+                        color: Colors.white,
+                        size: 50.0,
+                      ))
                     : (model.products.isNotEmpty
                         ? ListView.builder(
                             itemCount: model.products.length,

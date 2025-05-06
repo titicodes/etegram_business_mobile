@@ -1,16 +1,16 @@
-class PaymentMethodResponse {
-  PaymentMethodResponse({
-    required this.success,
-    required this.data,
-    required this.message,
+class PaymentResponse {
+  PaymentResponse({
+    this.success,
+    this.data,
+    this.message,
   });
 
   final bool? success;
   final PaymentMethod? data;
   final String? message;
 
-  factory PaymentMethodResponse.fromJson(Map<String, dynamic> json){
-    return PaymentMethodResponse(
+  factory PaymentResponse.fromJson(Map<String, dynamic> json) {
+    return PaymentResponse(
       success: json["success"],
       data: json["data"] == null ? null : PaymentMethod.fromJson(json["data"]),
       message: json["message"],
@@ -18,23 +18,22 @@ class PaymentMethodResponse {
   }
 
   Map<String, dynamic> toJson() => {
-    "success": success,
-    "data": data?.toJson(),
-    "message": message,
-  };
-
+        "success": success,
+        "data": data?.toJson(),
+        "message": message,
+      };
 }
 
 class PaymentMethod {
   PaymentMethod({
-     this.user,
-     this.name,
-     this.bank,
-     this.accountNumber,
-     this.accountName,
-     this.extraInfo,
-     this.id,
-     this.v,
+    this.user,
+    this.name,
+    this.bank,
+    this.accountNumber,
+    this.accountName,
+    this.extraInfo,
+    this.id,
+    this.v,
   });
 
   final User? user;
@@ -46,7 +45,7 @@ class PaymentMethod {
   final String? id;
   final int? v;
 
-  factory PaymentMethod.fromJson(Map<String, dynamic> json){
+  factory PaymentMethod.fromJson(Map<String, dynamic> json) {
     return PaymentMethod(
       user: json["user"] == null ? null : User.fromJson(json["user"]),
       name: json["name"],
@@ -60,34 +59,36 @@ class PaymentMethod {
   }
 
   Map<String, dynamic> toJson() => {
-    "user": user?.toJson(),
-    "name": name,
-    "bank": bank,
-    "accountNumber": accountNumber,
-    "accountName": accountName,
-    "extraInfo": extraInfo,
-    "_id": id,
-    "__v": v,
-  };
-
+        "user": user?.toJson(),
+        "name": name,
+        "bank": bank,
+        "accountNumber": accountNumber,
+        "accountName": accountName,
+        "extraInfo": extraInfo,
+        "_id": id,
+        "__v": v,
+      };
 }
 
 class User {
   User({
     required this.id,
+    required this.email,
     required this.isAdmin,
     required this.iat,
     required this.exp,
   });
 
   final String? id;
+  final String? email;
   final bool? isAdmin;
   final int? iat;
   final int? exp;
 
-  factory User.fromJson(Map<String, dynamic> json){
+  factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json["_id"],
+      email: json["email"],
       isAdmin: json["isAdmin"],
       iat: json["iat"],
       exp: json["exp"],
@@ -95,10 +96,10 @@ class User {
   }
 
   Map<String, dynamic> toJson() => {
-    "_id": id,
-    "isAdmin": isAdmin,
-    "iat": iat,
-    "exp": exp,
-  };
-
+        "_id": id,
+        "email": email,
+        "isAdmin": isAdmin,
+        "iat": iat,
+        "exp": exp,
+      };
 }

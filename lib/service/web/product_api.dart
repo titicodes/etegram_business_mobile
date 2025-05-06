@@ -6,8 +6,11 @@ import 'package:etegram_business/core/model/get_search_response.dart';
 import 'package:etegram_business/core/model/product_model.dart';
 import 'package:etegram_business/service/web/base_api.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:get_storage/get_storage.dart';
 
+import '../../constants/reuseable.dart';
 import '../../locator.dart';
+import '../../utils/snack_message.dart';
 import '../local/storage_service.dart';
 import '../local/user_service.dart';
 
@@ -15,11 +18,110 @@ class ProductApiService {
   StorageService storageService = locator<StorageService>();
   CustomerService userService = locator<CustomerService>();
 
+  Future<String> _getToken() async {
+    final box = GetStorage();
+    String? accessToken = box.read(DbTable.tokenTableName);
+
+    if (accessToken == null) {
+      throw Exception('No token found');
+    }
+    return accessToken;
+  }
+
+  Future<String> _getStoreId() async {
+    final box = GetStorage();
+    String storeId = box.read(DbTable.storeTableName);
+    if (storeId == null) {
+      throw Exception('No StoreId found');
+    }
+    return storeId;
+  }
+
+  Future<bool> checkProductExistence(String code) async {
+    try {
+      final String? ownerId = await locator<CustomerService>().getOwnerId();
+      final String? storeId = await locator<CustomerService>().getStoreId();
+
+      if (ownerId == null || storeId == null) {
+        showCustomToast('Could not retrieve user or store information.');
+        return false;
+      }
+
+      Response response = await connect().get(
+        "products/check-code",
+        queryParameters: {
+          'code': code,
+          'ownerId': ownerId,
+          'storeId': storeId,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        dynamic responseData = response.data;
+
+        // If responseData is a String, decode it
+        if (responseData is String) {
+          responseData = jsonDecode(responseData);
+        }
+
+        final existsData = responseData['data'];
+        final exists = existsData['exists'];
+
+        return exists ?? false;
+      } else {
+        debugPrint('Error checking product existence: ${response.statusCode}');
+        showCustomToast('Failed to check product existence.');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error checking product existence: $e');
+      showCustomToast('Error checking product existence.');
+      return false;
+    }
+  }
+
+
   Future<AddProductResponse?> scanAndAddProduct({
     required Product data,
     required String scannedCode,
+    required BuildContext context,
+    String? storeId,  // Add storeId parameter
+    String? ownerId,  // Add ownerId parameter
   }) async {
-    print('Scanned Code in scanAndAddProduct: $scannedCode');
+    debugPrint('API Service - scanAndAddProduct called with:');
+    debugPrint('- scannedCode: $scannedCode');
+    debugPrint('- passed ownerId: $ownerId');
+    debugPrint('- passed storeId: $storeId');
+
+    final token = await _getToken();
+
+    // Get IDs from service only if they weren't provided
+    String? finalOwnerId = ownerId;
+    String? finalStoreId = storeId;
+
+    if (finalOwnerId == null || finalOwnerId.isEmpty) {
+      finalOwnerId = await locator<CustomerService>().getOwnerId();
+      debugPrint('- fetched ownerId from service: $finalOwnerId');
+    }
+
+    if (finalStoreId == null || finalStoreId.isEmpty) {
+      finalStoreId = await locator<CustomerService>().getStoreId();
+      debugPrint('- fetched storeId from service: $finalStoreId');
+    }
+
+    debugPrint('Final values:');
+    debugPrint('- finalOwnerId: $finalOwnerId');
+    debugPrint('- finalStoreId: $finalStoreId');
+
+    if (finalStoreId == null || finalStoreId.isEmpty) {
+      debugPrint('Error: No StoreId provided. Cannot add product.');
+      return null;
+    }
+
+    if (finalOwnerId == null || finalOwnerId.isEmpty) {
+      debugPrint('Error: No OwnerId provided. Cannot add product.');
+      return null;
+    }
 
     final payload = {
       "name": data.name ?? "",
@@ -36,31 +138,33 @@ class ProductApiService {
       "expiryDate": data.expiryDate ?? "",
       "brands": data.brands ?? "",
       "stock": data.stock ?? 0,
+      //"owner": finalOwnerId,  // Remove this line
+      "store": finalStoreId
     };
 
     try {
-      Response response =
-          await connect().post(AppUrls.scanAddProductsUrl, data: payload);
+      Response response = await connect().post(
+        AppUrls.scanAddProductsUrl,
+        data: payload,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
 
-      print("Response Status: ${response.statusCode}");
-      print("Raw Response Data: ${response.data}");
+      debugPrint("Response Status: ${response.statusCode}");
+      debugPrint("Raw Response Data: ${response.data}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         dynamic responseData = response.data;
-
-        // Check if responseData is a Map
         if (responseData is Map<String, dynamic>) {
           return AddProductResponse.fromJson(responseData);
         } else {
           throw Exception("Unexpected response format: $responseData");
         }
       }
-
       return null;
     } on DioException catch (e) {
       final message = e.response?.data is String
           ? e.response?.data
-          : e.response?.data['message'] ?? 'Unknown error';
+          : e.response?.data?['message'] ?? 'Unknown error';
       debugPrint("API Error: $message");
       return null;
     } catch (e) {
@@ -68,6 +172,7 @@ class ProductApiService {
       return null;
     }
   }
+
 
   Future<List<Product>?> searchProduct(String query) async {
     try {
@@ -126,29 +231,19 @@ class ProductApiService {
   }
 
   /// 📦 Get paginated list of products
-  Future<SearchProductResponse?> getProducts({
+  Future<Product?> getProducts({
     int page = 1,
     int limit = 10,
   }) async {
     try {
-      // Send the HTTP GET request to the server
-      Response response = await connect().get(
-        AppUrls.getProductsUrl,
-        queryParameters: {"page": page, "limit": limit},
-      );
-
-      // Check if the response is successful (status code 200)
-      if (response.statusCode == 200) {
-        // Deserialize the response data to a SearchProductResponse object
-        return SearchProductResponse.fromJson(response.data);
-      }
-    } catch (e) {
-      print("Error fetching products: $e");
+      Response response = await connect().get("products");
+      Product? dataResponse = Product.fromJson(jsonDecode(response.data));
+      return dataResponse;
+    } on DioException catch (e) {
+      print(e.response);
+      return null;
     }
-
-    return null;
   }
-
 
   /// 🆔 Get single product by ID
   Future<Product?> getProductById(String id) async {
@@ -183,7 +278,7 @@ class ProductApiService {
     };
 
     try {
-      Response response = await connect().post("api/products", data: payload);
+      Response response = await connect().post("products", data: payload);
       if (response.statusCode == 201) {
         return AddProductResponse.fromJson(response.data);
       }
@@ -223,7 +318,7 @@ class ProductApiService {
   /// ❌ Delete a product
   Future<bool> deleteProduct(String id) async {
     try {
-      Response response = await connect().delete("api/products/$id");
+      Response response = await connect().delete("products/$id");
 
       return response.statusCode == 200;
     } catch (e) {
@@ -249,20 +344,33 @@ class ProductApiService {
     return null;
   }
 
-  Future<Map<String, dynamic>?> fetchExpiringProducts(
-      int page, int limit) async {
+  Future<List<Product>?> fetchExpiringProducts(int page, int limit) async {
     try {
-      Response response = await connect().get(
-        "products/expiring?page=$page&limit=$limit",
-      );
+      Response response =
+          await connect().get('products/expiring?page=$page&limit=$limit');
 
-      if (response.statusCode == 200) {
-        return {
-          'data': (response.data['data'] as List)
-              .map((json) => Product.fromJson(json))
-              .toList(),
-          'metadata': response.data['metadata'],
-        };
+      if (response.statusCode == 200 && response.data != null) {
+        dynamic decodedResponse = response.data;
+        if (decodedResponse is String) {
+          decodedResponse = jsonDecode(decodedResponse);
+        }
+
+        if (decodedResponse is Map &&
+            decodedResponse['data'] is Map &&
+            decodedResponse['data']['data'] is List) {
+          List<dynamic> productList = decodedResponse['data']['data'];
+          return productList
+              .map((item) => Product.fromJson(item as Map<String, dynamic>))
+              .toList();
+        } else {
+          print(
+              "Unexpected response format for expiring products: $decodedResponse");
+          return null;
+        }
+      } else {
+        print(
+            "Failed to fetch expiring products. Status code: ${response.statusCode}, Response: ${response.data}");
+        return null;
       }
     } catch (e) {
       print("Error fetching expiring products: $e");
@@ -270,23 +378,36 @@ class ProductApiService {
     return null;
   }
 
-  Future<Map<String, dynamic>?> fetchLowStockProducts(
-      int page, int limit) async {
+  Future<List<Product>?> fetchLowStockProducts(int page, int limit) async {
     try {
-      final response = await connect().get(
-        'products/low-stock?page=$page&limit=$limit',
-      );
+      Response response =
+          await connect().get('products/low-stock?page=$page&limit=$limit');
 
-      if (response.statusCode == 200) {
-        return {
-          'data': (response.data['data'] as List)
-              .map((json) => Product.fromJson(json))
-              .toList(),
-          'metadata': response.data['metadata'],
-        };
+      if (response.statusCode == 200 && response.data != null) {
+        dynamic decodedResponse = response.data;
+        if (decodedResponse is String) {
+          decodedResponse = jsonDecode(decodedResponse);
+        }
+
+        if (decodedResponse is Map &&
+            decodedResponse['data'] is Map &&
+            decodedResponse['data']['data'] is List) {
+          List<dynamic> productList = decodedResponse['data']['data'];
+          return productList
+              .map((item) => Product.fromJson(item as Map<String, dynamic>))
+              .toList();
+        } else {
+          print(
+              "Unexpected response format for expiring products: $decodedResponse");
+          return null;
+        }
+      } else {
+        print(
+            "Failed to fetch expiring products. Status code: ${response.statusCode}, Response: ${response.data}");
+        return null;
       }
     } catch (e) {
-      print("Error fetching low stock products: $e");
+      print("Error fetching expiring products: $e");
     }
     return null;
   }
@@ -306,6 +427,38 @@ class ProductApiService {
       }
     } on DioException catch (e) {
       print("❌ Error fetching product ID: ${e.response?.data}");
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchInventorySummary() async {
+    try {
+      Response response = await connect().get('products/inventory-summary');
+      if (response.statusCode == 200 && response.data != null) {
+        if (response.data is String) {
+          try {
+            return jsonDecode(response.data) as Map<String, dynamic>;
+          } catch (e) {
+            print('Error decoding JSON: $e');
+            return null;
+          }
+        } else if (response.data is Map<String, dynamic>) {
+          return response.data;
+        } else {
+          print('Unexpected response data type: ${response.data.runtimeType}');
+          return null;
+        }
+      } else {
+        print(
+            'Failed to fetch inventory summary. Status code: ${response.statusCode}, Response: ${response.data}');
+        return null;
+      }
+    } on DioException catch (e) {
+      print('DioError fetching inventory summary: $e');
+      print('DioError response: ${e.response?.data}');
+      return null;
+    } catch (e) {
+      print('Error fetching inventory summary: $e');
       return null;
     }
   }

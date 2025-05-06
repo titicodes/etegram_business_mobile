@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../../base/base_vm.dart';
 import '../../product/view/product_view.dart';
 import '../../sales/view/sales_record.dart';
+import '../../supply/view/new_supply_view.dart';
 import '../views/home_view.dart';
 
 class MainNavViewModel extends BaseViewModel {
@@ -20,7 +21,7 @@ class MainNavViewModel extends BaseViewModel {
       const HomeView(),
       const SAles(), // Placeholder for ChatHomeView or BrowseViewScreen
       const ProductView(),
-     NewSupplierView(),
+      NewSupplyView(),
       const AccountView(),
     ];
 

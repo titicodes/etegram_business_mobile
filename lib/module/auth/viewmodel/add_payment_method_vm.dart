@@ -14,7 +14,7 @@ class AddPaymentMethodViwModel extends BaseViewModel {
   String newAccountName = '';
   String? newExtraInfo;
   bool isChecked = false;
-  bool isLoading = false;
+
   String? errorMessage;
   List<Bank> banks = [];
   Bank? selectedBank;
@@ -32,12 +32,25 @@ class AddPaymentMethodViwModel extends BaseViewModel {
 
   Future<void> loadBanks() async {
     try {
-      final String response = await rootBundle.loadString('assets/banks.json');
+      final String response = await rootBundle.loadString('assets/nigerian-banks.json');
       final data = json.decode(response);
-      final Map<String, dynamic> bankMap = data['data']; // Fix here
-      banks = bankMap.values
-          .map((json) => Bank.fromJson(json))
-          .toList(); // Use values to convert map to list
+
+      // Ensure the correct structure of the JSON and check if 'data' is a list or map
+      if (data['data'] is List) {
+        // If 'data' is a list, map it directly
+        banks = (data['data'] as List)
+            .map((json) => Bank.fromJson(json))
+            .toList();
+      } else if (data['data'] is Map) {
+        // If 'data' is a map, extract values
+        final Map<String, dynamic> bankMap = data['data'];
+        banks = bankMap.values
+            .map((json) => Bank.fromJson(json))
+            .toList();
+      } else {
+        throw 'Unexpected data structure';
+      }
+
       notifyListeners();
     } catch (e) {
       errorMessage = 'Failed to load banks: $e';
@@ -47,9 +60,8 @@ class AddPaymentMethodViwModel extends BaseViewModel {
 
 
 
-
   Future<void> fetchPaymentMethods() async {
-    isLoading = true;
+    isLoading.value = true;
     notifyListeners();
     try {
       List<PaymentMethod>? storedMethods =
@@ -62,7 +74,7 @@ class AddPaymentMethodViwModel extends BaseViewModel {
     } catch (e) {
       errorMessage = e.toString();
     } finally {
-      isLoading = false;
+      isLoading.value = false;
       notifyListeners();
     }
   }
@@ -95,7 +107,7 @@ class AddPaymentMethodViwModel extends BaseViewModel {
   }
 
   Future<void> savePaymentMethod() async {
-    isLoading = true;
+    isLoading.value = true;
     notifyListeners();
     try {
       final newMethod = PaymentMethod(
@@ -111,7 +123,7 @@ class AddPaymentMethodViwModel extends BaseViewModel {
     } catch (e) {
       errorMessage = e.toString();
     } finally {
-      isLoading = false;
+      isLoading.value = false;
       notifyListeners();
     }
   }

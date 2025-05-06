@@ -31,7 +31,7 @@ class AuthRepository {
 
   Future<AuthResponse?> login({required Customer data}) async {
     var response = await auth.login(data: data);
-    if (response?.data?.emailVerified == true) {
+    if (response?.customer?.emailVerified == true) {
       await userService.storeToken(response);
     }
     return response;

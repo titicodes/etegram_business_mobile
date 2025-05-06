@@ -1,19 +1,17 @@
-import 'package:etegram_business/app_widget/app_text.dart';
-import 'package:etegram_business/base/base_vm.dart';
-import 'package:etegram_business/constants/assets.dart';
-import 'package:etegram_business/constants/colors.dart';
-import 'package:etegram_business/constants/style.dart';
+import 'dart:convert';
 import 'package:etegram_business/core/model/get_search_response.dart';
-import 'package:etegram_business/utils/snack_message.dart';
-import 'package:etegram_business/utils/widget_extension.dart';
+import 'package:etegram_business/core/model/product_model.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_toggle_tab/flutter_toggle_tab.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../../../constants/strings.dart';
-import '../../../core/model/product_model.dart';
-import '../../../core/model/supply_response.dart';
+import '../../../base/base_vm.dart';
+import '../../../constants/assets.dart';
+import '../../../utils/snack_message.dart';
+import '../../../utils/widget_extension.dart';
 import '../view/add_product.dart';
 
 class ProductViewModel extends BaseViewModel {
@@ -31,9 +29,13 @@ class ProductViewModel extends BaseViewModel {
   SearchProductResponse? allProduct;
   List<Product> _expiringProducts = [];
   List<Product> _lowStockProducts = [];
-  List<Product> get  allProducts => _products;
+  List<Product> get allProducts => _products;
   List<Product> get expiringProducts => _expiringProducts;
   List<Product> get lowStockProducts => _lowStockProducts;
+  bool _isLoadingExpiring = false;
+  bool _isLoadingLowStock = false;
+  bool get isLoadingExpiring => _isLoadingExpiring;
+  bool get isLoadingLowStock => _isLoadingExpiring;
 
   int _currentExpiringPage = 1;
   int _currentLowStockPage = 1;
@@ -49,25 +51,37 @@ class ProductViewModel extends BaseViewModel {
   String? get scannedCode => _scannedCode;
 
   List<Product> get products => _products;
-  bool get isLoading => _isLoading;
+  // bool get isLoading => _isLoading;
   bool get isScanning => _isScanning;
   AddProductResponse? get addProductResponse => _addProductResponse;
 
-  ProductViewModel({this.tabController});
+  ProductViewModel({this.tabController}) {
+    fetchInventorySummaryData(); // Call it in the constructor
+  }
+
+  final ValueNotifier<double> _totalCost = ValueNotifier(0.0);
+  ValueNotifier<double> get totalCost => _totalCost;
+
+  final ValueNotifier<double> _totalSellingPrice = ValueNotifier(0.0);
+  ValueNotifier<double> get totalSellingPrice => _totalSellingPrice;
+
+  final ValueNotifier<int> _totalStock = ValueNotifier(0);
+  ValueNotifier<int> get totalStock => _totalStock;
 
   int _currentPage = 1;
   int _currentIndex = 0;
 
   Future<void> initialize() async {
-    await fetchAllProducts();
+    await fetchProducts();
     await fetchExpiringProducts();
     await fetchLowStockProducts();
+    fetchInventorySummaryData();
   }
+
   void changeIndex(int index) {
     _currentIndex = index;
     notifyListeners();
   }
-
 
   int get selectedIndex => _selectedIndex;
   final ValueNotifier<int> tabIndex = ValueNotifier(0);
@@ -79,10 +93,10 @@ class ProductViewModel extends BaseViewModel {
       ];
 
   List<DataTab> get productTabOptions => [
-    DataTab(title: "All Product"),
-    DataTab(title: "Expiring"),
-    DataTab(title: "Low Stock"),
-  ];
+        DataTab(title: "All Product"),
+        DataTab(title: "Expiring"),
+        DataTab(title: "Low Stock"),
+      ];
 
   List<String> suppliedToSelection = ["Store", "Warehouse"];
 
@@ -97,11 +111,11 @@ class ProductViewModel extends BaseViewModel {
     _isLoading = true;
     notifyListeners();
 
-    SearchProductResponse? fetchedProducts =
+    Product? fetchedProducts =
         await productRepository.getProducts(page: _currentPage);
 
-    if (fetchedProducts != null && fetchedProducts.data != null) {
-      List<Product> newProducts = (fetchedProducts.data!.data as List)
+    if (fetchedProducts != null) {
+      List<Product> newProducts = (fetchedProducts as List)
           .map((item) => Product.fromJson(item))
           .toList();
 
@@ -118,32 +132,36 @@ class ProductViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  Future<void> fetchExpiringProducts() async {
-    _isLoading = true;
+  /// 🔄 Fetch expiring products
+  Future<void> fetchExpiringProducts({bool loadMore = false}) async {
+    if (_isLoadingExpiring) return;
+
+    _isLoadingExpiring = true;
     notifyListeners();
 
-    // Fetch expiring products with page and limit
-    var result = await productRepository.fetchExpiringProducts(_currentExpiringPage, _limit);
-
-    if (result != null) {
-      var fetchedProducts = result['data'];
-      if (fetchedProducts != null && fetchedProducts is List) {
-        _expiringProducts = fetchedProducts.cast<Product>();
+    final List<Product>? fetchedProductsList =
+        await productRepository.fetchExpiringProducts(
+      _currentExpiringPage,
+      _limit,
+    );
+    if (fetchedProductsList != null) {
+      if (loadMore) {
+        _products.addAll(fetchedProductsList);
       } else {
-        _expiringProducts = [];
+        _products = fetchedProductsList;
       }
 
-      // You can also handle pagination metadata if needed, such as total pages
-      var metadata = result['metadata'];
-      if (metadata != null) {
-        // You can use metadata to handle page navigation or other actions
-        print("Total Pages for Expiring Products: ${metadata['totalPages']}");
+      for (final product in fetchedProductsList) {
+        await productRepository
+            .storeFetchedProduct(product); // Calling for each product
       }
     } else {
-      _expiringProducts = [];
+      if (!loadMore) {
+        _products = [];
+      }
+      // Optionally handle error (e.g., show a message)
     }
-
-    _isLoading = false;
+    _isLoadingExpiring = false;
     notifyListeners();
   }
 
@@ -151,43 +169,50 @@ class ProductViewModel extends BaseViewModel {
     _isLoading = true;
     notifyListeners();
 
-    // Fetch the products from the repository
-    var response = await productRepository.getProducts();
+    try {
+      var response = await productRepository.getProducts();
 
-    // Ensure response is not null and contains products
-    allProduct = (response?.data ?? []) as SearchProductResponse?; // Get the products from the response
+      // Fix: Safely parse the nested response
+      if (response != null && response is Map<String, dynamic>) {
+        final dataMap = response as Map<String, dynamic>;
+
+        if (dataMap['data'] != null && dataMap['data'] is List<dynamic>) {
+          allProduct = SearchProductResponse.fromJson(dataMap);
+        } else {
+          // fallback for unexpected structure
+          allProduct = SearchProductResponse();
+        }
+      }
+    } catch (e) {
+      print("Error fetching products: $e");
+    }
 
     _isLoading = false;
     notifyListeners();
   }
 
+  Future<void> fetchLowStockProducts({bool loadMore = false}) async {
+    if (_isLoadingLowStock) return;
 
-  Future<void> fetchLowStockProducts() async {
-    _isLoading = true;
-    notifyListeners();
-
-    // Fetch low stock products with page and limit
-    var result = await productRepository.fetchLowStockProducts(_currentLowStockPage, _limit);
-
-    if (result != null) {
-      var fetchedProducts = result['data'];
-      if (fetchedProducts != null && fetchedProducts is List) {
-        _lowStockProducts = fetchedProducts.cast<Product>();
-      } else {
-        _lowStockProducts = [];
-      }
-
-      // Handle pagination metadata if necessary
-      var metadata = result['metadata'];
-      if (metadata != null) {
-        // You can use metadata for pagination or other handling
-        print("Total Pages for Low Stock Products: ${metadata['totalPages']}");
-      }
+    // Set the page based on whether we are loading more products
+    if (loadMore) {
+      _currentLowStockPage++;
     } else {
-      _lowStockProducts = [];
+      _currentLowStockPage = 1; // Start from the first page if not loading more
     }
 
-    _isLoading = false;
+    _isLoadingLowStock = true;
+    notifyListeners();
+
+    // Call fetch function to get the low stock products with required arguments
+    final fetchedProducts = await productRepository.fetchLowStockProducts(
+        _currentLowStockPage, _limit);
+
+    if (fetchedProducts != null) {
+      _lowStockProducts = fetchedProducts;
+    }
+
+    _isLoadingLowStock = false;
     notifyListeners();
   }
 
@@ -212,52 +237,6 @@ class ProductViewModel extends BaseViewModel {
 
   void updateScannedCode(String code) {
     _scannedCode = code;
-    notifyListeners();
-  }
-
-  void updateProductName(String value) {
-    productName = value;
-    notifyListeners();
-  }
-
-  void updateProductSize(String value) {
-    productSize = value;
-    notifyListeners();
-  }
-
-  void updateProductFilter(String? value) {
-    productFilter = value ?? '';
-    notifyListeners();
-  }
-
-  void updateCostPrice(int value) {
-    costPrice += value;
-    notifyListeners();
-  }
-
-  void updateUnitPrice(int value) {
-    unitPrice += value;
-    notifyListeners();
-  }
-
-  void updateQuantity(int value) {
-    quantity += value;
-    notifyListeners();
-  }
-
-  void updateMinQuantity(int value) {
-    minQuantity += value;
-    notifyListeners();
-  }
-
-  void addProduct(Product product) {
-    final product = Product(
-      name: productName,
-      size: productSize,
-      price: unitPrice.toInt(),
-      quantity: quantity,
-    );
-    _products.add(product);
     notifyListeners();
   }
 
@@ -298,142 +277,6 @@ class ProductViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> deleteProduct(String productId) async {
-    _isLoading = true;
-    notifyListeners();
-
-    bool isDeleted = await productRepository.deleteProduct(productId);
-
-    if (isDeleted) {
-      _products.removeWhere((product) => product.id == productId);
-      notifyListeners();
-    }
-
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  Future<void> updateProduct(String productId, Product updatedProduct) async {
-    _isLoading = true;
-    notifyListeners();
-
-    Product? updatedProductResponse =
-        await productRepository.updateProduct(productId, updatedProduct);
-
-    if (updatedProductResponse != null) {
-      int index = _products.indexWhere((product) => product.id == productId);
-      if (index != -1) {
-        _products[index] = updatedProductResponse;
-        notifyListeners();
-      }
-    }
-
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  Future<void> _showScannerDialog(BuildContext context) async {
-    String? barcodeScanResult;
-
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Scan Barcode"),
-        content: SizedBox(
-          height: height(context) * .7,
-          width: width(context),
-          child: MobileScanner(
-            onDetect: (capture) {
-              final barcode = capture.barcodes.first;
-              if (barcode.rawValue != null) {
-                barcodeScanResult = barcode.rawValue!;
-                Navigator.pop(context);
-              }
-            },
-          ),
-        ),
-      ),
-    );
-
-    if (barcodeScanResult != null) {
-      startLoader();
-      //await searchProduct(barcodeScanResult!);
-      stopLoader();
-
-      if (selectedProduct != null) {
-        Future.delayed(Duration.zero, () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddProductView(
-                product: convertSearchDataToProduct(selectedProduct!),
-                isEditing: true,
-              ),
-            ),
-          );
-        });
-      } else {
-        Future.delayed(Duration.zero, () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AddProductView(
-                scannedCode: barcodeScanResult,
-                isEditing: false,
-              ),
-            ),
-          );
-        });
-      }
-    }
-  }
-
-  void _showQuickTips(BuildContext context, Function onScanConfirmed) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Quick Tips'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text("Tap to search", textAlign: TextAlign.center),
-              const SizedBox(height: 10),
-              const Text("Tap to pause", textAlign: TextAlign.center),
-              const SizedBox(height: 10),
-              const Text("Tap to scan", textAlign: TextAlign.center),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Don't show this again"),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                if (!disposed) {
-                  onScanConfirmed();
-                }
-              },
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-
-  void addOrUpdateProduct(Product product) {
-    if (selectedProduct != null && selectedProduct!.id == product.id) {
-      updateProduct(product.id ?? "", product);
-    } else {
-      addProduct(product);
-    }
-    updateProductLists();
-  }
-
   void updateProductLists() {
     // Logic to update expiring, low stock, and total products
     // This could involve filtering _products based on certain criteria
@@ -449,59 +292,31 @@ class ProductViewModel extends BaseViewModel {
     super.dispose();
   }
 
-  /// 🔄 **Convert `SearchData` to `Product`**
-  Product convertSearchDataToProduct(ProductData data) {
-    return Product(
-      id: data.id,
-      name: data.name ?? "Unknown Product",
-      size: data.size ?? "N/A", // Assuming size is in SearchData
-      expiryDate: null,
-      price: data.price?.toInt(),
-      code: data.code,
-      unitPrice: data.unitPrice?.toInt(),
-    );
-  }
+  Future<void> fetchInventorySummaryData() async {
+    isLoading.value = true;
+    final summary = await productRepository.fetchInventorySummary();
+    print("Inventory Summary Response: $summary"); // Check the raw response
 
-  /// 📝 **Save scanned product to database**
-  Future<AddProductResponse?> saveScannedProduct(
-      Product product, String scannedCode) async {
-    try {
-      startLoader();
-      final response = await productRepository.scanAndAddProduct(
-          data: product, scannedCode: scannedCode);
-      stopLoader();
-      return response;
-    } catch (e) {
-      print("Error in scanAndAddProduct: $e");
-      stopLoader();
-      return null;
-    }
-  }
+    if (summary != null && summary['success'] == true && summary['data'] != null) {
+      // Access the nested data field first
+      final data = summary['data'];
 
-  Future<void> scanBarcode(BuildContext context) async {
-    await _checkCameraPermission(context);
-  }
+      // Then extract the values from the data object
+      _totalCost.value = (data['totalCost'] as num?)?.toDouble() ?? 0.0;
+      _totalSellingPrice.value = (data['totalSellingPrice'] as num?)?.toDouble() ?? 0.0;
+      _totalStock.value = (data['totalStock'] as num?)?.toInt() ?? 0;
 
-  Future<void> _checkCameraPermission(BuildContext context) async {
-    var status = await Permission.camera.status;
-    if (status.isDenied) {
-      if (await Permission.camera.request().isGranted) {
-        _showQuickTips(context, () async {
-          await _showScannerDialog(context);
-        });
-      } else {
-        showCustomToast('Camera permission is required to scan barcodes.');
-      }
-    } else if (status.isPermanentlyDenied) {
-      showCustomToast(
-          'Camera permission is permanently denied. Please enable it in app settings.');
-      openAppSettings();
-    } else if (status.isGranted) {
-      _showQuickTips(context, () async {
-        await _showScannerDialog(context);
-      });
+      print("Total Cost: ${_totalCost.value}");
+      print("Total Selling Price: ${_totalSellingPrice.value}");
+      print("Total Stock: ${_totalStock.value}");
     } else {
-      showCustomToast('Could not access camera.');
+      _totalCost.value = 0.0;
+      _totalSellingPrice.value = 0.0;
+      _totalStock.value = 0;
+      showCustomToast('Failed to fetch inventory summary.');
+      print("Failed to fetch inventory summary.");
     }
+    isLoading.value = false;
+    notifyListeners();
   }
 }

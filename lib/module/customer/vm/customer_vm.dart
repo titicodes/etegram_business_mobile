@@ -79,8 +79,6 @@ class CustomerViewModel extends BaseViewModel {
     }
   }
 
-  @override
-  bool get isLoading => _isLoading;
 
   onChange(String? val) {
     formKey.currentState?.validate();

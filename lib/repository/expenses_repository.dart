@@ -18,12 +18,12 @@ class ExpensesRepository {
     return response?.data?.first;
   }
 
-  Future<List<ExpenseData>?> getAllExpenses(String userId) async {
-    return expensesApiService.getAllExpenses(userId);
+  Future<List<ExpenseData>?> getAllExpenses() async {
+    return expensesApiService.getAllExpenses();
   }
 
   Future<ExpenseData?> getExpenseById(String id, String userId) async {
-    return expensesApiService.getExpenseById(id, userId);
+    return expensesApiService.getExpenseById(id);
   }
 
   Future<ExpenseData?> updateExpense(ExpenseData expense) async {
@@ -32,6 +32,6 @@ class ExpensesRepository {
   }
 
   Future<bool> deleteExpense(String id, String userId) async {
-    return expensesApiService.deleteExpense(id, userId);
+    return expensesApiService.deleteExpense(id,);
   }
 }

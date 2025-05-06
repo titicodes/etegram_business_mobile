@@ -114,27 +114,38 @@ class NewCustomers extends StatelessWidget {
                       },
                       keyboardType: TextInputType.number,
                     ),
-                    12.0.sbH,
+                    16.0.sbH,
                     GestureDetector(
                       onTap: () => model.selectDate(context),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const AppText("Birthday",),
-                          Text(
-                            model.selectedExpiryDate != null
-                                ? DateFormat('yyyy-MM-dd')
-                                    .format(model.selectedExpiryDate!)
-                                : "Pick Date",
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.normal,
-                                color: ColorValues.appTextColor),
+                      child: Container(
+                        height: 55.0,
+                        width: width(context),
+                        decoration: BoxDecoration(
+                          color: ColorValues.whiteColor,
+                          borderRadius: BorderRadius.circular(4)
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const AppText("Birthday",),
+                              Text(
+                                model.selectedExpiryDate != null
+                                    ? DateFormat('yyyy-MM-dd')
+                                        .format(model.selectedExpiryDate!)
+                                    : "Pick Date",
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.normal,
+                                    color: ColorValues.appTextColor),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                    12.0.sbH,
+                    16.0.sbH,
                     AppTextField(
                       hintColor: ColorValues.appTextColor,
                       prefix: Icon(Icons.location_on_sharp),

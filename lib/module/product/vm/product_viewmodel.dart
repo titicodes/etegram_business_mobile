@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:dio/dio.dart';
 import 'package:etegram_business/base/base_vm.dart';
@@ -6,15 +7,16 @@ import 'package:etegram_business/locator.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:camera/camera.dart';
+import '../../../app_widget/add_product_scanner.dart';
 import '../../../app_widget/barcode_scanner_view.dart';
 import '../../../app_widget/celebration_widget.dart';
 import '../../../constants/assets.dart';
 import '../../../core/model/get_scan_response.dart';
 import '../../../core/model/get_search_response.dart';
 import '../../../core/model/product_model.dart';
-import '../../../core/model/supply_response.dart';
+import '../../../service/local/user_service.dart'; // Import UserService
+import '../../../service/web/base_api.dart';
 import '../../../utils/snack_message.dart';
-import '../../sales/vm/new_sales_vm.dart';
 import '../view/add_product.dart';
 import 'package:http/http.dart' as http;
 
@@ -22,12 +24,21 @@ class PRoductViewModel extends BaseViewModel {
   // Controllers for form fields
   final TextEditingController nameController = TextEditingController();
   final TextEditingController sizeController = TextEditingController();
-  final TextEditingController costPriceController = TextEditingController();
-  final TextEditingController unitPriceController = TextEditingController();
-  final TextEditingController quantityController = TextEditingController();
-  final TextEditingController minQuantityController = TextEditingController();
+  final TextEditingController costPriceController =
+      TextEditingController(text: '0');
+  final TextEditingController unitPriceController =
+      TextEditingController(text: '0');
+  final TextEditingController quantityController =
+      TextEditingController(text: '1');
+  final TextEditingController minQuantityController =
+      TextEditingController(text: '1');
   final TextEditingController filterController = TextEditingController();
   final TextEditingController brandController = TextEditingController();
+  final TextEditingController codeController = TextEditingController();
+  final TextEditingController stockController =
+      TextEditingController(text: '0');
+  final TextEditingController totalValueController =
+      TextEditingController(text: '0');
 
   bool isFetchingExternalData = false;
   int currentIndex = 0;
@@ -39,6 +50,8 @@ class PRoductViewModel extends BaseViewModel {
   double unitPrice = 0;
   int quantity = 0;
   int minQuantity = 0;
+  int totalValue = 0;
+
   List<Product> _products = [];
   final TabController? tabController;
   bool _isLoading = false;
@@ -46,7 +59,6 @@ class PRoductViewModel extends BaseViewModel {
   AddProductResponse? _addProductResponse;
   String search = "";
   TextEditingController searchController = TextEditingController();
-  TextEditingController stockController = TextEditingController();
   BarcodeScanner? _barcodeScanner;
   CameraController? _cameraController;
 
@@ -65,10 +77,7 @@ class PRoductViewModel extends BaseViewModel {
 
   List<Product> get products => _products;
 
-  @override
-  bool get isLoading => _isLoading;
 
-  AddProductResponse? get addProductResponse => _addProductResponse;
 
   bool _isAdding = false;
 
@@ -82,14 +91,25 @@ class PRoductViewModel extends BaseViewModel {
   bool _isAddingProduct = false;
 
   bool get isAddingProduct => _isAddingProduct;
+  bool _isCheckingProductExistence = false;
 
-  PRoductViewModel({this.tabController});
+  bool get isCheckingProductExistence => _isCheckingProductExistence;
+
+  PRoductViewModel({this.tabController}) {
+    unitPriceController.addListener(updateTotals);
+    quantityController.addListener(updateTotals);
+    stockController.addListener(updateTotals);
+  }
 
   List<String> filterBySelection = ["Electronic", "Discounted Sales"];
   bool _disposed = false;
 
   @override
   void dispose() {
+    unitPriceController.removeListener(updateTotals);
+    quantityController.removeListener(updateTotals);
+    stockController.removeListener(updateTotals);
+
     searchController.dispose();
     _barcodeScanner?.close();
     _cameraController?.dispose();
@@ -100,9 +120,22 @@ class PRoductViewModel extends BaseViewModel {
     quantityController.dispose();
     minQuantityController.dispose();
     filterController.dispose();
+    brandController.dispose();
+    stockController.dispose();
+    totalValueController.dispose();
 
     _disposed = true;
     super.dispose();
+  }
+
+  void updateTotals() {
+    if (_disposed) return;
+    int unitPrice = int.tryParse(unitPriceController.text) ?? 0;
+    int quantity = int.tryParse(quantityController.text) ?? 0;
+    int stock = int.tryParse(stockController.text) ?? 0;
+    totalValue = unitPrice * stock;
+    totalValueController.text = totalValue.toString();
+    notifyListeners();
   }
 
   void _safeNotifyListeners() {
@@ -111,7 +144,6 @@ class PRoductViewModel extends BaseViewModel {
     }
   }
 
-  // Initialize ViewModel
   Future<void> init() async {
     await fetchProducts();
   }
@@ -129,20 +161,16 @@ class PRoductViewModel extends BaseViewModel {
 
   bool disposed = false;
 
-  // Fetch All Products or Perform Search
   Future<void> fetchProducts({String? query}) async {
     try {
       _isLoading = true;
       notifyListeners();
-
       List<Product>? response;
-
       if (query != null && query.isNotEmpty) {
         response = await productRepository.searchProduct(query);
       } else {
         response = await productRepository.searchProduct("");
       }
-
       if (response != null) {
         _products = response;
       } else {
@@ -158,30 +186,26 @@ class PRoductViewModel extends BaseViewModel {
     }
   }
 
-  // Search Product Function
   Future<void> searchProduct(String query) async {
     if (query.isEmpty) {
-      await fetchProducts(); // Reset to all products when search is cleared
+      await fetchProducts();
     } else {
       await fetchProducts(query: query);
     }
   }
 
-  // Update Product Function
   Future<void> updateProduct(Product updatedProduct) async {
     try {
       _isUpdating = true;
       _updateErrorMessage = null;
       _isUpdateSuccessful = false;
       notifyListeners();
-
       final response = await productRepository.updateProduct(
           updatedProduct.id!, updatedProduct);
-
       if (response != null) {
         showCustomToast('Product updated successfully.');
         _isUpdateSuccessful = true;
-        await fetchProducts(); // Refresh list
+        await fetchProducts();
       } else {
         _updateErrorMessage = 'Failed to update product.';
         showCustomToast('Failed to update product.');
@@ -200,11 +224,13 @@ class PRoductViewModel extends BaseViewModel {
     nameController.clear();
     sizeController.clear();
     filterController.clear();
-    costPriceController.clear();
-    unitPriceController.clear();
+    costPriceController.text = '0';
+    unitPriceController.text = '0';
     quantityController.text = '1';
     minQuantityController.text = '1';
-    brandController.clear(); // Clear the brand controller
+    brandController.clear();
+    stockController.text = '0';
+    totalValueController.text = '0';
     productImageUrl = '';
     notifyListeners();
   }
@@ -213,9 +239,7 @@ class PRoductViewModel extends BaseViewModel {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const BarcodeScannerView(
-          purpose: ScanPurpose.add,
-        ),
+        builder: (context) => const AddProductScannerView(),
       ),
     );
   }
@@ -223,33 +247,64 @@ class PRoductViewModel extends BaseViewModel {
   final List<Cart> _cartItems = [];
   List<Cart> get cartItems => _cartItems;
 
+  // Update the scanAndAddProduct method to show celebration screen on success
   Future<void> scanAndAddProduct(
-      Product product, String scannedCode, BuildContext context) async {
-    // Add BuildContext
+    Product product,
+    String scannedCode,
+    BuildContext context,
+    String ownerId,
+    String storeId,
+  ) async {
     if (_isAddingProduct) return;
     _isAddingProduct = true;
     notifyListeners();
 
     try {
+      // Debug log for parameter verification
+      debugPrint('ViewModel - scanAndAddProduct called with:');
+      debugPrint('- scannedCode: $scannedCode');
+      debugPrint('- ownerId: $ownerId');
+      debugPrint('- storeId: $storeId');
+
+      // Parameter validation
+      if (scannedCode.isEmpty) {
+        showCustomToast('Scanned code is missing.');
+        _isAddingProduct = false;
+        notifyListeners();
+        return;
+      }
+
+      if (ownerId.isEmpty) {
+        showCustomToast('Owner ID is missing.');
+        _isAddingProduct = false;
+        notifyListeners();
+        return;
+      }
+
+      if (storeId.isEmpty) {
+        showCustomToast('Store ID is missing.');
+        _isAddingProduct = false;
+        notifyListeners();
+        return;
+      }
+
       final AddProductResponse? response =
           await productRepository.scanAndAddProduct(
-              // Explicit type
-              data: product,
-              scannedCode: scannedCode);
+        data: product,
+        scannedCode: scannedCode,
+        context: context,
+        storeId: storeId,
+        ownerId: ownerId,
+      );
 
-      if (response != null &&
-          response.success == true &&
-          response.data != null) {
-        showCustomToast('Product added successfully.');
-
-        // Navigate to CelebrationWidget
-      } else {
-        showCustomToast(
-            'Failed to add product: ${response?.message ?? 'Unknown error'}');
+      // If the response is not null, it means the product was added successfully
+      if (response != null) {
+        // Show the celebration screen
+        await showCelebrationScreen(context, productName: product.name);
       }
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        showCustomToast('Product code already exists.');
+      if (e.response?.statusCode == 409) {
+        showCustomToast('Product with this code already exists.');
       } else {
         debugPrint('Error adding product via scan: $e');
         showCustomToast('Error adding product.');
@@ -263,15 +318,96 @@ class PRoductViewModel extends BaseViewModel {
     }
   }
 
+  Future<bool> checkProductExistence(String code, BuildContext context) async {
+    if (_isCheckingProductExistence) return false;
+    _isCheckingProductExistence = true;
+    notifyListeners();
+    try {
+      startLoader();
+      final String? ownerId = await locator<CustomerService>().getOwnerId();
+      final String? storeId = await locator<CustomerService>().getStoreId();
+
+      print(
+          'Checking Existence - Code: $code, Owner ID: $ownerId, Store ID: $storeId'); // Add logging
+
+      if (ownerId == null || storeId == null) {
+        showCustomToast('Could not retrieve user or store information.');
+        stopLoader();
+        _isCheckingProductExistence = false;
+        notifyListeners();
+        return false;
+      }
+
+      Response response =
+          await connect().get("products/check-code", queryParameters: {
+        'code': code,
+        'ownerId': ownerId,
+        'storeId': storeId,
+      });
+
+      if (response.statusCode == 200) {
+        dynamic responseData = response.data; // Don't immediately cast
+
+        if (responseData is String) {
+          debugPrint('Error: Unexpected String response: $responseData');
+          showCustomToast('Error checking product existence.');
+          stopLoader();
+          _isCheckingProductExistence = false;
+          notifyListeners();
+          return false;
+        } else if (responseData is Map<String, dynamic>) {
+          final existsData = responseData['data'] as Map<String, dynamic>?;
+          final exists = existsData?['exists'] as bool?;
+          stopLoader();
+          _isCheckingProductExistence = false;
+          notifyListeners();
+          return exists ?? false;
+        } else {
+          debugPrint('Error: Unexpected response format: $responseData');
+          showCustomToast('Error checking product existence.');
+          stopLoader();
+          _isCheckingProductExistence = false;
+          notifyListeners();
+          return false;
+        }
+      } else {
+        debugPrint('Error checking product existence: ${response.statusCode}');
+        showCustomToast('Failed to check product existence.');
+        stopLoader();
+        _isCheckingProductExistence = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error checking product existence: $e');
+      showCustomToast('Error checking product existence.');
+      stopLoader();
+      _isCheckingProductExistence = false;
+      notifyListeners();
+      return false;
+    } finally {
+      if (!_isCheckingProductExistence) {
+        stopLoader(); // Ensure stopLoader is called if not already done
+        _isCheckingProductExistence = false;
+        notifyListeners();
+      }
+    }
+  }
+
   Future<void> fetchProductDetailsFromAPI(String barcode) async {
     isFetchingExternalData = true;
-    _safeNotifyListeners();
+    notifyListeners();
 
     final apiUrl =
         'https://world.openfoodfacts.org/api/v0/product/$barcode.json';
 
     try {
+      debugPrint('Fetching product data from: $apiUrl');
       final response = await http.get(Uri.parse(apiUrl));
+
+      debugPrint('API Response Status: ${response.statusCode}');
+      debugPrint(
+          'API Response Body: ${response.body.substring(0, min(100, response.body.length))}...');
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
@@ -279,24 +415,23 @@ class PRoductViewModel extends BaseViewModel {
         if (data['status'] == 1) {
           final productData = data['product'];
 
-          debugPrint('Product Data: ${jsonEncode(productData)}');
-
-          nameController.text =
-              productData['product_name']?.toString() ?? 'Unknown Product';
+          nameController.text = productData['product_name']?.toString() ??
+              productData['generic_name']?.toString() ??
+              'Unknown Product';
 
           String size = '';
-          if (productData.containsKey('quantity') &&
-              productData['quantity'] != null) {
-            size = productData['quantity'].toString();
-          } else if (productData.containsKey('net_weight') &&
-              productData['net_weight'] != null) {
-            size = productData['net_weight'].toString();
-          } else if (productData.containsKey('serving_size') &&
-              productData['serving_size'] != null) {
-            size = productData['serving_size'].toString();
-          } else if (productData.containsKey('packaging') &&
-              productData['packaging'] != null) {
-            size = productData['packaging'].toString();
+          for (var sizeField in [
+            'quantity',
+            'net_weight',
+            'serving_size',
+            'packaging'
+          ]) {
+            if (productData.containsKey(sizeField) &&
+                productData[sizeField] != null &&
+                productData[sizeField].toString().isNotEmpty) {
+              size = productData[sizeField].toString();
+              break;
+            }
           }
           sizeController.text = size;
 
@@ -311,65 +446,60 @@ class PRoductViewModel extends BaseViewModel {
               productData['image_thumb_url']?.toString() ??
               '';
 
-          costPriceController.text = '';
-          unitPriceController.text = '';
+          costPriceController.text = '0';
+          unitPriceController.text = '0';
           quantityController.text = '1';
           minQuantityController.text = '1';
+          stockController.text = '0';
+
+          updateTotals();
 
           showCustomToast('Product details found!');
         } else {
           debugPrint(
               'Product not found in Open Food Facts for barcode: $barcode');
-          showCustomToast('Product not found.');
+          showCustomToast('Product not found. Please enter details manually.');
+          clearControllers();
         }
       } else {
         debugPrint(
             'Failed to fetch product details for barcode: $barcode. Status: ${response.statusCode}');
-        showCustomToast('Failed to fetch product details.');
+        showCustomToast(
+            'Failed to fetch product details. Please enter manually.');
+        clearControllers();
       }
     } catch (e) {
       debugPrint(
           'Error fetching product details from API for barcode: $barcode. Error: $e');
-      showCustomToast('Error fetching product details.');
+      showCustomToast('Error fetching product details. Please enter manually.');
+      clearControllers();
     } finally {
       isFetchingExternalData = false;
-      _safeNotifyListeners();
+      notifyListeners();
     }
   }
 
   /// ✅ Save or Update Product
+  // Update the saveOrUpdateProduct method to show celebration for new products
   Future<void> saveOrUpdateProduct({
     Product? existingProduct,
     bool isEditing = false,
     String? scannedCode,
     required BuildContext context,
+    required String ownerId,
+    required String storeId,
   }) async {
     if (formKey.currentState!.validate()) {
       try {
         startLoader();
+        updateTotals();
 
-        // ✅ Only attempt this for newly scanned product
-        if (!isEditing && scannedCode != null) {
-          // Use SaleViewModel to check if product exists
-          final saleVM =
-              locator<SaleViewModel>(); // or access from Provider/BaseView
-          bool exists = await saleVM.checkIfProductExists(scannedCode, context);
-
-          if (exists) {
-            // Product already exists, added to cart
-            showCustomToast("Product exists. Added to cart instead.");
-            stopLoader();
-            Navigator.pop(context); // Go back or show cart
-            return;
-          }
-        }
-
-        // ✅ Continue with normal add/edit logic
         int? stock = int.tryParse(stockController.text);
         int? costPrice = int.tryParse(costPriceController.text);
         int? unitPrice = int.tryParse(unitPriceController.text);
         int? quantity = int.tryParse(quantityController.text);
         int? minQuantity = int.tryParse(minQuantityController.text);
+        int? totalValue = int.tryParse(totalValueController.text);
 
         if (stock == null ||
             costPrice == null ||
@@ -385,89 +515,57 @@ class PRoductViewModel extends BaseViewModel {
           name: nameController.text,
           code: scannedCode,
           category: filterController.text,
-          price: costPrice,
+          price: unitPrice * quantity,
           quantity: quantity,
           unitPrice: unitPrice,
           minQuantity: minQuantity,
           size: sizeController.text,
           brands: brandController.text,
           stock: stock,
+          totalCost: totalValue ?? (unitPrice * stock),
+          owner: ownerId,
         );
 
         if (isEditing && existingProduct != null) {
           await updateProduct(productData.copyWith(id: existingProduct.id));
           showCustomToast("Product updated successfully");
         } else {
-          await scanAndAddProduct(productData, scannedCode!, context);
+          // Parameter validation
+          if (scannedCode == null || scannedCode.isEmpty) {
+            showCustomToast(
+                "Scanned code is missing. Please scan a barcode first.");
+            stopLoader();
+            return;
+          }
+
+          if (ownerId.isEmpty) {
+            showCustomToast(
+                "Owner ID is missing. Please check your account settings.");
+            stopLoader();
+            return;
+          }
+
+          if (storeId.isEmpty) {
+            showCustomToast(
+                "Store ID is missing. Please check your store settings.");
+            stopLoader();
+            return;
+          }
+
+          // Add the product
+          await scanAndAddProduct(
+              productData, scannedCode, context, ownerId, storeId);
+
+          // Note: We don't need a separate showCelebrationScreen call here
+          // since scanAndAddProduct already handles it
         }
 
         stopLoader();
-        Navigator.pop(context);
       } catch (e) {
         stopLoader();
-        print("Error saving/updating product: $e");
+        debugPrint("Error saving/updating product: $e");
         showCustomToast("Failed to save/update product. Please try again.");
       }
-    }
-  }
-
-  Future<bool> checkIfProductExists(
-      String barcode, BuildContext context) async {
-    try {
-      startLoader();
-
-      final barcodeInt = int.tryParse(barcode);
-      if (barcodeInt == null) {
-        showCustomToast('Invalid barcode format.');
-        return false;
-      }
-
-      // Fetch response from salesRepository
-      final response = await salesRepository.getScanProduct(code: barcodeInt);
-      final productData = response?.data?.product;
-
-      if (response?.success != true || productData == null) {
-        showCustomToast('Product not found.');
-        return false;
-      }
-
-      // Here, productData is already a ScanProduct, no need to decode
-      final scannedProduct = productData;
-
-      if ((scannedProduct.quantity ?? 0) <= 0) {
-        showCustomToast('Product is out of stock.');
-        return false;
-      }
-
-      final existingIndex =
-          cartItems.indexWhere((item) => item.code == scannedProduct.code);
-
-      if (existingIndex != -1) {
-        // Update existing cart item if found
-        cartItems[existingIndex].quantity += 1;
-        cartItems[existingIndex].subtotal =
-            cartItems[existingIndex].quantity * cartItems[existingIndex].price;
-      } else {
-        // Add new product to the cart
-        cartItems.add(Cart(
-          id: scannedProduct.id ?? '',
-          name: scannedProduct.name ?? 'Unknown Product',
-          price: scannedProduct.price ?? 0,
-          code: scannedProduct.code ?? '',
-          quantity: 1,
-          subtotal: scannedProduct.price ?? 0,
-        ));
-      }
-
-      // Notify listeners to update UI
-      notifyListeners();
-      return true;
-    } catch (e) {
-      print("Error in checkIfProductExists: $e");
-      showCustomToast('Error checking product.');
-      return false;
-    } finally {
-      stopLoader();
     }
   }
 
@@ -488,10 +586,61 @@ class PRoductViewModel extends BaseViewModel {
     SvgAssets.records,
     SvgAssets.newSupplier,
   ];
+
   void changeContainer() {
     currentIndex = ((currentIndex + 1) % containerColor.length);
     notifyListeners();
   }
 
+  // Add this method to your PRoductViewModel class
+  Future<void> showCelebrationScreen(BuildContext context,
+      {String? productName}) async {
+    // Wait a moment for any ongoing operations to complete
+    await Future.delayed(const Duration(milliseconds: 300));
 
+    // Navigate to the celebration screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CelebrationWidget(
+          title: "Scan Another Product",
+          onTap: () {
+            // Close the celebration screen
+            Navigator.pop(context);
+            // Go back to the scanner
+            startBarcodeScan(context);
+          },
+          child: Column(
+            children: [
+              const Icon(
+                Icons.check_circle_outline,
+                color: Colors.green,
+                size: 80,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                "Product Added Successfully!",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green[800],
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (productName != null && productName.isNotEmpty)
+                Text(
+                  productName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

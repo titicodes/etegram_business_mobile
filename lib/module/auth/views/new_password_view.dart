@@ -121,7 +121,7 @@ class NewPasswordView extends StatelessWidget {
                   ],
                 ),
               ),
-              model.isLoading ? const SmallLoader() : 0.0.sbH,
+              model.isLoading.value ? const SmallLoader() : 0.0.sbH,
             ],
           ),
         ),

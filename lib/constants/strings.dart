@@ -131,6 +131,8 @@ abstract class StringValues {
   static const totalAmount = "N 20300";
   static const totalCustomers = "All Customers";
   static const totalProductCost = "Total\nProduct\nCost";
+  static const totalSellingPrice = "Total\nSelling Price";
+  static const totalStock = "Total stock";
   static const totalSupplier = "Total Suppliers: 0";
   static const toWatchTutorials = "to watch the tutorial.";
   static const typStoreName = "Type store name";

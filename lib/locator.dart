@@ -35,6 +35,7 @@ import 'package:etegram_business/service/web/supply_api.dart';
 import 'package:get_it/get_it.dart';
 
 import 'module/auth/viewmodel/add_payment_method_vm.dart';
+import 'module/auth/viewmodel/forget_password_vm.dart';
 import 'module/home/vm/main_nav_vm.dart';
 import 'module/onboarding/onboarding_vm.dart';
 import 'module/sales/vm/new_sales_vm.dart';
@@ -61,21 +62,22 @@ void registerServices() {
       () => AuthenticationApiService());
   locator.registerLazySingleton<ProductRepository>(() => ProductRepository());
   locator.registerLazySingleton<ProductApiService>(() => ProductApiService());
-  locator.registerLazySingleton<StoreApiService>(()=>StoreApiService());
-  locator.registerLazySingleton<SupplyApiService>(()=>SupplyApiService());
-  locator.registerLazySingleton<StoreRepository>(()=>StoreRepository());
-  locator.registerLazySingleton<SupplyRepository>(()=>SupplyRepository());
-  locator.registerLazySingleton<PaymentMethodRepository>(()=>PaymentMethodRepository());
-  locator.registerLazySingleton<PaymentMethodApiService>(()=>PaymentMethodApiService());
-  locator.registerLazySingleton<SalesRepository>(()=>SalesRepository());
-  locator.registerLazySingleton<SalesApiService>(()=>SalesApiService());
-  locator.registerLazySingleton<CustomerApiService>(()=>CustomerApiService());
-  locator.registerLazySingleton<CustomerRepository>(()=>CustomerRepository());
-  locator.registerLazySingleton<ExpensesApiService>(()=>ExpensesApiService());
-  locator.registerLazySingleton<ExpensesRepository>(()=>ExpensesRepository());
-  locator.registerLazySingleton<DeliveryRepository>(()=>DeliveryRepository());
-  locator.registerLazySingleton<DeliveryApiService>(()=>DeliveryApiService());
-
+  locator.registerLazySingleton<StoreApiService>(() => StoreApiService());
+  locator.registerLazySingleton<SupplyApiService>(() => SupplyApiService());
+  locator.registerLazySingleton<StoreRepository>(() => StoreRepository());
+  locator.registerLazySingleton<SupplyRepository>(() => SupplyRepository());
+  locator.registerLazySingleton<PaymentMethodRepository>(
+      () => PaymentMethodRepository());
+  locator.registerLazySingleton<PaymentMethodApiService>(
+      () => PaymentMethodApiService());
+  locator.registerLazySingleton<SalesRepository>(() => SalesRepository());
+  locator.registerLazySingleton<SalesApiService>(() => SalesApiService());
+  locator.registerLazySingleton<CustomerApiService>(() => CustomerApiService());
+  locator.registerLazySingleton<CustomerRepository>(() => CustomerRepository());
+  locator.registerLazySingleton<ExpensesApiService>(() => ExpensesApiService());
+  locator.registerLazySingleton<ExpensesRepository>(() => ExpensesRepository());
+  locator.registerLazySingleton<DeliveryRepository>(() => DeliveryRepository());
+  locator.registerLazySingleton<DeliveryApiService>(() => DeliveryApiService());
 }
 
 void registerViewModels() {
@@ -93,10 +95,12 @@ void registerViewModels() {
   locator.registerFactory<ProfileViewModel>(() => ProfileViewModel());
   locator.registerFactory<SaleViewModel>(() => SaleViewModel());
   locator.registerFactory<ChangePinViewModel>(() => ChangePinViewModel());
-  locator.registerFactory<SupplierListViewModel>(()=>SupplierListViewModel());
-  locator.registerFactory<CustomerViewModel>(()=>CustomerViewModel());
-  locator.registerFactory<ExpensesViewModel>(()=>ExpensesViewModel());
-  locator.registerFactory<AddPaymentMethodViwModel>(()=> AddPaymentMethodViwModel());
-  locator.registerFactory<DeliveryViewModel>(()=> DeliveryViewModel());
-
+  locator.registerFactory<SupplierListViewModel>(() => SupplierListViewModel());
+  locator.registerFactory<CustomerViewModel>(() => CustomerViewModel());
+  locator.registerFactory<ExpensesViewModel>(() => ExpensesViewModel());
+  locator.registerFactory<AddPaymentMethodViwModel>(
+      () => AddPaymentMethodViwModel());
+  locator.registerFactory<DeliveryViewModel>(() => DeliveryViewModel());
+  locator.registerFactory<ForgetPasswordViewModel>(
+      () => ForgetPasswordViewModel());
 }

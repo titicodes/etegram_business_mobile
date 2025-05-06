@@ -1,8 +1,8 @@
 class SearchProductResponse {
   SearchProductResponse({
-    required this.success,
-    required this.data,
-    required this.message,
+     this.success,
+     this.data,
+     this.message,
   });
 
   final bool? success;

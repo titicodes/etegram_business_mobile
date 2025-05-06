@@ -15,11 +15,13 @@ class ExpensesApiService {
 
   Future<ExpenseResponse?> createExpense(ExpenseData expense) async {
     try {
-      Response response = await connect().post(
+      final Response response = await connect().post(
         AppUrls.getExpenseUrl,
-        data: expense.toJson(),
+        data: expense.toJsonForCreate(),
       );
-      return ExpenseResponse.fromJson(json.decode(response.data));
+      print("Create Expense Response Data: ${response.data}"); // Print the response
+      return ExpenseResponse.fromJson(
+          json.decode(response.data) as Map<String, dynamic>);
     } on DioException catch (e) {
       print(e.response);
       return null;
@@ -29,27 +31,38 @@ class ExpensesApiService {
     }
   }
 
-  Future<List<ExpenseData>?> getAllExpenses(String userId) async {
+  Future<List<ExpenseData>?> getAllExpenses() async {
     try {
-      Response response = await connect().get(
-        '${AppUrls.getExpenseUrl}/$userId',
-      );
-      return ExpenseResponse.fromJson(json.decode(response.data)).data;
+      final Response response =
+          await connect().get(AppUrls.getExpenseUrl); // No userId in URL
+
+      return ExpenseResponse.fromJson(
+              json.decode(response.data) as Map<String, dynamic>)
+          .data;
     } on DioException catch (e) {
-      print(e.response);
+      print('Dio error: ${e.response}');
       return null;
     } catch (e) {
-      print(e);
+      print('General error: $e');
       return null;
     }
   }
 
-  Future<ExpenseData?> getExpenseById(String id, String userId) async {
+  Future<ExpenseData?> getExpenseById(String id) async {
+    final String? userId = await customerService.getOwnerId();
+    if (userId == null) {
+      print('User ID not found in storage.');
+      return null;
+    }
     try {
-      Response response = await connect().get(
+      final Response response = await connect().get(
         '${AppUrls.getExpenseUrl}/$id/$userId',
       );
-      return ExpenseResponse.fromJson(json.decode(response.data)).data?.first;
+      final ExpenseResponse responseData = ExpenseResponse.fromJson(
+          json.decode(response.data) as Map<String, dynamic>);
+      return responseData.data?.isNotEmpty == true
+          ? responseData.data!.first
+          : null;
     } on DioException catch (e) {
       print(e.response);
       return null;
@@ -61,11 +74,12 @@ class ExpensesApiService {
 
   Future<ExpenseResponse?> updateExpense(ExpenseData expense) async {
     try {
-      Response response = await connect().put(
+      final Response response = await connect().put(
         '${AppUrls.getExpenseUrl}/${expense.id}',
         data: expense.toJson(),
       );
-      return ExpenseResponse.fromJson(json.decode(response.data));
+      return ExpenseResponse.fromJson(
+          json.decode(response.data) as Map<String, dynamic>);
     } on DioException catch (e) {
       print(e.response);
       return null;
@@ -75,9 +89,14 @@ class ExpensesApiService {
     }
   }
 
-  Future<bool> deleteExpense(String id, String userId) async {
+  Future<bool> deleteExpense(String id) async {
+    final String? userId = await customerService.getOwnerId();
+    if (userId == null) {
+      print('User ID not found in storage.');
+      return false;
+    }
     try {
-      Response response = await connect().delete(
+      final Response response = await connect().delete(
         '${AppUrls.getExpenseUrl}/$id/$userId',
       );
       return response.statusCode == 200;

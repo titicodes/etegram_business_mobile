@@ -12,7 +12,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
-
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import '../../../constants/assets.dart';
 import '../../../constants/style.dart';
 import '../../../utils/string_extension.dart';
@@ -65,8 +65,11 @@ class SigninView extends StatelessWidget {
                     onChanged: (value) => model.onChange(), // Trigger onChange
                   ),
                   60.0.sbH,
-                  model.isLoading
-                      ? const CircularProgressIndicator()
+                  model.isLoading.value
+                      ? const SpinKitCircle(
+                          color: Colors.white,
+                          size: 50.0,
+                        )
                       : AppButton(
                           text: StringValues.signIn,
                           onTap: model.formKey.currentState?.validate() == true
@@ -99,18 +102,26 @@ class SigninView extends StatelessWidget {
                               text: StringValues.dontHaveAccount,
                               style: subStyle.copyWith(fontSize: 15.sp),
                             ),
-                            TextSpan(
-                                text: StringValues.signUp,
-                                style: subUnderlineGreenStyle.copyWith(
-                                    fontSize: 15.sp,
-                                    color: ColorValues.primaryColor),
-                                recognizer: TapGestureRecognizer()
-                                // ..onTap = model.goToSignUpView(),
-                                ),
+                            // TextSpan(
+                            //   text: StringValues.signUp,
+                            //   style: subUnderlineGreenStyle.copyWith(
+                            //       fontSize: 15.sp,
+                            //       color: ColorValues.primaryColor),
+                            //   recognizer: TapGestureRecognizer()
+                            //     ..onTap = model.goToSignUpView(),
+                            // ),
                           ],
                         ),
                         textAlign: TextAlign.center,
                       ),
+                      InkWell(
+                        onTap: () => model.goToSignUpView(),
+                        child: AppText(
+                          StringValues.signUp,
+                          style: subUnderlineGreenStyle.copyWith(
+                              fontSize: 15.sp, color: ColorValues.primaryColor),
+                        ),
+                      )
                     ],
                   ),
                 ],

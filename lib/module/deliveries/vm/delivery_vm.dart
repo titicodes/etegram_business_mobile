@@ -5,7 +5,6 @@ import 'package:etegram_business/base/base_vm.dart';
 import 'package:etegram_business/core/model/delivery_response.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:nigerian_states_and_lga/nigerian_states_and_lga.dart';
 
 import '../../../app_widget/bottom_sheet.dart';
 import '../../../app_widget/success_pupup_widget.dart';
@@ -43,6 +42,7 @@ class DeliveryViewModel extends BaseViewModel {
     phoneController.addListener(validateForm);
     firstNameController.addListener(validateForm);
     lastNameController.addListener(validateForm);
+    validateForm();
   }
 
   void validateForm() {
@@ -59,21 +59,25 @@ class DeliveryViewModel extends BaseViewModel {
 
   onChangedBusinessType(String val) {
     businessTypes = val;
+    validateForm();
     notifyListeners();
   }
 
   onAreaChanged(String val) {
     area = val;
+    validateForm();
     notifyListeners();
   }
 
-  onEsatateChanged(String val) {
+  onEstateChanged(String val) {
     estate = val;
+    validateForm();
     notifyListeners();
   }
 
   onChangedCountry(String val) {
     countries = val;
+    validateForm();
     notifyListeners();
   }
 
@@ -193,7 +197,7 @@ class DeliveryViewModel extends BaseViewModel {
         );
 
         print(
-            "Sending phone number: '${formattedPhoneNumber}' Length: ${formattedPhoneNumber.length}");
+            "Sending phone number: '$formattedPhoneNumber' Length: ${formattedPhoneNumber.length}");
 
         var response = await deliveryRepository.createDelivery(delivery);
         if (response != null) {

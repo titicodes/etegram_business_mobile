@@ -40,22 +40,10 @@ class MoveProducts extends StatelessWidget {
             AppText(StringValues.moveProducts, style: headerTextStyle),
             20.0.sbH,
 
-            // Search Bar
-            // Padding(
-            //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            //   child: TextField(
-            //     onChanged: (value) => controller.searchProducts(value),
-            //     decoration: InputDecoration(
-            //       labelText: 'Search for a product',
-            //       prefixIcon: Icon(Icons.search),
-            //       border: OutlineInputBorder(),
-            //     ),
-            //   ),
-            // ),
-
             // Scan Button
             ElevatedButton(
-              onPressed: () => controller.scanBarcode(context),
+              //onPressed: () => controller.scanBarcode(context),
+              onPressed: () {},
               child: Text('Scan Barcode'),
             ),
 

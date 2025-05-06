@@ -1,7 +1,9 @@
 import 'package:etegram_business/app_widget/custom_appbar.dart';
 import 'package:etegram_business/app_widget/input_fields.dart';
 import 'package:etegram_business/base/base_ui.dart';
+import 'package:etegram_business/constants/colors.dart';
 import 'package:etegram_business/constants/reuseable.dart';
+import 'package:etegram_business/constants/style.dart';
 import 'package:etegram_business/module/auth/viewmodel/forget_password_vm.dart';
 import 'package:etegram_business/utils/string_extension.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
@@ -18,6 +20,7 @@ class ForgetPasswordView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BaseView<ForgetPasswordViewModel>(
       builder: (_, vm, child) => Scaffold(
+        backgroundColor: ColorValues.backgroundColor,
         appBar: CustomAppBar(
           title: "Forget Password",
           onBackPressed: () {
@@ -33,8 +36,13 @@ class ForgetPasswordView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Enter your registered email to receive an OTP."),
-                SizedBox(height: 16),
+                40.0.sbH,
+                Text(
+                  "Enter your registered email to receive an OTP.",
+                  style: subHeaderTextStyle,
+                  textAlign: TextAlign.center,
+                ),
+                20.0.sbH,
 
                 // ✅ Updated to Email Field
                 AppTextField(
@@ -52,7 +60,6 @@ class ForgetPasswordView extends StatelessWidget {
                 ),
 
                 SizedBox(height: 24),
-
               ],
             ),
           ),

@@ -45,9 +45,11 @@ class SignUpViewModel extends BaseViewModel {
 
   bool get showPassword => _showPassword;
   final bool _isLoading = false;
+  ValueNotifier<bool> isLoading = ValueNotifier(false);
 
-  @override
-  bool get isLoading => _isLoading;
+
+  // @override
+  // bool get isLoading => _isLoading;
 
   List<String> businessTypeSelections = [
     "Sole Proprietorship",

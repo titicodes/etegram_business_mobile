@@ -160,8 +160,7 @@ class AuthenticationApiService {
       var responseData = jsonDecode(response.data);
 
       if (responseData['success'] == true && responseData['data'] != null) {
-        var userData = responseData['data']
-            ['data']; // ✅ Fix: Correctly access nested user data
+        var userData = responseData['data']; // ✅ Corrected
 
         if (userData == null) {
           print("⚠️ User data is null inside response");
@@ -222,7 +221,6 @@ class AuthenticationApiService {
     }
   }
 
-
   Future<bool> changePin(
       {required String userId,
       required String newPin,
@@ -252,8 +250,8 @@ class AuthenticationApiService {
 
   Future<bool> updatePin(
       {required String userId,
-        required String pin,
-        required String confirmPin}) async {
+      required String pin,
+      required String confirmPin}) async {
     try {
       // Define the payload
       final Map<String, dynamic> payload = {
@@ -262,7 +260,7 @@ class AuthenticationApiService {
       };
       // Make the API call
       Response response =
-      await connect().put("user/change-pin/$userId", data: payload);
+          await connect().put("user/change-pin/$userId", data: payload);
 
       // Handle the response if needed
       if (response.statusCode == 200) {

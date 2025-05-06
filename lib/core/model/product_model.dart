@@ -4,16 +4,18 @@ class AddProductResponse {
   final String? message;
 
   AddProductResponse({
-     this.success,
-     this.data,
-     this.message,
+    this.success,
+    this.data,
+    this.message,
   });
 
   factory AddProductResponse.fromJson(Map<String, dynamic> json) {
+    Map<String, dynamic>? productData = json['data'] as Map<String, dynamic>?;
+
     return AddProductResponse(
-      success: json['success'] ?? false,
-      data: Product.fromJson(json['data']),
-      message: json['message'] ?? '',
+      success: json['success'] as bool? ?? false,
+      data: productData != null ? Product.fromJson(productData) : null,
+      message: json['message'] as String? ?? '',
     );
   }
 }
@@ -37,6 +39,7 @@ class Product {
     this.expiryDate,
     this.brands,
     this.id,
+    this.owner,
     this.createdAt,
     this.updatedAt,
     this.v,
@@ -47,7 +50,7 @@ class Product {
   final String? category;
   final String? code;
   final int? quantity;
-  final Category? categoryId; // Changed from String? to Category?
+  final Category? categoryId;
   final int? unitId;
   final int? stock;
   final String? size;
@@ -58,33 +61,37 @@ class Product {
   final String? expiryDate;
   final String? brands;
   final String? id;
+  final String? owner;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final int? v;
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      name: json["name"],
-      price: json["price"],
-      category: json["category"],
-      code: json["code"],
-      quantity: json["quantity"],
-      categoryId: json["categoryId"] == null
-          ? null
-          : Category.fromJson(json["categoryId"]),
-      unitId: json["unitId"],
-      stock: json["stock"],
-      size: json["size"],
-      totalQuantity: json["totalQuantity"],
-      totalCost: json["totalCost"],
-      unitPrice: json["unitPrice"],
-      minQuantity: json["minQuantity"],
-      expiryDate: json["expiryDate"],
-      brands: json["brands"],
-      id: json["_id"],
-      createdAt: DateTime.tryParse(json["createdAt"] ?? ""),
-      updatedAt: DateTime.tryParse(json["updatedAt"] ?? ""),
-      v: json["__v"],
+      name: json["name"] as String?,
+      price: int.tryParse(json["price"]?.toString() ?? ''),
+      category: json["category"] as String?,
+      code: json["code"] as String?,
+      quantity: int.tryParse(json["quantity"]?.toString() ?? ''),
+      categoryId: json["categoryId"] is Map<String, dynamic>
+          ? Category.fromJson(json["categoryId"])
+          : (json["categoryId"] is String
+          ? Category(id: json["categoryId"])
+          : null),
+      unitId: int.tryParse(json["unitId"]?.toString() ?? ''),
+      stock: int.tryParse(json["stock"]?.toString() ?? ''),
+      size: json["size"]?.toString(),
+      totalQuantity: int.tryParse(json["totalQuantity"]?.toString() ?? ''),
+      totalCost: int.tryParse(json["totalCost"]?.toString() ?? ''),
+      unitPrice: int.tryParse(json["unitPrice"]?.toString() ?? ''),
+      minQuantity: int.tryParse(json["minQuantity"]?.toString() ?? ''),
+      expiryDate: json["expiryDate"]?.toString(),
+      brands: json["brands"]?.toString(),
+      id: json["_id"]?.toString(),
+      owner: json["owner"]?.toString(),
+      createdAt: DateTime.tryParse(json["createdAt"]?.toString() ?? ''),
+      updatedAt: DateTime.tryParse(json["updatedAt"]?.toString() ?? ''),
+      v: int.tryParse(json["__v"]?.toString() ?? ''),
     );
   }
 
@@ -105,6 +112,7 @@ class Product {
     "expiryDate": expiryDate,
     "brands": brands,
     "_id": id,
+    "owner":owner,
     "createdAt": createdAt?.toIso8601String(),
     "updatedAt": updatedAt?.toIso8601String(),
     "__v": v,
@@ -128,6 +136,7 @@ class Product {
     String? expiryDate,
     String? brands,
     String? id,
+    String? owner,
     DateTime? createdAt,
     DateTime? updatedAt,
     int? v,
@@ -149,6 +158,7 @@ class Product {
       expiryDate: expiryDate ?? this.expiryDate,
       brands: brands ?? this.brands,
       id: id ?? this.id,
+      owner: owner ?? this.owner,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       v: v ?? this.v,
@@ -167,8 +177,8 @@ class Category {
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
-      id: json['_id'],
-      name: json['name'] ?? 'Unknown', // fallback if name is missing
+      id: json['_id'] as String?,
+      name: json['name'] as String?,
       v: json['__v'] ?? 0,
     );
   }
@@ -180,5 +190,7 @@ class Category {
     "__v": v,
   };
 }
+
+
 
 

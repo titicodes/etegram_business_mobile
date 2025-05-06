@@ -27,7 +27,9 @@ class _ScanToCheckoutViewState extends State<ScanToCheckoutView> {
     return BaseView<SaleViewModel>(
       onModelReady: (model) {
         if (widget.scannedCode != null) {
-          model.checkIfProductExists(widget.scannedCode!, context).then((added) {
+          model
+              .checkIfProductExists(widget.scannedCode!, context)
+              .then((added) {
             if (added) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Product added to cart')),
@@ -48,41 +50,44 @@ class _ScanToCheckoutViewState extends State<ScanToCheckoutView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Scan Products for Checkout", style: TextStyle(fontSize: 20)),
+              Text("Scan Products for Checkout",
+                  style: TextStyle(fontSize: 20)),
               const SizedBox(height: 20),
               Expanded(
                 child: model.cartItems.isEmpty
                     ? const Center(child: Text("No products in cart"))
                     : ListView.builder(
-                  itemCount: model.cartItems.length,
-                  itemBuilder: (context, index) {
-                    final product = model.cartItems[index];
-                    return ListTile(
-                      title: Text(product.name ?? 'Unnamed Product'),
-                      subtitle: Text("Price: ${product.price} Naira"),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove),
-                            onPressed: () => model.updateItemQuantityInReview(
-                              product,
-                              (product.quantity ?? 1) - 1,
+                        itemCount: model.cartItems.length,
+                        itemBuilder: (context, index) {
+                          final product = model.cartItems[index];
+                          return ListTile(
+                            title: Text(product.name ?? 'Unnamed Product'),
+                            subtitle: Text("Price: ${product.price} Naira"),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove),
+                                  onPressed: () =>
+                                      model.updateItemQuantityInReview(
+                                    product,
+                                    (product.quantity ?? 1) - 1,
+                                  ),
+                                ),
+                                Text("${product.quantity ?? 1}"),
+                                IconButton(
+                                  icon: const Icon(Icons.add),
+                                  onPressed: () =>
+                                      model.updateItemQuantityInReview(
+                                    product,
+                                    (product.quantity ?? 1) + 1,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          Text("${product.quantity ?? 1}"),
-                          IconButton(
-                            icon: const Icon(Icons.add),
-                            onPressed: () => model.updateItemQuantityInReview(
-                              product,
-                              (product.quantity ?? 1) + 1,
-                            ),
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
               const SizedBox(height: 20),
               Text("Total Price: ${model.calculateTotalPrice()} Naira",
@@ -97,7 +102,7 @@ class _ScanToCheckoutViewState extends State<ScanToCheckoutView> {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => BarcodeScannerView(purpose: ScanPurpose.checkout),
+                          builder: (_) => CheckoutScannerView(),
                         ),
                       ),
                     ),

@@ -42,7 +42,7 @@ class AddDeliveryRate extends StatelessWidget {
           child: Form(
             key: logic.formKey,
             child: Padding(
-              padding: 12.0.padA,
+              padding: 16.0.padA,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -50,7 +50,7 @@ class AddDeliveryRate extends StatelessWidget {
                   Center(
                     child: SvgPicture.asset(SvgAssets.appLogo),
                   ),
-                  12.0.sbH,
+                  16.0.sbH,
                   AppText(
                     StringValues.createDeliverAgent,
                     style: titleSmall,
@@ -71,7 +71,7 @@ class AddDeliveryRate extends StatelessWidget {
                     controller: logic.firstNameController,
                     hint: "last name",
                   ),
-                  12.0.sbH,
+                  16.0.sbH,
                   AppTextField(
                     hint: StringValues.phoneNumber,
                     prefix: Container(
@@ -105,7 +105,7 @@ class AddDeliveryRate extends StatelessWidget {
                     },
                     keyboardType: TextInputType.number,
                   ),
-                  10.0.sbH,
+                  16.0.sbH,
                   AppTextField(
                     hint: StringValues.businesContact,
                     prefix: Container(
@@ -139,12 +139,13 @@ class AddDeliveryRate extends StatelessWidget {
                     },
                     keyboardType: TextInputType.number,
                   ),
+                  16.0.sbH,
                   _buildDropdown(context,
                       value: logic.countries,
                       items: logic.countriesList, onChanged: (value) {
                     logic.onCountryChanged(value ?? "");
                   }, hintText: 'Country'),
-                  12.0.sbH,
+                  16.0.sbH,
                   _buildDropdown(context,
                       value: logic.stateValue,
                       items: logic.statesList, onChanged: (value) {
@@ -179,7 +180,6 @@ class AddDeliveryRate extends StatelessWidget {
                           contentPadding: 10.0.padA,
                           hintStyle: normalTextStyle),
                       controller: logic.estateController,
-                      maxLines: 3,
                     ),
                   ),
                   40.0.sbH,
@@ -187,7 +187,7 @@ class AddDeliveryRate extends StatelessWidget {
                     valueListenable: logic.isFormValid,
                     builder: (context, isValid, child) {
                       return AppButton(
-                        text: StringValues.signUp,
+                        text: StringValues.addDeliveryAgent,
                         onTap: isValid
                             ? () {
                                 logic.submit();
@@ -260,7 +260,7 @@ class AddDeliveryRate extends StatelessWidget {
                       EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.sp),
                   child: AppText(
                     value.toCapitalized(),
-                    style: normalTextStyle12,
+                    style: normalTextStyle,
                     overflow: TextOverflow.ellipsis,
                   ),
                 );

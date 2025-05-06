@@ -10,6 +10,8 @@ class CustomSliverAppBar extends StatelessWidget {
   final VoidCallback? onMenuPressed;
   final bool showNotificationIcon;
   final bool showMenuIcon;
+  final bool showLogo; // Flag to show/hide logo
+  final String? logoAsset; // Make logo asset optional
   final double expandedHeight;
 
   const CustomSliverAppBar({
@@ -18,9 +20,11 @@ class CustomSliverAppBar extends StatelessWidget {
     required this.onBackPressed,
     this.onNotificationPressed,
     this.onMenuPressed,
-    this.showNotificationIcon = false, // Default to false
-    this.showMenuIcon = true, // Default to true
-    this.expandedHeight = 150, // Default expanded height
+    this.showNotificationIcon = false,
+    this.showMenuIcon = true,
+    this.expandedHeight = 150,
+    this.logoAsset, // Now optional
+    this.showLogo = false, // Default to false
   });
 
   @override
@@ -31,12 +35,24 @@ class CustomSliverAppBar extends StatelessWidget {
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
-        title: Text(
-          title,
-          style: Theme.of(context).textTheme.bodyLarge,
+        title: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            // Display logo only if showLogo is true and logoAsset is provided
+            if (showLogo && logoAsset != null)
+              SvgPicture.asset(
+                logoAsset!,
+                height: 40, // Set your desired height
+              ),
+            if (showLogo && logoAsset != null) const SizedBox(height: 8), // Spacing if logo is shown
+            Text(
+              title,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
         ),
         background: Container(
-          color: Colors.white, // Customize the background color if needed
+          color: Colors.white,
         ),
       ),
       leading: Padding(
@@ -51,7 +67,6 @@ class CustomSliverAppBar extends StatelessWidget {
           padding: const EdgeInsets.only(right: 8.0),
           child: Row(
             children: [
-              // Show notification icon only if enabled
               if (showNotificationIcon && onNotificationPressed != null)
                 InkWell(
                   onTap: onNotificationPressed,
@@ -61,10 +76,8 @@ class CustomSliverAppBar extends StatelessWidget {
                     width: 30,
                   ),
                 ),
-              // Add spacing if notification icon is shown
               if (showNotificationIcon && onNotificationPressed != null)
                 SizedBox(width: 16.0),
-              // Show menu icon only if enabled
               if (showMenuIcon && onMenuPressed != null)
                 InkWell(
                   onTap: onMenuPressed,

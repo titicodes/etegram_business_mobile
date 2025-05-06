@@ -1,30 +1,31 @@
+import 'package:etegram_business/app_widget/scanner_control_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:etegram_business/locator.dart';
+import '../module/home/views/main_nav.dart';
 import '../module/product/view/add_product.dart';
 import '../module/sales/view/scan_to_checkout.dart';
 import '../module/sales/vm/new_sales_vm.dart';
 import '../module/sales/vm/review_screen.dart';
+import '../service/local/user_service.dart';
 import '../utils/snack_message.dart';
 
-enum ScanPurpose { add, checkout }
-
-class BarcodeScannerView extends StatefulWidget {
-  final ScanPurpose purpose;
-
-  const BarcodeScannerView({super.key, required this.purpose});
+class CheckoutScannerView extends StatefulWidget {
+  const CheckoutScannerView({super.key});
 
   @override
-  State<BarcodeScannerView> createState() => _BarcodeScannerViewState();
+  State<CheckoutScannerView> createState() => _CheckoutScannerViewState();
 }
 
-class _BarcodeScannerViewState extends State<BarcodeScannerView>
+class _CheckoutScannerViewState extends State<CheckoutScannerView>
     with WidgetsBindingObserver {
   final Set<String> _scannedBarcodes = {};
   late MobileScannerController _scannerController;
   bool _isProcessing = false;
   bool _cameraPermissionGranted = false;
+  final SaleViewModel _salesViewModel = locator<SaleViewModel>();
+  final _customerService = locator<CustomerService>();
 
   @override
   void initState() {
@@ -85,103 +86,124 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView>
   }
 
   Future<void> _handleScan(String barcode) async {
-    final checkoutViewModel = locator<SaleViewModel>();
+    // Use the viewModel instance directly instead of creating a new one
+    final exists = await _salesViewModel.checkIfProductExists(barcode, context);
 
-    switch (widget.purpose) {
-      case ScanPurpose.add:
-        final exists = await checkoutViewModel.getProductByBarcode(barcode);
-        if (exists) {
-          showCustomToast('Product already exists in the database.');
-        } else {
-          await _promptToAddProduct(barcode);
-        }
-        break;
+    if (exists) {
+      showCustomToast('Product added to cart.');
+      await _scannerController.stop();
 
-      case ScanPurpose.checkout:
-        final added =
-        await checkoutViewModel.checkIfProductExists(barcode, context);
-        if (added) {
-          showCustomToast('Product added to cart.');
-          await _scannerController.stop();
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ScanToCheckoutView(scannedCode: barcode),
+        ),
+      );
 
-          if (!mounted) return;
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ScanToCheckoutView(scannedCode: barcode),
-            ),
-          );
-
-          if (mounted) await _scannerController.start();
-        } else {
-          await _promptToAddProduct(barcode);
-        }
-        break;
+      if (mounted) await _scannerController.start();
+    } else {
+      await _showProductNotFoundDialog(barcode);
     }
   }
 
-  Future<void> _promptToAddProduct(String barcode) async {
+  Future<void> _showProductNotFoundDialog(String barcode) async {
     await _scannerController.stop();
-
+    final ownerId = await _customerService.getOwnerId();
+    final storeId = await _customerService.getStoreId();
     if (!mounted) return;
+
     await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Product Not Found'),
-        content: Text('No product found with barcode "$barcode". Add it now?'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AddProductView(
-                    scannedCode: barcode,
-                    isEditing: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Product Not Found'),
+          content: Text(
+              'Product with barcode "$barcode" not found. What would you like to do?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                if (mounted) {
+                  _scannedBarcodes
+                      .remove(barcode); // Remove the unsuccessful scan
+                  _scannerController.start(); // Resume scanning
+                }
+              },
+              child: const Text('Scan Another Product'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AddProductView(
+                      scannedCode: barcode,
+                      isEditing: false,
+                      ownerId: ownerId,
+                      storeId: storeId,
+                    ),
                   ),
-                ),
-              );
-            },
-            child: const Text('Add Product'),
-          ),
-        ],
-      ),
+                );
+              },
+              child: const Text('Add Product'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MainNav()),
+                );
+              },
+              child: const Text('Go to Home'),
+            ),
+          ],
+        );
+      },
     );
 
-    if (mounted) await _scannerController.start();
+    if (mounted) {
+      await _scannerController
+          .start(); // Resume scanning after dialog is closed
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Scan Products"),
-        actions: widget.purpose == ScanPurpose.checkout
-            ? [
+        title: const Text("Scan for Checkout"),
+        actions: [
           IconButton(
             icon: const Icon(Icons.check),
             onPressed: () {
+              // Use the cart items from the view model instead of passing an empty list
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => ReviewScreen(cartItems: [],)),
+                MaterialPageRoute(
+                  builder: (_) => ReviewScreen(
+                    cartItems: _salesViewModel.cartItems,
+                  ),
+                ),
               );
             },
           ),
-        ]
-            : null,
+        ],
       ),
       body: _cameraPermissionGranted
-          ? MobileScanner(
-        controller: _scannerController,
-        onDetect: _onBarcodeDetected,
-      )
+          ? Column(
+              children: [
+                Expanded(
+                  child: MobileScanner(
+                    controller: _scannerController,
+                    onDetect: _onBarcodeDetected,
+                  ),
+                ),
+                ScannerControlBar(scannerController: _scannerController),
+              ],
+            )
           : const Center(child: CircularProgressIndicator()),
     );
   }

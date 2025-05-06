@@ -11,66 +11,75 @@ class CustomerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: height(context) * 0.15,
-      width: width(context),
-      decoration: BoxDecoration(
-          color: ColorValues.whiteColor,
-          borderRadius: BorderRadius.circular(10)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Padding(
+      padding: 12.0.padA,
+      child: Container(
+        height: height(context) * 0.16,
+        width: width(context),
+        decoration: BoxDecoration(
+            color: ColorValues.whiteColor,
+            borderRadius: BorderRadius.circular(10)),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              AppText(
-                "UserName",
-                style: bodyTextStyle,
+              10.0.sbH,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  AppText(
+                    "UserName",
+                    style: normalTextStyle.copyWith(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  AppText(
+                    customer.firstName ?? "",
+                    style: normalTextStyle,
+                  )
+                ],
               ),
-              AppText(
-                customer.firstName ?? "",
-                style: normalTextStyle,
-              )
+              10.0.sbH,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  AppText(
+                    "Address",
+                    style: normalTextStyle.copyWith(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  RichText(
+                    text: TextSpan(
+                        text: "${customer.area},",
+                        style: TextStyle(color: Colors.black, fontSize: 16),
+                        children: [
+                          TextSpan(
+                              text: '${customer.lga} ', style: normalTextStyle),
+                          TextSpan(
+                              text: ' ${customer.state}', style: normalTextStyle),
+                        ]),
+                  )
+                ],
+              ),
+              10.0.sbH,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  AppText(
+                    "Contact No.",
+                    style: normalTextStyle.copyWith(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  AppText(
+                    customer.phoneNumber ?? "",
+                    style: normalTextStyle,
+                  )
+                ],
+              ),
+              10.0.sbH
             ],
           ),
-          10.0.sbH,
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              AppText(
-                "Address",
-                style: titleMedium,
-              ),
-              RichText(
-                text: TextSpan(
-                    text: "${customer.area},",
-                    style: TextStyle(color: Colors.black, fontSize: 16),
-                    children: [
-                      TextSpan(
-                          text: '${customer.lga} ', style: normalTextStyle),
-                      TextSpan(
-                          text: ' ${customer.state}', style: normalTextStyle),
-                    ]),
-              )
-            ],
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              AppText(
-                "Contact No.",
-                style: titleMedium,
-              ),
-              AppText(
-                customer.phoneNumber ?? "",
-                style: normalTextStyle,
-              )
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

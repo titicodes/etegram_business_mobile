@@ -106,7 +106,9 @@ class CustomDropDown extends StatelessWidget {
                 value,
                 overflow: TextOverflow.ellipsis,
                 style: hintStyle ??
-                    titleSmall.copyWith(fontWeight: FontWeight.w500),
+                    titleSmall.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: ColorValues.greyColor),
               ),
             );
           }).toList(),

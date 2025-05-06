@@ -4,6 +4,7 @@ import 'package:etegram_business/constants/reuseable.dart';
 import 'package:etegram_business/constants/style.dart';
 import 'package:etegram_business/module/deliveries/views/add_delivery_rate.dart';
 import 'package:etegram_business/module/deliveries/views/deliveries_agent.dart';
+import 'package:etegram_business/module/expenses/view/expense.dart';
 import 'package:etegram_business/module/expenses/view/new_expenses.dart';
 import 'package:etegram_business/module/sales/view/sales_view.dart';
 import 'package:etegram_business/module/supply/view/new_supplier.dart';
@@ -134,7 +135,7 @@ class _NavDrawerState extends State<NavDrawer> {
                       // Handle Return subcategory tap
                       navigationService.goBack();
                       // Navigate to the return screen
-                      navigationService.navigateToWidget(NewExpenses());
+                      navigationService.navigateToWidget(Expense());
                     },
                   ),
                   // Subcategory ListTile for Renewed Supply

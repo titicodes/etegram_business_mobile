@@ -1,3 +1,4 @@
+import 'package:etegram_business/constants/style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -30,7 +31,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       title: Text(
         title,
-        style: Theme.of(context).textTheme.bodyLarge, // Adjust style as needed
+        style: headerTextStyle,
+        //style: Theme.of(context).textTheme.bodyLarge, // Adjust style as needed
       ),
       leading: Padding(
         padding: const EdgeInsets.all(10),

@@ -5,6 +5,7 @@ import 'package:etegram_business/module/product/view/add_product.dart';
 import 'package:etegram_business/module/product/view/move_products.dart';
 import 'package:etegram_business/module/product/view/product_list_view.dart';
 import 'package:etegram_business/module/product/view/search_view.dart';
+import 'package:etegram_business/module/product/view/tabs/manual_add_product.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:etegram_business/base/base_ui.dart';
@@ -74,7 +75,7 @@ class ProductView extends StatelessWidget {
                         switch (index) {
                           case 0:
                             navigationService.navigateToWidget(
-                                AddProductView(isEditing: isEditing));
+                                ManualAddProductScreen());
                             break;
                           case 1:
                             navigationService

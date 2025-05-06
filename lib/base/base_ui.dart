@@ -59,7 +59,7 @@ class _BaseViewState<T extends BaseViewModel> extends State<BaseView<T>> {
                     ),
                   ],
                 ),
-                widget.notDefaultLoading? 0.0.sbH : model.isLoading?
+                widget.notDefaultLoading? 0.0.sbH : model.isLoading.value?
                 Container(
                     height: height(context),
                     width: width(context),
@@ -133,7 +133,7 @@ class _ForceBaseViewState<T extends BaseViewModel> extends State<ForceBaseView<T
                     ),
                   ],
                 ),
-                widget.notDefaultLoading? 0.0.sbH : model.isLoading?
+                widget.notDefaultLoading? 0.0.sbH : model.isLoading.value?
                 Container(
                   height: height(context),
                   width: width(context),
@@ -282,7 +282,7 @@ class _PopViewState<T extends BaseViewModel> extends State<PopView<T>> {
                     Expanded(child: widget.builder!.call(_, model, __)),
                   ],
                 ),
-                model.isLoading?
+                model.isLoading.value?
                 Column(
                   children: [
                     Expanded(

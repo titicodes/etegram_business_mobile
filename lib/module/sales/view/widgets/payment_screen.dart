@@ -1,4 +1,3 @@
-// payment_screen.dart
 import 'package:flutter/material.dart';
 
 import '../../../../app_widget/app_button.dart';
@@ -12,117 +11,84 @@ import '../../../../routes/routes.dart';
 import '../../vm/new_sales_vm.dart';
 
 class PaymentScreen extends StatefulWidget {
-  const PaymentScreen(
-      {super.key, required this.totalAmount, required this.cartItems});
+  const PaymentScreen({
+    super.key,
+    required this.totalAmount,
+    required this.cartItems,
+  });
+
   final double totalAmount;
-  final List<Cart> cartItems; // Receive cartItems here
+  final List<Cart> cartItems;
 
   @override
-  _PaymentScreenState createState() => _PaymentScreenState();
+  State<PaymentScreen> createState() => _PaymentScreenState();
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  final SaleViewModel _saleViewModel = locator<SaleViewModel>();
-  String _paymentMethod = 'Cash';
-  bool _isLoading = false;
-
-  Future<void> _processPayment(BuildContext context) async {
-    setState(() => _isLoading = true);
-    try {
-      final response = await _saleViewModel.checkout(
-        cartItems: widget.cartItems
-            .map((item) => item.toJson())
-            .toList(), // Pass cartItems from widget
-        discount: _saleViewModel.discount,
-        tax: _saleViewModel.tax,
-        paymentMethod: _paymentMethod,
-      );
-      if (response != null && response.success == true) {
-        // Navigator.pushReplacement(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => const SalesSuccessPage()),
-        // );
-        await showSuccessPopup();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  'Checkout failed: ${response?.message ?? "Unknown error"}')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
+  final SaleViewModel _viewModel = locator<SaleViewModel>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomAppBar(
         title: 'Payment Method',
-        onBackPressed: () {
-          navigationService.goBack();
-        },
+        onBackPressed: navigationService.goBack,
         showMenuIcon: false,
         showNotificationIcon: false,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AnimatedBuilder(
-              animation: _saleViewModel,
-              builder: (context, child) {
-                return Center(
-                  child: Text('Total Amount: ${widget.totalAmount}'),
-                );
-              },
+      body: AnimatedBuilder(
+        animation: _viewModel,
+        builder: (_, __) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Text('Total Amount: ${widget.totalAmount}')),
+                const SizedBox(height: 20),
+                const Text('Select Payment Method:'),
+                _buildPaymentOption('Cash'),
+                _buildPaymentOption('POS'),
+                const SizedBox(height: 20),
+                Center(
+                  child: _viewModel.isLoading.value
+                      ? const CircularProgressIndicator()
+                      : AppButton(
+                          text: "Complete Payment",
+                          onTap: () async {
+                            final result = await _viewModel
+                                .processCheckout(widget.cartItems);
+                            if (result == null) {
+                              _showSuccessPopup();
+                            } else {
+                              _showSnackbar(result);
+                            }
+                          },
+                        ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            const Text('Select Payment Method:'),
-            RadioListTile<String>(
-              title: const Text('Cash'),
-              value: 'Cash',
-              groupValue: _paymentMethod,
-              onChanged: (String? value) {
-                setState(() {
-                  _paymentMethod = value!;
-                  _saleViewModel.updatePaymentMethod(value);
-                });
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('POS (Debit/Credit Card)'),
-              value: 'POS',
-              groupValue: _paymentMethod,
-              onChanged: (String? value) {
-                setState(() {
-                  _paymentMethod = value!;
-                  _saleViewModel.updatePaymentMethod(value);
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : AppButton(
-                      text: "Complete Payment",
-                      onTap: () => _processPayment(context),
-                    ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  showSuccessPopup() {
+  Widget _buildPaymentOption(String method) {
+    return RadioListTile<String>(
+      title: Text(method == 'POS' ? 'POS (Debit/Credit Card)' : method),
+      value: method,
+      groupValue: _viewModel.paymentMethod,
+      onChanged: (value) => _viewModel.updatePaymentMethod(value!),
+    );
+  }
+
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showSuccessPopup() {
     showModalBottomSheet(
       backgroundColor: Colors.transparent,
       context: navigationService.navigatorKey.currentState!.context,
@@ -130,9 +96,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       isDismissible: false,
       builder: (_) => BottomSheetScreen(
         child: SuccessfulPopUpWidget(
-          title: "Purchase successfully!",
-          subTitle: "Your Purchase has been successfully. Invoice had been sent to you mail",
-          onTap: (){
+          title: "Purchase Successful!",
+          subTitle:
+              "Your purchase was successful. An invoice has been sent to your email.",
+          onTap: () {
             navigationService.navigateTo(dashboardRoute);
           },
         ),

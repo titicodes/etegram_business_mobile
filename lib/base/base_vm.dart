@@ -122,7 +122,7 @@ class BaseViewModel extends ChangeNotifier {
 
   set viewState(ViewState newState) {
     _viewState = newState;
-    _viewState == ViewState.busy ? isLoading = true : isLoading = false;
+    _viewState == ViewState.busy ? isLoading.value = true : isLoading.value = false;
     notifyListeners();
   }
 
@@ -130,15 +130,16 @@ class BaseViewModel extends ChangeNotifier {
     navigationService.goBack();
   }
 
-  // logOuts(BuildContext context) {
-  //   popDialog(context: context, onTap: userService.logout, title: "Log out");
-  // }
+  logOuts(BuildContext context) {
+    popDialog(context: context, onTap: userService.logout, title: "Log out");
+  }
 
-  bool isLoading = false;
+ // bool isLoading = false;
+  ValueNotifier<bool> isLoading = ValueNotifier(false);
 
   void startLoader() {
-    if (!isLoading) {
-      isLoading = true;
+    if (!isLoading.value) {
+      isLoading.value = true;
       viewState = ViewState.busy;
       notifyListeners();
     }
@@ -271,8 +272,8 @@ class BaseViewModel extends ChangeNotifier {
   }
 
   void stopLoader() {
-    if (isLoading) {
-      isLoading = false;
+    if (isLoading.value) {
+      isLoading.value = false;
       viewState = ViewState.idle;
       notifyListeners();
     }

@@ -1,14 +1,18 @@
 import 'package:etegram_business/base/base_vm.dart';
 import 'package:flutter/material.dart';
 
+import '../../../app_widget/bottom_sheet.dart';
+import '../../../app_widget/success_pupup_widget.dart';
 import '../../../core/model/expense_response.dart';
 
-
 class ExpensesViewModel extends BaseViewModel {
+  // Add the form key that was missing
 
 
   ExpensesViewModel() {
-    amountController.addListener(validateForm);
+    // Set up listeners but with less frequent validation
+    amountController.addListener(_validateFormDebounced);
+    descriptionController.addListener(_validateFormDebounced);
   }
 
   /// 📝 State variables
@@ -19,7 +23,6 @@ class ExpensesViewModel extends BaseViewModel {
   ExpenseData? get expense => _expense;
 
   bool _isLoading = false;
-  bool get isLoading => _isLoading;
 
   String _userId = "";
   String category = "";
@@ -27,30 +30,55 @@ class ExpensesViewModel extends BaseViewModel {
   String currency = "";
 
   DateTime? selectedExpiryDate;
-  DateTime dob = DateTime.now();
 
-  var amountController = TextEditingController();
-  var descriptionController = TextEditingController();
+  final TextEditingController amountController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
 
+  // Use ValueNotifier instead of calling notifyListeners for form validation
   final ValueNotifier<bool> isFormValid = ValueNotifier<bool>(false);
+
+  // Debounce timer to prevent excessive validations
+  DateTime? _lastValidationTime;
 
   /// 🛑 Dispose controllers
   @override
   void dispose() {
+    amountController.removeListener(_validateFormDebounced);
+    descriptionController.removeListener(_validateFormDebounced);
     amountController.dispose();
     descriptionController.dispose();
+    isFormValid.dispose();
     super.dispose();
   }
 
-  void init(){
+  void init() {
+    // Set initial userId if needed
+    // This can come from a service or provider
     fetchExpenses();
-
   }
-  /// 🛠 Validate form fields
-  void validateForm() {
-    isFormValid.value = amountController.text.isNotEmpty &&
+
+  /// 🛠 Validate form fields with debouncing
+  void _validateFormDebounced() {
+    // Only validate at most once every 500ms
+    final now = DateTime.now();
+    if (_lastValidationTime == null ||
+        now.difference(_lastValidationTime!).inMilliseconds > 500) {
+      _lastValidationTime = now;
+      _validateForm();
+    }
+  }
+
+  void _validateForm() {
+    // Check all required fields
+    bool valid = amountController.text.isNotEmpty &&
         category.isNotEmpty &&
-        currency.isNotEmpty;
+        currency.isNotEmpty &&
+        paymentMethod.isNotEmpty;
+
+    // Only update if changed to prevent unnecessary rebuilds
+    if (isFormValid.value != valid) {
+      isFormValid.value = valid;
+    }
   }
 
   /// 📅 Show date picker
@@ -66,12 +94,18 @@ class ExpensesViewModel extends BaseViewModel {
     if (picked != null && picked != selectedExpiryDate) {
       selectedExpiryDate = picked;
       notifyListeners();
+      _validateForm(); // Validate after date selection
     }
   }
 
   /// 🏷️ Dropdown options
   List<String> categoryList = [
-    "Health", "School", "Manufacture", "Food", "Agriculture", "Budget"
+    "Health",
+    "School",
+    "Manufacture",
+    "Food",
+    "Agriculture",
+    "Budget"
   ];
 
   List<String> paymentMethodList = ["Cash", "Card", "Online"];
@@ -81,7 +115,7 @@ class ExpensesViewModel extends BaseViewModel {
   void onChangedPaymentMethod(String val) {
     if (paymentMethod != val) {
       paymentMethod = val;
-      validateForm();
+      _validateForm();
       notifyListeners();
     }
   }
@@ -89,7 +123,7 @@ class ExpensesViewModel extends BaseViewModel {
   void onChangedCategory(String val) {
     if (category != val) {
       category = val;
-      validateForm();
+      _validateForm();
       notifyListeners();
     }
   }
@@ -97,7 +131,7 @@ class ExpensesViewModel extends BaseViewModel {
   void onChangedCurrency(String val) {
     if (currency != val) {
       currency = val;
-      validateForm();
+      _validateForm();
       notifyListeners();
     }
   }
@@ -115,25 +149,47 @@ class ExpensesViewModel extends BaseViewModel {
     notifyListeners();
 
     try {
+      // Use current date if no date was selected
+      final expenseDate = selectedExpiryDate ?? DateTime.now();
+
       var expense = ExpenseData(
         description: descriptionController.text.trim(),
         amount: double.parse(amountController.text.trim()),
         category: category,
         userId: _userId,
         currency: currency,
-        date: selectedExpiryDate,
+        paymentMethod: paymentMethod,
+        date: expenseDate,
       );
 
       final createdExpense = await expenseRepository.createExpense(expense);
       if (createdExpense != null) {
         _expenses.add(createdExpense);
+        // Clear form after successful creation
+        _resetForm();
       }
+
+      // Show success message if needed
+      await showSuccessPopup();
+
     } catch (err) {
       print("Error creating expense: $err");
+      // Show error message if needed
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Reset form after successful submission
+  void _resetForm() {
+    amountController.clear();
+    descriptionController.clear();
+    category = "";
+    currency = "";
+    paymentMethod = "";
+    selectedExpiryDate = null;
+    _validateForm();
   }
 
   /// 📊 Fetch all expenses
@@ -144,7 +200,7 @@ class ExpensesViewModel extends BaseViewModel {
     notifyListeners();
 
     try {
-      _expenses = await expenseRepository.getAllExpenses(_userId) ?? [];
+      _expenses = await expenseRepository.getAllExpenses() ?? [];
     } catch (err) {
       print("Error fetching expenses: $err");
     } finally {
@@ -217,4 +273,20 @@ class ExpensesViewModel extends BaseViewModel {
   List<String> getCategoryListOptions() => categoryList;
   List<String> getPaymentOption() => paymentMethodList;
   List<String> getCurrencyOption() => currencyOption;
+
+  showSuccessPopup() {
+    showModalBottomSheet(
+      backgroundColor: Colors.transparent,
+      context: navigationService.navigatorKey.currentState!.context,
+      isScrollControlled: true,
+      isDismissible: false,
+      builder: (_) => BottomSheetScreen(
+        child: SuccessfulPopUpWidget(
+          title: "Expenses Created successfully!",
+          subTitle: "Your new expenses had been created successfully.",
+          onTap: navigationService.goBack,
+        ),
+      ),
+    ).whenComplete(navigationService.goBack);
+  }
 }

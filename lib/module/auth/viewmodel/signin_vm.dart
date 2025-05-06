@@ -49,8 +49,8 @@ class SignInViewModel extends BaseViewModel {
     navigationService.navigateTo(forgetPasswordRoute);
   }
 
-  @override
-  bool get isLoading => _isLoading;
+  // @override
+  // bool get isLoading => _isLoading;
 
   void toggleViewPassword() {
     _showPassword;
@@ -81,14 +81,14 @@ class SignInViewModel extends BaseViewModel {
 
       var response = await authRepository.login(data: userData);
 
-      if (response?.data?.emailVerified == false) {
+      if (response?.customer?.emailVerified == false) {
         stopLoader();
         notifyListeners();
         navigationService.navigateTo(verifyEmailView);
-      } else if (response?.data?.emailVerified == true) {
+      } else if (response?.customer?.emailVerified == true) {
         notifyListeners();
         await getUser();
-        print(response?.data?.emailVerified);
+        print(response?.customer?.emailVerified);
         stopLoader();
       }
       stopLoader();

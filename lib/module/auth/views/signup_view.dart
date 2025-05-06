@@ -223,20 +223,62 @@ class SignupView extends StatelessWidget {
                       40.0.sbH,
                     ],
                   ),
+                  // ValueListenableBuilder<bool>(
+                  //   valueListenable: model.isFormValid,
+                  //   builder: (context, isValid, child) {
+                  //     return AppButton(
+                  //       text: StringValues.signUp,
+                  //       onTap: isValid
+                  //           ? () {
+                  //               model.submit();
+                  //             }
+                  //           : null,
+                  //       enabled: isValid,
+                  //     );
+                  //   },
+                  // ),
                   ValueListenableBuilder<bool>(
                     valueListenable: model.isFormValid,
-                    builder: (context, isValid, child) {
-                      return AppButton(
-                        text: StringValues.signUp,
-                        onTap: isValid
-                            ? () {
-                                model.submit();
-                              }
-                            : null,
-                        enabled: isValid,
+                    builder: (context, isValid, _) {
+                      return ValueListenableBuilder<bool>(
+                        valueListenable: model.isLoading,
+                        builder: (context, isLoading, _) {
+                          return AppButton(
+                            enabled: isValid && !isLoading,
+                            onTap: (isValid && !isLoading)
+                                ? () {
+                              model.submit();
+                            }
+                                : null,
+                            child: isLoading
+                                ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Signing up, please wait...',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            )
+                                : Text(
+                              StringValues.signUp,
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          );
+                        },
                       );
                     },
                   ),
+
                   16.0.sbH,
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
