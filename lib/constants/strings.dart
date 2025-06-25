@@ -9,7 +9,7 @@ abstract class StringValues {
   static const and = "and";
   static const allReadyhaveAccount = "Already have an account?";
   static const appName = "Etegram Business";
-  static const branchOf = "Branch of";
+  static const branchOf = "Branch of ";
   static const businesContact = "Business contact name";
   static const businesPhone = "Type Business number";
   static const businessName = "Business Name";
@@ -41,7 +41,7 @@ abstract class StringValues {
   static const enterEmail = "Email Address";
   static const emailBusiness = "E-Mail";
   static const email = "Email";
-  static const enterOTP = "Enter Otp Code";
+  static const enterOTP = "Enter Otp Code: ";
   static const enterPassword = "Enter Password";
   static const enterPaswordLogin =
       "Enter your password to log into your account";
@@ -61,6 +61,7 @@ abstract class StringValues {
   static const letGetScanSub =
       "Gorem ipsum dolor sit amet, consectetur adipiscing elit ipsum dolor.";
   static const liveChat = "Live Chat";
+  static const login = "Login";
   static const moveProducts = "Move Products";
   static const newSales = 'New Sales';
   static const newSupplier = "New Supplier";
@@ -110,6 +111,7 @@ abstract class StringValues {
   static const signUp = "Sign Up";
   static const size = "Size";
   static const state = "State";
+  static const startSale = "Start Selling";
   static const stores = "Stores";
   static const storeWarehouse = "New Store/Warehouse";
   static const suppliers = "Suppliers";

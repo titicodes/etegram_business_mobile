@@ -9,9 +9,6 @@ import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import '../constants/style.dart';
 import 'app_text.dart';
 
-
-
-
 class AppTextField extends StatefulWidget {
   final String? hintText;
   final String? Function(String?)? validator;
@@ -79,7 +76,9 @@ class AppTextField extends StatefulWidget {
     this.fillColor,
     this.overrideIconColor,
     this.enabledBorder,
-    this.boxWidth, this.borderRadius, this.textCapitalization,
+    this.boxWidth,
+    this.borderRadius,
+    this.textCapitalization,
   });
 
   @override
@@ -110,9 +109,7 @@ class _AppTextFieldState extends State<AppTextField> {
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     return Container(
-      decoration: BoxDecoration(
-        color: ColorValues.whiteColor
-      ),
+      decoration: BoxDecoration(color: ColorValues.whiteColor),
       width: widget.boxWidth ?? size.width,
       alignment: Alignment.centerLeft,
       child: Column(
@@ -121,17 +118,17 @@ class _AppTextFieldState extends State<AppTextField> {
         children: [
           widget.hintText != null
               ? Column(
-            children: [
-              AppText(
-                widget.hintText ?? "",
-                size: widget.textSize ?? 13.5,
-                color: widget.hintColor ?? ColorValues.primaryColor,
-                // isBold: true,
-                align: TextAlign.start,
-              ),
-              10.0.sbH,
-            ],
-          )
+                  children: [
+                    AppText(
+                      widget.hintText ?? "",
+                      size: widget.textSize ?? 13.5,
+                      color: widget.hintColor ?? ColorValues.primaryColor,
+                      // isBold: true,
+                      align: TextAlign.start,
+                    ),
+                    10.0.sbH,
+                  ],
+                )
               : 0.0.sbH,
           TextFormField(
             textAlign: TextAlign.start,
@@ -139,7 +136,9 @@ class _AppTextFieldState extends State<AppTextField> {
             autofillHints: widget.autofillHints,
             onEditingComplete: widget.onEditingComplete,
             onFieldSubmitted: widget.onFieldSubmitted,
-            textCapitalization: widget.textCapitalization==null? TextCapitalization.none: widget.textCapitalization!,
+            textCapitalization: widget.textCapitalization == null
+                ? TextCapitalization.none
+                : widget.textCapitalization!,
             maxLines: widget.maxHeight,
             focusNode: _focusNode,
             maxLength: widget.maxLength,
@@ -172,23 +171,23 @@ class _AppTextFieldState extends State<AppTextField> {
               prefixIcon: widget.prefix == null
                   ? null
                   : SizedBox(
-                  height: 40,
-                  width: 100,
-                  child: Align(
-                      alignment: Alignment.center, child: widget.prefix)),
+                      height: 40,
+                      width: 100,
+                      child: Align(
+                          alignment: Alignment.center, child: widget.prefix)),
               suffixIcon: widget.suffixIcon ??
                   (widget.isPassword
                       ? IconButton(
-                      onPressed: () {
-                        setState(() {
-                          isVisible = !isVisible;
-                        });
-                      },
-                      icon: widget.suffixIcon ??
-                          Icon(
-                            isVisible ? Iconsax.eye_slash : Iconsax.eye,
-                            size: 20,
-                          ))
+                          onPressed: () {
+                            setState(() {
+                              isVisible = !isVisible;
+                            });
+                          },
+                          icon: widget.suffixIcon ??
+                              Icon(
+                                isVisible ? Iconsax.eye_slash : Iconsax.eye,
+                                size: 20,
+                              ))
                       : widget.suffixIcon),
 
               label: widget.label,
@@ -201,10 +200,12 @@ class _AppTextFieldState extends State<AppTextField> {
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               focusedBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                      color:
-                      widget.borderless ? Colors.transparent : ColorValues.primaryColor,
+                      color: widget.borderless
+                          ? Colors.transparent
+                          : ColorValues.primaryColor,
                       width: 0.2),
-                  borderRadius: BorderRadius.circular(widget.borderRadius?? 8)),
+                  borderRadius:
+                      BorderRadius.circular(widget.borderRadius ?? 8)),
               enabledBorder: widget.enabledBorder ??
                   OutlineInputBorder(
                       borderSide: BorderSide(
@@ -212,22 +213,26 @@ class _AppTextFieldState extends State<AppTextField> {
                           color: widget.borderless
                               ? Colors.transparent
                               : Theme.of(context)
-                              .disabledColor
-                              .withValues(alpha: 102)),
-                      borderRadius: BorderRadius.circular(widget.borderRadius?? 8)),
+                                  .disabledColor
+                                  .withValues(alpha: 102)),
+                      borderRadius:
+                          BorderRadius.circular(widget.borderRadius ?? 8)),
               errorBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: ColorValues.errorColor, width: 0.8),
-                  borderRadius: BorderRadius.circular(widget.borderRadius?? 8)),
+                  borderSide:
+                      BorderSide(color: ColorValues.errorColor, width: 0.8),
+                  borderRadius:
+                      BorderRadius.circular(widget.borderRadius ?? 8)),
               errorStyle:
-              const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
+                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
               focusedErrorBorder: OutlineInputBorder(
                 borderSide: BorderSide(
                     color: widget.borderless ? Colors.transparent : Colors.red),
               ),
               disabledBorder: OutlineInputBorder(
                   borderSide:
-                  const BorderSide(color: Colors.transparent, width: 0.8),
-                  borderRadius: BorderRadius.circular(widget.borderRadius?? 8)),
+                      const BorderSide(color: Colors.transparent, width: 0.8),
+                  borderRadius:
+                      BorderRadius.circular(widget.borderRadius ?? 8)),
             ),
             keyboardType: widget.keyboardType,
           )
@@ -267,32 +272,32 @@ class PhoneField extends StatefulWidget {
 
   const PhoneField(
       {Key? key,
-        this.readonly = false,
-        this.borderless = false,
-        this.isPassword = false,
-        this.hintText,
-        this.hint,
-        this.onChanged,
-        this.controller,
-        this.keyboardType = TextInputType.text,
-        this.onTap,
-        this.onEditingComplete,
-        this.onFieldSubmitted,
-        this.inputFormatter,
-        this.validator,
-        this.autofillHints,
-        this.suffixIcon,
-        this.textSize,
-        this.haveText,
-        this.maxLength,
-        this.labelText,
-        this.label,
-        this.contentPadding,
-        this.prefix,
-        this.maxHeight = 1,
-        this.hintColor,
-        this.textColor,
-        this.inputFormatters})
+      this.readonly = false,
+      this.borderless = false,
+      this.isPassword = false,
+      this.hintText,
+      this.hint,
+      this.onChanged,
+      this.controller,
+      this.keyboardType = TextInputType.text,
+      this.onTap,
+      this.onEditingComplete,
+      this.onFieldSubmitted,
+      this.inputFormatter,
+      this.validator,
+      this.autofillHints,
+      this.suffixIcon,
+      this.textSize,
+      this.haveText,
+      this.maxLength,
+      this.labelText,
+      this.label,
+      this.contentPadding,
+      this.prefix,
+      this.maxHeight = 1,
+      this.hintColor,
+      this.textColor,
+      this.inputFormatters})
       : super(key: key);
 
   @override
@@ -332,17 +337,17 @@ class _PhoneFieldState extends State<PhoneField> {
         children: [
           widget.hintText != null
               ? Column(
-            children: [
-              AppText(
-                widget.hintText ?? "",
-                size: widget.textSize ?? 13.5,
-                color: widget.hintColor ?? ColorValues.primaryColor,
-                // isBold: true,
-                align: TextAlign.start,
-              ),
-              10.0.sbH,
-            ],
-          )
+                  children: [
+                    AppText(
+                      widget.hintText ?? "",
+                      size: widget.textSize ?? 13.5,
+                      color: widget.hintColor ?? ColorValues.primaryColor,
+                      // isBold: true,
+                      align: TextAlign.start,
+                    ),
+                    10.0.sbH,
+                  ],
+                )
               : 0.0.sbH,
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,12 +359,15 @@ class _PhoneFieldState extends State<PhoneField> {
                   decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(5),
                       border: Border.all(
-                          width: 0.8,
-                          color: widget.borderless
-                              ? ColorValues.primaryColor.withValues(alpha: 51) // Replace 0.2 with alpha value (0.2 * 255 = 51)
-                              : Theme.of(context)
-                              .disabledColor
-                              .withValues(alpha: 128),)),  // Replace 0.5 with alpha value (0.5 * 255 = 128)
+                        width: 0.8,
+                        color: widget.borderless
+                            ? ColorValues.primaryColor.withValues(
+                                alpha:
+                                    51) // Replace 0.2 with alpha value (0.2 * 255 = 51)
+                            : Theme.of(context)
+                                .disabledColor
+                                .withValues(alpha: 128),
+                      )), // Replace 0.5 with alpha value (0.5 * 255 = 128)
                   child: Container(
                     height: 24,
                   ),
@@ -396,26 +404,26 @@ class _PhoneFieldState extends State<PhoneField> {
                     prefixIcon: widget.prefix == null
                         ? null
                         : SizedBox(
-                        height: 40,
-                        width: 40,
-                        child: Align(
-                            alignment: Alignment.center,
-                            child: widget.prefix)),
+                            height: 40,
+                            width: 40,
+                            child: Align(
+                                alignment: Alignment.center,
+                                child: widget.prefix)),
                     suffixIcon: widget.suffixIcon ??
                         (widget.isPassword
                             ? IconButton(
-                            onPressed: () {
-                              setState(() {
-                                isVisible = !isVisible;
-                              });
-                            },
-                            icon: widget.suffixIcon ??
-                                Icon(
-                                  isVisible
-                                      ? Iconsax.eye_slash
-                                      : Iconsax.eye,
-                                  size: 20,
-                                ))
+                                onPressed: () {
+                                  setState(() {
+                                    isVisible = !isVisible;
+                                  });
+                                },
+                                icon: widget.suffixIcon ??
+                                    Icon(
+                                      isVisible
+                                          ? Iconsax.eye_slash
+                                          : Iconsax.eye,
+                                      size: 20,
+                                    ))
                             : widget.suffixIcon),
                     label: widget.label,
                     labelText: widget.labelText,
@@ -439,11 +447,12 @@ class _PhoneFieldState extends State<PhoneField> {
                             color: widget.borderless
                                 ? ColorValues.primaryColor.withValues(alpha: 51)
                                 : Theme.of(context)
-                                .disabledColor
-                                .withValues(alpha: 128)),
+                                    .disabledColor
+                                    .withValues(alpha: 128)),
                         borderRadius: BorderRadius.circular(8)),
                     errorBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: ColorValues.errorColor, width: 0.8),
+                        borderSide: BorderSide(
+                            color: ColorValues.errorColor, width: 0.8),
                         borderRadius: BorderRadius.circular(8)),
                     errorStyle: const TextStyle(
                         fontSize: 14, fontWeight: FontWeight.w400),
@@ -517,7 +526,7 @@ class CustomInputText extends StatelessWidget {
         : style!.fontSize! / MediaQuery.textScaleFactorOf(context);
     return TextFormField(
       style:
-      bodyTextStyle.copyWith(color: textColor).copyWith(fontSize: fontSize),
+          bodyTextStyle.copyWith(color: textColor).copyWith(fontSize: fontSize),
       keyboardType: inputType,
       obscureText: obscure ?? false,
       validator: validator,
@@ -537,17 +546,17 @@ class CustomInputText extends StatelessWidget {
         label: label == null
             ? null
             : Text(
-          textScaleFactor: 1.0,
-          "$label",
-          style: bodyTextStyle.copyWith(),
-        ),
+                textScaleFactor: 1.0,
+                "$label",
+                style: bodyTextStyle.copyWith(),
+              ),
         hintStyle: TextStyle(color: ColorValues.primaryColor.withOpacity(.4))
             .copyWith(fontSize: fontSize),
         hintText: hintText,
         enabledBorder: OutlineInputBorder(
           borderRadius: const BorderRadius.all(Radius.circular(10)),
           borderSide: BorderSide(
-            color: color ??ColorValues. primaryColor.withOpacity(.4),
+            color: color ?? ColorValues.primaryColor.withOpacity(.4),
             width: 1.5,
           ),
         ),
@@ -591,17 +600,17 @@ class CustomPhoneInputText extends StatelessWidget {
   final int? maxLine;
   const CustomPhoneInputText(
       {super.key,
-        this.onChange,
-        this.inputType = TextInputType.text,
-        this.borderColor,
-        this.maxLine,
-        this.validator,
-        this.controller,
-        this.onSubmit,
-        this.onSaved,
-        this.onInputChanged,
-        this.isoCode,
-        this.hint});
+      this.onChange,
+      this.inputType = TextInputType.text,
+      this.borderColor,
+      this.maxLine,
+      this.validator,
+      this.controller,
+      this.onSubmit,
+      this.onSaved,
+      this.onInputChanged,
+      this.isoCode,
+      this.hint});
 
   @override
   Widget build(BuildContext context) {
@@ -609,7 +618,9 @@ class CustomPhoneInputText extends StatelessWidget {
       padding: 10.0.padH,
       decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(width: 0.8, color: ColorValues.primaryColor.withValues(alpha: 102))),
+          border: Border.all(
+              width: 0.8,
+              color: ColorValues.primaryColor.withValues(alpha: 102))),
       child: InternationalPhoneNumberInput(
         onInputChanged: (PhoneNumber number) => onInputChanged!(number),
         keyboardType: const TextInputType.numberWithOptions(
@@ -618,7 +629,7 @@ class CustomPhoneInputText extends StatelessWidget {
         ),
         initialValue: PhoneNumber(
           isoCode:
-          'NG', // Set the default country using its ISO code (e.g., 'US' for United States)
+              'NG', // Set the default country using its ISO code (e.g., 'US' for United States)
         ),
         cursorColor: ColorValues.appTextColor,
         onSaved: (PhoneNumber number) => {onSaved!(number)},
@@ -637,7 +648,7 @@ class CustomPhoneInputText extends StatelessWidget {
           filled: true,
           fillColor: Colors.transparent,
           contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           focusedBorder: OutlineInputBorder(
               borderSide: const BorderSide(color: Colors.transparent, width: 0),
               borderRadius: BorderRadius.circular(8)),
@@ -648,7 +659,7 @@ class CustomPhoneInputText extends StatelessWidget {
               borderSide: const BorderSide(color: Colors.transparent, width: 0),
               borderRadius: BorderRadius.circular(8)),
           errorStyle:
-          const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+              const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
           focusedErrorBorder: const OutlineInputBorder(
             borderSide: BorderSide(color: Colors.transparent),
           ),
@@ -668,13 +679,13 @@ class CustomInputText2 extends StatelessWidget {
   final int? maxLine;
   const CustomInputText2(
       {super.key,
-        required this.hintText,
-        this.onChange,
-        this.inputType = TextInputType.text,
-        this.borderColor,
-        this.maxLine,
-        this.validator,
-        this.controller});
+      required this.hintText,
+      this.onChange,
+      this.inputType = TextInputType.text,
+      this.borderColor,
+      this.maxLine,
+      this.validator,
+      this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -690,21 +701,23 @@ class CustomInputText2 extends StatelessWidget {
       validator: validator,
       decoration: InputDecoration(
         contentPadding:
-        const EdgeInsets.only(bottom: 10, left: 10, right: 10, top: 10),
+            const EdgeInsets.only(bottom: 10, left: 10, right: 10, top: 10),
         hintText: hintText,
         label: AppText(hintText),
         labelStyle: bodyTextStyle.copyWith(fontSize: 15),
         hintStyle: TextStyle(color: ColorValues.greyColor),
         enabledBorder: UnderlineInputBorder(
-          //<-- SEE HERE
+            //<-- SEE HERE
             borderSide: BorderSide(
-              width: 1.5,
-              color: borderColor ?? ColorValues.greyColor.withValues(alpha: 76.5),
-            )),
+          width: 1.5,
+          color: borderColor ?? ColorValues.greyColor.withValues(alpha: 76.5),
+        )),
         focusedBorder: UnderlineInputBorder(
-          //<-- SEE HERE
+            //<-- SEE HERE
             borderSide: BorderSide(
-                width: 1.5, color: borderColor ?? ColorValues.greyColor.withValues(alpha:76.5))),
+                width: 1.5,
+                color: borderColor ??
+                    ColorValues.greyColor.withValues(alpha: 76.5))),
       ),
     );
   }
@@ -724,17 +737,17 @@ class NewDropDownSelect extends StatelessWidget {
   final Function(String? value)? onChanged;
   const NewDropDownSelect(
       {Key? key,
-        this.hintText,
-        this.hint,
-        this.value,
-        this.items,
-        this.onChanged,
-        this.validator,
-        this.inputFormatters,
-        this.height,
-        this.textSize,
-        this.hintColor,
-        this.prefix})
+      this.hintText,
+      this.hint,
+      this.value,
+      this.items,
+      this.onChanged,
+      this.validator,
+      this.inputFormatters,
+      this.height,
+      this.textSize,
+      this.hintColor,
+      this.prefix})
       : super(key: key);
 
   @override
@@ -747,17 +760,17 @@ class NewDropDownSelect extends StatelessWidget {
         hintText == null
             ? 0.0.sbH
             : Column(
-          children: [
-            AppText(
-              hintText ?? "",
-              size: textSize ?? 13.5,
-              color: hintColor ?? ColorValues.primaryColor,
-              // isBold: true,
-              align: TextAlign.start,
-            ),
-            10.0.sbH,
-          ],
-        ),
+                children: [
+                  AppText(
+                    hintText ?? "",
+                    size: textSize ?? 13.5,
+                    color: hintColor ?? ColorValues.primaryColor,
+                    // isBold: true,
+                    align: TextAlign.start,
+                  ),
+                  10.0.sbH,
+                ],
+              ),
         Container(
           alignment: Alignment.centerLeft,
           child: DropdownButtonFormField(
@@ -766,22 +779,22 @@ class NewDropDownSelect extends StatelessWidget {
             value: value,
             items: items
                 ?.map((e) => DropdownMenuItem(
-              value: e,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      e,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      softWrap: false,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w400),
-                    ),
-                  ),
-                ],
-              ),
-            ))
+                      value: e,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              e,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              softWrap: false,
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w400),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ))
                 .toList(),
             onChanged: onChanged,
             isExpanded: true,
@@ -798,18 +811,22 @@ class NewDropDownSelect extends StatelessWidget {
               fillColor: Colors.transparent,
               contentPadding: 10.0.padA,
               focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: ColorValues.primaryColor, width: 0.8),
+                  borderSide:
+                      BorderSide(color: ColorValues.primaryColor, width: 0.8),
                   borderRadius: BorderRadius.circular(8)),
               enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(
                       width: 0.8,
-                      color: Theme.of(context).disabledColor.withValues(alpha: 128)),
+                      color: Theme.of(context)
+                          .disabledColor
+                          .withValues(alpha: 128)),
                   borderRadius: BorderRadius.circular(8)),
               errorBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: ColorValues.errorColor, width: 0.8),
+                  borderSide:
+                      BorderSide(color: ColorValues.errorColor, width: 0.8),
                   borderRadius: BorderRadius.circular(8)),
               errorStyle:
-              const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
+                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
               focusedErrorBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.red),
               ),
@@ -900,11 +917,11 @@ class TextArea extends StatelessWidget {
         label.isEmpty || label == ""
             ? 0.0.sbH
             : AppText(
-          label,
-          size: 12.sp,
-          color: ColorValues.primaryColor,
-          align: TextAlign.start,
-        ),
+                label,
+                size: 12.sp,
+                color: ColorValues.primaryColor,
+                align: TextAlign.start,
+              ),
         label.isEmpty || label == "" ? 0.0.sbH : 8.0.sbH,
         TextField(
           showCursor: showCursor,
@@ -927,7 +944,8 @@ class TextArea extends StatelessWidget {
             hintText: hintText,
             errorText: formError,
             focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: ColorValues.primaryDarkColor, width: 0.8),
+                borderSide:
+                    BorderSide(color: ColorValues.primaryDarkColor, width: 0.8),
                 borderRadius: BorderRadius.circular(8)),
             enabledBorder: OutlineInputBorder(
                 borderSide: BorderSide(
@@ -936,10 +954,10 @@ class TextArea extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8)),
             errorBorder: OutlineInputBorder(
                 borderSide:
-                const BorderSide(color: Colors.deepOrange, width: 0.8),
+                    const BorderSide(color: Colors.deepOrange, width: 0.8),
                 borderRadius: BorderRadius.circular(8)),
             errorStyle:
-            const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+                const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
             focusedErrorBorder: const OutlineInputBorder(
               borderSide: BorderSide(color: Colors.red),
             ),

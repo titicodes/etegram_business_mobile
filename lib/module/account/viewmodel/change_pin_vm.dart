@@ -50,7 +50,7 @@ class ChangePinViewModel extends BaseViewModel {
 
     try {
       var response = await authRepository.changePin(
-        userId: userService.customer.id ?? '',
+        userId: userService.customer?.id ?? '',
         newPin: newPinController.text.trim(),
         oldPin: pinCodeController.text.trim(),
       );

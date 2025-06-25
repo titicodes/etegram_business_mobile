@@ -1,135 +1,160 @@
-class DeliveryResponse {
-  DeliveryResponse({
-     this.success,
-     this.data,
-     this.message,
-  });
-
-  final bool? success;
-  final DeliveryResponseData? data;
-  final String? message;
-
-  factory DeliveryResponse.fromJson(Map<String, dynamic> json){
-    return DeliveryResponse(
-      success: json["success"],
-      data: json["data"] == null ? null : DeliveryResponseData.fromJson(json["data"]),
-      message: json["message"],
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    "success": success,
-    "data": data?.toJson(),
-    "message": message,
-  };
-
-}
-
-class DeliveryResponseData {
-  DeliveryResponseData({
-     this.succes,
-     this.data,
-     this.message,
-  });
-
-  final bool? succes;
-  final DeliveryData? data;
-  final String? message;
-
-  factory DeliveryResponseData.fromJson(Map<String, dynamic> json){
-    return DeliveryResponseData(
-      succes: json["succes"],
-      data: json["data"] == null ? null : DeliveryData.fromJson(json["data"]),
-      message: json["message"],
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    "succes": succes,
-    "data": data?.toJson(),
-    "message": message,
-  };
-
-}
-
 class DeliveryData {
+  String? id;
+  String? firstName;
+  String? lastName;
+  String? email;
+  String? phoneNumber;
+  String? extraPhone;
+  String? estate;
+  String? country;
+  String? state;
+  String? city;
+  String? area;
+  String? supplierType;
+  String? extraDetails;
+  String? storeId;
+  String? userId;
+  String? status;
+  DateTime? createdAt;
+  DateTime? updatedAt;
+
   DeliveryData({
-     this.id,
+    this.id,
      this.firstName,
      this.lastName,
      this.email,
      this.phoneNumber,
+    this.extraPhone,
      this.estate,
      this.country,
+     this.state,
+     this.city,
      this.area,
-     this.extraPhone,
      this.supplierType,
-     this.extraDetails,
-     this.user,
-     this.createdAt,
-     this.updatedAt,
-     this.v,
-    this.state,
-    this.city
+    this.extraDetails,
+     this.storeId,
+    this.userId,
+    this.status,
+    this.createdAt,
+    this.updatedAt,
   });
 
-  final String? id;
-  final String? firstName;
-  final String? lastName;
-  final String? state;
-  final String? email;
-  final String? phoneNumber;
-  final String? estate;
-  final String? country;
-  final String? area;
-  final String? extraPhone;
-  final String? supplierType;
-  final String? extraDetails;
-  final String? user;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-  final String? city;
-  final int? v;
-
-  factory DeliveryData.fromJson(Map<String, dynamic> json){
+  factory DeliveryData.fromJson(Map<String, dynamic> json) {
     return DeliveryData(
-      id: json["_id"],
-      firstName: json["firstName"],
-      lastName: json["lastName"],
-      email: json["email"],
-      phoneNumber: json["phoneNumber"],
-      estate: json["estate"],
-      country: json["country"],
-      area: json["area"],
-      extraPhone: json["extraPhone"],
-      supplierType: json["supplierType"],
-      extraDetails: json["extraDetails"],
-      user: json["user"],
-      state: json["state"],
-      city: json["city"],
-      createdAt: DateTime.tryParse(json["createdAt"] ?? ""),
-      updatedAt: DateTime.tryParse(json["updatedAt"] ?? ""),
-      v: json["__v"],
+      id: json['_id']?.toString(),
+      firstName: json['firstName'] ?? '',
+      lastName: json['lastName'] ?? '',
+      email: json['email'] ?? '',
+      phoneNumber: json['phoneNumber'] ?? '',
+      extraPhone: json['extraPhone'],
+      estate: json['estate'] ?? '',
+      country: json['country'] ?? '',
+      state: json['state'] ?? '',
+      city: json['city'] ?? '',
+      area: json['area'] ?? '',
+      supplierType: json['supplierType'] ?? '',
+      extraDetails: json['extraDetails'],
+      storeId: json['store']?.toString() ?? '',
+      userId: json['user']?.toString(),
+      status: json['status'],
+      createdAt:
+          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      updatedAt:
+          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    "_id": id,
-    "firstName": firstName,
-    "lastName": lastName,
-    "email": email,
-    "phoneNumber": phoneNumber,
-    "estate": estate,
-    "country": country,
-    "area": area,
-    "extraPhone": extraPhone,
-    "supplierType": supplierType,
-    "extraDetails": extraDetails,
-    "user": user,
-    "city":city,
-    "createdAt": createdAt?.toIso8601String(),
-    "updatedAt": updatedAt?.toIso8601String(),
-    "__v": v,
-  };
+  Map<String, dynamic> toCreateJson() {
+    return {
+      'firstName': firstName,
+      'lastName': lastName,
+      'email': email,
+      'phoneNumber': phoneNumber,
+      if (extraPhone != null) 'extraPhone': extraPhone,
+      'estate': estate,
+      'country': country,
+      'state': state,
+      'city': city,
+      'area': area,
+      'supplierType': supplierType,
+      if (extraDetails != null) 'extraDetails': extraDetails,
+      'storeId': storeId,
+    };
+  }
 
+  Map<String, dynamic> toJson() {
+    return {
+      if (id != null) '_id': id,
+      'firstName': firstName,
+      'lastName': lastName,
+      'email': email,
+      'phoneNumber': phoneNumber,
+      if (extraPhone != null) 'extraPhone': extraPhone,
+      'estate': estate,
+      'country': country,
+      'state': state,
+      'city': city,
+      'area': area,
+      'supplierType': supplierType,
+      if (extraDetails != null) 'extraDetails': extraDetails,
+      'storeId': storeId,
+      if (status != null) 'status': status,
+    };
+  }
+}
+
+class DeliveryTransactionData {
+  String? id;
+  String orderId;
+  String storeId;
+  String? supplierId;
+  List<Map<String, dynamic>> items;
+  String? notes;
+  String? status;
+  String? userId;
+  DateTime? createdAt;
+  DateTime? updatedAt;
+
+  DeliveryTransactionData({
+    this.id,
+    required this.orderId,
+    required this.storeId,
+    this.supplierId,
+    required this.items,
+    this.notes,
+    this.status,
+    this.userId,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory DeliveryTransactionData.fromJson(Map<String, dynamic> json) {
+    return DeliveryTransactionData(
+      id: json['_id']?.toString(),
+      orderId: json['orderId'] ?? '',
+      storeId: json['store']?.toString() ?? '',
+      supplierId: json['supplierId']?.toString(),
+      items:
+          (json['items'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
+      notes: json['notes'],
+      status: json['status'],
+      userId: json['user']?.toString(),
+      createdAt:
+          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      updatedAt:
+          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (id != null) '_id': id,
+      'orderId': orderId,
+      'storeId': storeId,
+      if (supplierId != null) 'supplierId': supplierId,
+      'items': items,
+      if (notes != null) 'notes': notes,
+      if (status != null) 'status': status,
+    };
+  }
 }

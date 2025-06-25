@@ -1,18 +1,33 @@
 class GetScanResponse {
+  final bool? success;
+  final Data? data;
+  final String? message;
+
+  // Unnamed constructor to support existing instantiations
   GetScanResponse({
     this.success,
     this.data,
     this.message,
   });
 
-  final bool? success;
-  final Data? data;
-  final String? message;
+  // Named constructor for internal use
+  GetScanResponse._({
+    this.success,
+    this.data,
+    this.message,
+  });
 
   factory GetScanResponse.fromJson(Map<String, dynamic> json) {
-    return GetScanResponse(
+    return GetScanResponse._(
       success: json["success"],
-      data: json["data"] == null ? null : Data.fromJson(json["data"]),
+      data: json["data"] == null
+          ? null
+          : Data.fromJson(
+              json["data"] is Map<String, dynamic> &&
+                      json["data"]["product"] == null
+                  ? {"product": json["data"], "cart": []} // Wrap direct product
+                  : json["data"],
+            ),
       message: json["message"],
     );
   }
@@ -25,16 +40,17 @@ class GetScanResponse {
 }
 
 class Data {
-  Data({
+  final ScanProduct? product;
+  final List<Cart>? cart;
+
+  // Named constructor to initialize final fields
+  Data._({
     this.product,
     this.cart,
   });
 
-  final ScanProduct? product;
-  final List<Cart>? cart;
-
   factory Data.fromJson(Map<String, dynamic> json) {
-    return Data(
+    return Data._(
       product: json["product"] == null
           ? null
           : ScanProduct.fromJson(json["product"]),
@@ -50,15 +66,17 @@ class Data {
       };
 }
 
+// Cart and ScanProduct remain unchanged
 class Cart {
-  Cart({
-    required this.id,
-    required this.name,
-    required this.price,
-    required this.code,
-    required this.quantity,
-    required this.subtotal,
-  });
+  Cart(
+      {required this.id,
+      required this.name,
+      required this.price,
+      required this.code,
+      required this.quantity,
+      required this.subtotal,
+      required this.availableQuantity,
+      this.size});
 
   final String id;
   final String name;
@@ -66,6 +84,8 @@ class Cart {
   final String code;
   int quantity;
   int subtotal;
+  final int availableQuantity;
+  final String? size;
 
   factory Cart.fromJson(Map<String, dynamic> json) {
     return Cart(
@@ -73,9 +93,11 @@ class Cart {
       name: json["name"] ?? "Unknown Product",
       price: json["price"] ?? 0,
       code: json["code"] ?? "",
+      size: json["size"] ?? "",
       quantity: json["quantity"] ?? 1,
       subtotal:
           json["subtotal"] ?? (json["quantity"] ?? 1) * (json["price"] ?? 0),
+      availableQuantity: json["stock"] ?? json["availableQuantity"] ?? 0,
     );
   }
 
@@ -86,11 +108,13 @@ class Cart {
         "code": code,
         "quantity": quantity,
         "subtotal": subtotal,
+        "availableQuantity": availableQuantity,
+        'size': size
       };
 
   @override
   String toString() {
-    return 'Cart(id: $id, name: $name, code: $code, quantity: $quantity, price: $price, subtotal: $subtotal)';
+    return 'Cart(id: $id, name: $name, code: $code, quantity: $quantity, price: $price, subtotal: $subtotal, availableQuantity: $availableQuantity, size: $size,)';
   }
 }
 
@@ -113,6 +137,7 @@ class ScanProduct {
   final int? price;
   final String? code;
   int? quantity;
+  String? size;
   final String? categoryId;
   final int? stock;
   final DateTime? createdAt;
@@ -142,6 +167,7 @@ class ScanProduct {
         "quantity": quantity,
         "categoryId": categoryId,
         "stock": stock,
+        "size": size,
         "createdAt": createdAt?.toIso8601String(),
         "updatedAt": updatedAt?.toIso8601String(),
         "__v": v,

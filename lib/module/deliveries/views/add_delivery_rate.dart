@@ -1,22 +1,20 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:etegram_business/app_widget/app_button.dart';
 import 'package:etegram_business/app_widget/custom_appbar.dart';
 import 'package:etegram_business/app_widget/input_fields.dart';
 import 'package:etegram_business/base/base_ui.dart';
+import 'package:etegram_business/constants/assets.dart';
+import 'package:etegram_business/constants/colors.dart';
 import 'package:etegram_business/constants/reuseable.dart';
+import 'package:etegram_business/constants/style.dart';
 import 'package:etegram_business/module/deliveries/vm/delivery_vm.dart';
 import 'package:etegram_business/utils/string_extension.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:nigerian_states_and_lga/nigerian_states_and_lga.dart';
 
 import '../../../app_widget/app_text.dart';
-import '../../../app_widget/custom_dropdown.dart';
-import '../../../constants/assets.dart';
-import '../../../constants/colors.dart';
-import '../../../constants/strings.dart';
-import '../../../constants/style.dart';
 
 class AddDeliveryRate extends StatelessWidget {
   const AddDeliveryRate({super.key});
@@ -24,196 +22,220 @@ class AddDeliveryRate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BaseView<DeliveryViewModel>(
-      notDefaultLoading: true,
-      onModelReady: (model) {
-        model.loadStatesAndLGAs();
-      },
-      builder: (_, logic, child) => Scaffold(
-        backgroundColor: ColorValues.backgroundColor,
-        appBar: CustomAppBar(
-          title: "Add Delivery Agents",
-          onBackPressed: () {
-            navigationService.goBack();
-          },
-          showMenuIcon: false,
-          showNotificationIcon: false,
-        ),
-        body: SingleChildScrollView(
-          child: Form(
-            key: logic.formKey,
-            child: Padding(
-              padding: 16.0.padA,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  10.0.sbH,
-                  Center(
-                    child: SvgPicture.asset(SvgAssets.appLogo),
-                  ),
-                  16.0.sbH,
-                  AppText(
-                    StringValues.createDeliverAgent,
-                    style: titleSmall,
-                    align: TextAlign.center,
-                  ),
-                  30.0.sbH,
-                  AppTextField(
-                    controller: logic.emailNameController,
-                    hint: "Email",
-                  ),
-                  12.0.sbH,
-                  AppTextField(
-                    controller: logic.lastNameController,
-                    hint: "First name",
-                  ),
-                  12.0.sbH,
-                  AppTextField(
-                    controller: logic.firstNameController,
-                    hint: "last name",
-                  ),
-                  16.0.sbH,
-                  AppTextField(
-                    hint: StringValues.phoneNumber,
-                    prefix: Container(
-                      width: 150.sp,
-                      child: Row(
-                        children: [
-                          10.0.sbW,
-                          SvgPicture.asset(
-                            SvgAssets.flag,
-                            height: 16.sp,
-                            width: 16.sw,
-                          ),
-                          AppText('  +234',
-                              style:
-                                  normalTextStyle12), // +234 is only for display
-                        ],
+      onModelReady: (model) => model.init(),
+      builder: (context, model, child) => Stack(
+        children: [
+          Scaffold(
+            backgroundColor: ColorValues.backgroundColor,
+            appBar: CustomAppBar(
+              title: 'Add Delivery Agent',
+              onBackPressed: () => navigationService.goBack(),
+              showMenuIcon: false,
+            ),
+            body: SingleChildScrollView(
+              child: Form(
+                key: model.formKey,
+                child: Padding(
+                  padding: 16.0.padA,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      30.0.sbH,
+                      Center(
+                        child: SvgPicture.asset(SvgAssets.appLogo),
                       ),
-                    ),
-                    controller: logic.phoneController,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Phone number is required';
-                      }
-                      if (!RegExp(r'^0\d{10}$').hasMatch(value)) {
-                        return 'Enter a valid 11-digit phone number starting with 0';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      logic.phoneNumber = value;
-                    },
-                    keyboardType: TextInputType.number,
-                  ),
-                  16.0.sbH,
-                  AppTextField(
-                    hint: StringValues.businesContact,
-                    prefix: Container(
-                      width: 150.sp,
-                      child: Row(
-                        children: [
-                          10.0.sbW,
-                          SvgPicture.asset(
-                            SvgAssets.flag,
-                            height: 16.sp,
-                            width: 16.sw,
-                          ),
-                          AppText('  +234',
-                              style:
-                              normalTextStyle12), // +234 is only for display
-                        ],
+                      16.0.sbH,
+                      AppText(
+                        'Create Delivery Agent',
+                        style: titleSmall,
+                        align: TextAlign.center,
                       ),
-                    ),
-                    controller: logic.businessController,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Phone number is required';
-                      }
-                      if (!RegExp(r'^0\d{10}$').hasMatch(value)) {
-                        return 'Enter a valid 11-digit phone number starting with 0';
-                      }
-                      return null;
-                    },
-                    onChanged: (value) {
-                      logic.businessPhone = value;
-                    },
-                    keyboardType: TextInputType.number,
+                      30.0.sbH,
+                      AppTextField(
+                        controller: model.emailController,
+                        hint: 'Email',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Email is required';
+                          }
+                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                            return 'Enter a valid email address';
+                          }
+                          return null;
+                        },
+                      ),
+                      12.0.sbH,
+                      AppTextField(
+                        controller: model.firstNameController,
+                        hint: 'First Name',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'First name is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      12.0.sbH,
+                      AppTextField(
+                        controller: model.lastNameController,
+                        hint: 'Last Name',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Last name is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      16.0.sbH,
+                      AppTextField(
+                        hint: 'Phone Number',
+                        prefix: Container(
+                          width: 150.sp,
+                          child: Row(
+                            children: [
+                              10.0.sbW,
+                              SvgPicture.asset(
+                                SvgAssets.flag,
+                                height: 16.sp,
+                                width: 16.sw,
+                              ),
+                              AppText('  +234', style: normalTextStyle12),
+                            ],
+                          ),
+                        ),
+                        controller: model.phoneController,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Phone number is required';
+                          }
+                          if (!RegExp(r'^0\d{10}$').hasMatch(value)) {
+                            return 'Enter a valid 11-digit phone number starting with 0';
+                          }
+                          return null;
+                        },
+                        keyboardType: TextInputType.number,
+                      ),
+                      16.0.sbH,
+                      AppTextField(
+                        hint: 'Extra Phone Number',
+                        prefix: Container(
+                          width: 150.sp,
+                          child: Row(
+                            children: [
+                              10.0.sbW,
+                              SvgPicture.asset(
+                                SvgAssets.flag,
+                                height: 16.sp,
+                                width: 16.sw,
+                              ),
+                              AppText('  +234', style: normalTextStyle12),
+                            ],
+                          ),
+                        ),
+                        controller: model.extraPhoneController,
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty && !RegExp(r'^0\d{10}$').hasMatch(value)) {
+                            return 'Enter a valid 11-digit phone number starting with 0';
+                          }
+                          return null;
+                        },
+                        keyboardType: TextInputType.number,
+                      ),
+                      16.0.sbH,
+                      _buildDropdown(
+                        context,
+                        value: model.country,
+                        items: model.countryList,
+                        onChanged: model.onCountryChanged,
+                        hintText: 'Country',
+                      ),
+                      16.0.sbH,
+                      _buildDropdown(
+                        context,
+                        value: model.state,
+                        items: model.statesList,
+                        onChanged: model.onStateChanged,
+                        hintText: 'State',
+                      ),
+                      16.0.sbH,
+                      _buildDropdown(
+                        context,
+                        value: model.city,
+                        items: model.lgaList,
+                        onChanged: model.onCityChanged,
+                        hintText: 'City',
+                      ),
+                      16.0.sbH,
+                      _buildDropdown(
+                        context,
+                        value: model.area,
+                        items: model.wardList,
+                        onChanged: model.onAreaChanged,
+                        hintText: 'Area',
+                      ),
+                      16.0.sbH,
+                      _buildDropdown(
+                        context,
+                        value: model.supplierType,
+                        items: model.supplierTypeList,
+                        onChanged: model.onSupplierTypeChanged,
+                        hintText: 'Supplier Type',
+                      ),
+                      16.0.sbH,
+                      AppTextField(
+                        controller: model.estateController,
+                        hint: 'Estate',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Estate is required';
+                          }
+                          return null;
+                        },
+                      ),
+                      16.0.sbH,
+                      AppTextField(
+                        controller: model.extraDetailsController,
+                        hint: 'Extra Details (Optional)',
+                        maxLength: 3,
+                      ),
+                      40.0.sbH,
+                      ValueListenableBuilder<bool>(
+                        valueListenable: model.isFormValid,
+                        builder: (context, isValid, child) => AppButton(
+                          text: 'Add Delivery Agent',
+                          onTap: isValid ? () => model.submit(context) : null,
+                          enabled: isValid,
+                        ),
+                      ),
+                      40.0.sbH,
+                    ],
                   ),
-                  16.0.sbH,
-                  _buildDropdown(context,
-                      value: logic.countries,
-                      items: logic.countriesList, onChanged: (value) {
-                    logic.onCountryChanged(value ?? "");
-                  }, hintText: 'Country'),
-                  16.0.sbH,
-                  _buildDropdown(context,
-                      value: logic.stateValue,
-                      items: logic.statesList, onChanged: (value) {
-                    logic.onStateChanged(value ?? "");
-                  }, hintText: 'State'),
-                  16.0.sbH,
-                  _buildDropdown(context,
-                      value: logic.lgaValue,
-                      items: logic.lgaList, onChanged: (value) {
-                    logic.onLGAChanged(value ?? "");
-                  }, hintText: 'City'),
-                  16.0.sbH,
-                  _buildDropdown(context,
-                      value: logic.wardValue,
-                      items: logic.wardList, onChanged: (value) {
-                    logic.onWardChanged(value ?? "");
-                  }, hintText: 'Area'),
-                  16.0.sbH,
-                  _buildDropdown(context,
-                      value: logic.businessTypes,
-                      items: logic.businessTypeSelection, onChanged: (value) {
-                    logic.onChangedBusinessType(value ?? "");
-                  }, hintText: 'Business Type'),
-                  16.0.sbH,
-                  Container(
-                    width: width(context),
-                    decoration: BoxDecoration(color: ColorValues.whiteColor),
-                    child: TextField(
-                      decoration: InputDecoration(
-                          hintText: "Where is your estate",
-                          border: InputBorder.none,
-                          contentPadding: 10.0.padA,
-                          hintStyle: normalTextStyle),
-                      controller: logic.estateController,
-                    ),
-                  ),
-                  40.0.sbH,
-                  ValueListenableBuilder<bool>(
-                    valueListenable: logic.isFormValid,
-                    builder: (context, isValid, child) {
-                      return AppButton(
-                        text: StringValues.addDeliveryAgent,
-                        onTap: isValid
-                            ? () {
-                                logic.submit();
-                              }
-                            : null,
-                        enabled: isValid,
-                      );
-                    },
-                  ),
-                  40.0.sbH,
-                ],
+                ),
               ),
             ),
           ),
-        ),
+          if (model.isLoading.value)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: SpinKitFadingCircle(
+                  color: ColorValues.primaryColor,
+                  size: 50.0,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 
   Widget _buildDropdown(
-    BuildContext context, {
-    required String? value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-    required String hintText,
-  }) {
+      BuildContext context, {
+        required String? value,
+        required List<String> items,
+        required ValueChanged<String?> onChanged,
+        required String hintText,
+      }) {
     String? selectedValue = items.contains(value) ? value : null;
 
     return Padding(
@@ -233,31 +255,29 @@ class AddDeliveryRate extends StatelessWidget {
               child: AppText(
                 hintText,
                 style: TextStyle(
-                    color: Color(0xFFD9D9D9),
-                    fontFamily: "Poppins",
-                    fontSize: 12),
+                  color: Color(0xFFD9D9D9),
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                ),
               ),
             ),
             value: selectedValue,
             items: items
                 .map((item) => DropdownMenuItem(
-                      value: item,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                        child: AppText(item.toCapitalized()),
-                      ),
-                    ))
+              value: item,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                child: AppText(item.toCapitalized()),
+              ),
+            ))
                 .toList(),
-            onChanged: (newValue) {
-              onChanged(newValue);
-            },
+            onChanged: onChanged,
             icon: Icon(Icons.arrow_drop_down),
             elevation: 0,
             selectedItemBuilder: (BuildContext context) {
               return items.map((String value) {
                 return Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.sp),
+                  padding: EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.sp),
                   child: AppText(
                     value.toCapitalized(),
                     style: normalTextStyle,

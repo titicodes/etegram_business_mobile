@@ -1,87 +1,76 @@
+// auth_api.dart
 import 'dart:convert';
-
 import 'package:dio/dio.dart';
-import 'package:etegram_business/constants/app_url.dart';
-import 'package:etegram_business/core/model/login_response.dart';
-import 'package:etegram_business/service/local/user_service.dart';
-import 'package:etegram_business/service/web/base_api.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
-
+import '../../constants/app_url.dart';
 import '../../constants/reuseable.dart';
 import '../../core/model/auth_response.dart';
 import '../../locator.dart';
-import '../local/storage_service.dart';
+import '../../service/local/storage_service.dart';
+import '../../service/local/user_service.dart';
+import 'base_api.dart';
 
 class AuthenticationApiService {
-  StorageService storageService = locator<StorageService>();
-  CustomerService customerService = locator<CustomerService>();
+  final StorageService storageService = locator<StorageService>();
+  final CustomerService customerService = locator<CustomerService>();
 
-  Future<AuthResponse?> register({required Customer data}) async {
+  Future<AuthResponse?> register({required Customer customer}) async {
     try {
       Response response = await connect().post(AppUrls.registerUrl, data: {
-        "email": data.email,
-        "password": data.password,
-        "firstName": data.firstName,
-        "lastName": data.lastName,
-        "phone": data.phone,
-        "country": data.country, // Add country
-        "state": data.state, // Add state
-        "city": data.city, // Add city
-        "area": data.area, // Add area
-        //"lga": data.city, // Add lga
-        "currency": data.currency,
-        "businessType": data.businessType,
-        "businessName": data.businessName
+        "email": customer.email,
+        "password": customer.password,
+        "firstName": customer.firstName,
+        "lastName": customer.lastName,
+        "phoneNumber": customer.phoneNumber,
+        "country": customer.country,
+        "state": customer.state,
+        "city": customer.city,
+        "area": customer.area,
+        "currency": customer.currency,
+        "businessType": customer.businessType,
+        "businessName": customer.businessName,
       });
-      AuthResponse? dataResponse =
-          AuthResponse.fromJson(jsonDecode(response.data));
-      return dataResponse;
+      // Assuming AuthResponse.fromJson expects the *entire* response.data
+      final data =
+          response.data is String ? jsonDecode(response.data) : response.data;
+      return AuthResponse.fromJson(data);
     } on DioException catch (e) {
-      print("Dio Error Response Data: ${e.response?.data}");
-      return null;
+      print("Register Dio Error: ${e.response?.data}");
+
+      rethrow; // Rethrow the exception to be caught by the calling ViewModel
     }
   }
 
-  Future<AuthResponse?> emailVerify(
+  Future<AuthResponse?> emailVerifier(
       {required String email, required int code}) async {
     try {
-      print("Sending request to ${AppUrls.verifyEmailUrl}");
-      print("Request data: {'email': $email, 'code': $code}");
-
       Response response = await connect().post(
         AppUrls.verifyEmailUrl,
         data: {"email": email, "code": code},
       );
-
-      print("Response status: ${response.statusCode}");
-      print("Response data: ${response.data}");
-
-      AuthResponse? dataResponse =
-          AuthResponse.fromJson(jsonDecode(response.data));
-      return dataResponse;
+      final data =
+      response.data is String ? jsonDecode(response.data) : response.data;
+      return AuthResponse.fromJson(data);
     } on DioException catch (e) {
-      if (kDebugMode) {
-        print("DioException: ${e.response}");
-      }
-      return null;
+      print("Verify Email Dio Error: ${e.response?.data}");
+      rethrow; // Rethrow the exception
     }
   }
 
-  Future<AuthResponse?> login({required Customer data}) async {
+  Future<AuthResponse?> login(
+      {required Customer customer}) async {
     try {
-      Response response = await connect().post(AppUrls.loginUrl,
-          data: {"email": data.email, "password": data.password});
-      // Example: Storing user ID after successful login
-
-      AuthResponse? dataResponse =
-          AuthResponse.fromJson(jsonDecode(response.data));
-      return dataResponse;
+      Response response = await connect().post(
+        AppUrls.loginUrl,
+        data: {"email": customer.email, "password": customer.password},
+      );
+      final data =
+      response.data is String ? jsonDecode(response.data) : response.data;
+      return AuthResponse.fromJson(data);
     } on DioException catch (e) {
-      if (kDebugMode) {
-        print(e.response);
-      }
-      return null;
+      print("Login Dio Error: ${e.response?.data}");
+      rethrow; // Rethrow the exception
     }
   }
 
@@ -89,26 +78,18 @@ class AuthenticationApiService {
     try {
       Response response = await connect().post(
         AppUrls.forgotPasswordUrl,
-        data: {"email": email}, // ✅ Matches ForgotPasswordDto
+        data: {"email": email},
       );
-
-      if (response.statusCode == 200) {
-        print("✅ Forgot Password: Email sent successfully");
-        return true;
-      } else {
-        print("⚠️ Forgot Password: HTTP error: ${response.statusCode}");
-        return false;
-      }
+      return response.statusCode == 200;
     } on DioException catch (e) {
-      print("❌ Forgot Password: Dio error: ${e.response?.data}");
+      print("Forgot Password Dio Error: ${e.response?.data}");
       return false;
     }
   }
 
-  // Reset Password API - Updates the password
   Future<bool> resetPassword({
     required String email,
-    required int code, // OTP Code
+    required int code,
     required String newPassword,
     required String confirmPassword,
   }) async {
@@ -116,22 +97,15 @@ class AuthenticationApiService {
       Response response = await connect().post(
         AppUrls.resetPasswordUrl,
         data: {
-          "email": email, // ✅ Matches ResetPasswordDto
-          "code": code, // OTP Code
+          "email": email,
+          "code": code,
           "password": newPassword,
           "confirmPassword": confirmPassword,
         },
       );
-
-      if (response.statusCode == 200) {
-        print("✅ Reset Password: Password updated successfully");
-        return true;
-      } else {
-        print("⚠️ Reset Password: HTTP error: ${response.statusCode}");
-        return false;
-      }
+      return response.statusCode == 200;
     } on DioException catch (e) {
-      print("❌ Reset Password: Dio error: ${e.response?.data}");
+      print("Reset Password Dio Error: ${e.response?.data}");
       return false;
     }
   }
@@ -139,55 +113,28 @@ class AuthenticationApiService {
   Future<Customer?> getUser() async {
     final box = GetStorage();
     String? accessToken = box.read(DbTable.tokenTableName);
-
-    print("SAVED TOKEN::: $accessToken");
-
     if (accessToken == null) {
-      print("❌ getUser: Access token is null");
+      print("getUser: No access token");
       return null;
     }
-
     try {
       Response response = await connect().get(
         AppUrls.getUserUrl,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $accessToken',
-          },
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
 
-      var responseData = jsonDecode(response.data);
+      // Parse the full AuthResponse first
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
+      AuthResponse authResponse = AuthResponse.fromJson(data);
 
-      if (responseData['success'] == true && responseData['data'] != null) {
-        var userData = responseData['data']; // ✅ Corrected
-
-        if (userData == null) {
-          print("⚠️ User data is null inside response");
-          return null;
-        }
-
-        Customer dataResponse = Customer.fromJson(userData);
-        print("✅ Parsed Customer: ${jsonEncode(dataResponse.toJson())}");
-
-        userService.storeUser(dataResponse);
-
-        return dataResponse;
+      if (authResponse.success == true && authResponse.data?.user != null) {
+        return authResponse.data?.user; // Now 'user' will be the correctly parsed Customer
       }
-
-      print("⚠️ No customer data found in response");
       return null;
     } on DioException catch (e) {
-      if (e.response != null) {
-        print(
-            "❌ getUser: Dio error: ${e.response!.statusCode}, ${e.response!.data}");
-
-        if (e.response!.statusCode == 403) {
-          print("🚨 Forbidden: Possible token issue. Logging out...");
-          await userService.logout();
-        }
-      } else {
-        print("❌ getUser: Dio error: ${e.message}");
+      print("getUser Dio Error: ${e.response?.data}");
+      if (e.response?.statusCode == 403) {
+        await customerService.logout();
       }
       return null;
     }
@@ -197,81 +144,46 @@ class AuthenticationApiService {
     try {
       Response response = await connect().post(
         AppUrls.logoutUrl,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        print("Logout: HTTP error: ${response.statusCode}");
-        return false;
-      }
+      return response.statusCode == 200;
     } on DioException catch (e) {
-      if (e.response != null) {
-        print(
-            "Logout: Dio error: ${e.response!.statusCode}, ${e.response!.data}");
-      } else {
-        print("Logout: Dio error: ${e.message}");
-      }
+      print("Logout Dio Error: ${e.response?.data}");
       return false;
     }
   }
 
-  Future<bool> changePin(
-      {required String userId,
-      required String newPin,
-      required String oldPin}) async {
+  Future<bool> changePin({
+    required String userId,
+    required String newPin,
+    required String oldPin,
+  }) async {
     try {
-      // Define the payload
-      final Map<String, dynamic> payload = {
-        "newPin": newPin,
-        "oldPin": oldPin,
-      };
-      // Make the API call
-      Response response =
-          await connect().put("user/change-pin/$userId", data: payload);
-
-      // Handle the response if needed
-      if (response.statusCode == 200) {
-        print('PIN changed successfully: ${response.data}');
-      } else {
-        print('Failed to change PIN: ${response.statusCode}');
-      }
+      Response response = await connect().put(
+        "user/change-pin/$userId",
+        data: {"newPin": newPin, "oldPin": oldPin},
+      );
+      return response.statusCode == 200;
     } on DioException catch (e) {
-      // Handle Dio exceptions
-      print('Error occurred: $e');
+      print("Change PIN Dio Error: ${e.response?.data}");
+      return false;
     }
-    return true;
   }
 
-  Future<bool> updatePin(
-      {required String userId,
-      required String pin,
-      required String confirmPin}) async {
+  Future<bool> updatePin({
+    required String userId,
+    required String pin,
+    required String confirmPin,
+  }) async {
     try {
-      // Define the payload
-      final Map<String, dynamic> payload = {
-        "pin": pin,
-        "confirmPin": confirmPin,
-      };
-      // Make the API call
-      Response response =
-          await connect().put("user/change-pin/$userId", data: payload);
-
-      // Handle the response if needed
-      if (response.statusCode == 200) {
-        print('PIN changed successfully: ${response.data}');
-      } else {
-        print('Failed to change PIN: ${response.statusCode}');
-      }
+      Response response = await connect().put(
+        "user/change-pin/$userId",
+        data: {"pin": pin, "confirmPin": confirmPin},
+      );
+      return response.statusCode == 200;
     } on DioException catch (e) {
-      // Handle Dio exceptions
-      print('Error occurred: $e');
+      print("Update PIN Dio Error: ${e.response?.data}");
+      return false;
     }
-    return true;
   }
 }

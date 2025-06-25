@@ -1,5 +1,6 @@
+
+
 import 'package:etegram_business/app_widget/app_text.dart';
-import 'package:etegram_business/app_widget/barcode_scanner_view.dart';
 import 'package:etegram_business/app_widget/custom_appbar.dart';
 import 'package:etegram_business/base/base_ui.dart';
 import 'package:etegram_business/constants/assets.dart';
@@ -11,17 +12,20 @@ import 'package:etegram_business/locator.dart';
 import 'package:etegram_business/module/home/drawer/nav_drawer.dart';
 import 'package:etegram_business/module/home/vm/home_vm.dart';
 import 'package:etegram_business/module/product/view/search_view.dart';
-import 'package:etegram_business/module/sales/vm/new_sales_vm.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
+import '../../../app_widget/barcode_scanner_view.dart';
+import '../../../app_widget/laser_scanner_animation.dart';
+import '../vm/new_sales_vm.dart';
 
 class NewSalesView extends StatelessWidget {
   const NewSalesView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    var logic = locator<HomeViewModel>();
+    final logic = locator<HomeViewModel>();
     return BaseView<SaleViewModel>(
       builder: (_, model, child) => Scaffold(
         backgroundColor: ColorValues.backgroundColor,
@@ -31,49 +35,89 @@ class NewSalesView extends StatelessWidget {
           onBackPressed: navigationService.goBack,
           showMenuIcon: true,
           showNotificationIcon: false,
-          onMenuPressed: () {
-            logic.openDrawer();
-          },
+          onMenuPressed: logic.openDrawer,
         ),
         body: Padding(
           padding: 16.0.padA,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               30.0.sbH,
-              InkWell(
-                onTap: () {
-                  navigationService.navigateToWidget(SearchProductView());
-                },
-                child: Container(
-                  height: 60,
-                  width: width(context),
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      color: ColorValues.whiteColor),
-                  child: AppText(
-                    StringValues.tapToChech,
-                    style: normalTextStyle,
-                  ),
-                ),
+              SvgPicture.asset(SvgAssets.adsBanner),
+              30.0.sbH,
+              AppText(
+                StringValues.startSale,
+                style: headerTextStyle.copyWith(color: ColorValues.primaryColor),
+                align: TextAlign.center,
               ),
               30.0.sbH,
-              Center(
-                child: AppText(
-                  StringValues.or,
-                  style: subHeaderTextStyle,
-                ),
+              _buildActionButton(
+                context,
+                text: StringValues.tapToChech,
+                icon: Icons.search,
+                onTap: () => navigationService.navigateToWidget(SearchProductView()),
               ),
-
               30.0.sbH,
-              InkWell(
-                onTap: () {
-                  navigationService.navigateToWidget(CheckoutScannerView());
-                },
-                child: SvgPicture.asset(SvgAssets.scan),
-              )
+              AppText(
+                StringValues.or,
+                style: normalTextStyle,
+              ),
+              20.0.sbH,
+              _buildActionButton(
+                context,
+                text: "",
+                icon: Icons.qr_code_scanner,
+                onTap: () => navigationService.navigateToWidget(CheckoutScannerView()),
+                child: SvgPicture.asset(SvgAssets.scan, height: 40, width: 40),
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton(
+      BuildContext context, {
+        required String text,
+        required IconData icon,
+        required VoidCallback onTap,
+        Widget? child,
+      }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        height: 60,
+        width: width(context),
+        decoration: BoxDecoration(
+          color: ColorValues.whiteColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (child != null) ...[
+              child,
+              10.0.sbW,
+            ],
+            AppText(
+              text,
+              style: normalTextStyle.copyWith(
+                color: ColorValues.primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            10.0.sbW,
+            Icon(icon, color: ColorValues.primaryColor),
+          ],
         ),
       ),
     );

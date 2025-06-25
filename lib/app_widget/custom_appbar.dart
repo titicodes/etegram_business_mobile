@@ -1,17 +1,19 @@
-import 'package:etegram_business/constants/style.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_svg/svg.dart';
 
 import '../constants/assets.dart';
+import '../constants/style.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback onBackPressed;
-  final VoidCallback? onNotificationPressed; // Nullable
-  final VoidCallback? onMenuPressed; // Nullable
-  final bool showNotificationIcon; // Flag to show/hide notification icon
-  final bool showMenuIcon; // Flag to show/hide menu icon
+  final VoidCallback? onNotificationPressed;
+  final VoidCallback? onMenuPressed;
+  final bool showNotificationIcon;
+  final bool showMenuIcon;
   final Color? backgroundColor;
+  final List<Widget>? actions; // <-- NEW
 
   const CustomAppBar({
     super.key,
@@ -19,8 +21,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onBackPressed,
     this.onNotificationPressed,
     this.onMenuPressed,
-    this.showNotificationIcon = true, // Default to true
-    this.showMenuIcon = true, this.backgroundColor, // Default to true
+    this.showNotificationIcon = true,
+    this.showMenuIcon = true,
+    this.backgroundColor,
+    this.actions, // <-- NEW
   });
 
   @override
@@ -32,18 +36,16 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Text(
         title,
         style: headerTextStyle,
-        //style: Theme.of(context).textTheme.bodyLarge, // Adjust style as needed
       ),
       leading: Padding(
         padding: const EdgeInsets.all(10),
         child: InkWell(
           onTap: onBackPressed,
-          child: SvgPicture.asset(
-            SvgAssets.arrowBack,
-          ),
+          child: SvgPicture.asset(SvgAssets.arrowBack),
         ),
       ),
       actions: [
+        ...?actions, // <-- Add custom actions first
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: Row(

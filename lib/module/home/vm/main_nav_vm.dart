@@ -5,7 +5,9 @@ import 'package:etegram_business/module/supply/view/new_supplier.dart';
 import 'package:flutter/material.dart';
 
 import '../../../base/base_vm.dart';
+import '../../account/views/account_view.dart';
 import '../../product/view/product_view.dart';
+import '../../sales/view/new_sales_view.dart';
 import '../../sales/view/sales_record.dart';
 import '../../supply/view/new_supply_view.dart';
 import '../views/home_view.dart';
@@ -19,9 +21,8 @@ class MainNavViewModel extends BaseViewModel {
   Future<void> init(int initialIndex) async {
     pages = [
       const HomeView(),
-      const SAles(), // Placeholder for ChatHomeView or BrowseViewScreen
+      const NewSalesView(),
       const ProductView(),
-      NewSupplyView(),
       const AccountView(),
     ];
 
@@ -42,5 +43,4 @@ class MainNavViewModel extends BaseViewModel {
     }
   }
 
-// Other methods remain unchanged...
 }

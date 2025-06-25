@@ -22,9 +22,10 @@ class DbTable {
   static const String emailTableName = 'email';
   static const String firstNameTableName = 'firstName';
   static const String paymentMethodTable = 'paymentMethod';
-  static const String producTableName = "productTable";
+  static const String productTableName = "productTable";
   static const String storeTableName = "storesTable";
   static const String supplierTableName = "supplyTable";
+  static const String activeStoreId = "activeStoreId";
 }
 
 class Sized16Container extends StatelessWidget {

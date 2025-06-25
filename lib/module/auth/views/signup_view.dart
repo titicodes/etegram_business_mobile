@@ -4,6 +4,7 @@ import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../../../app_widget/app_button.dart';
@@ -28,7 +29,13 @@ class SignupView extends StatelessWidget {
       },
       builder: (context, model, child) => Scaffold(
         backgroundColor: ColorValues.backgroundColor,
-        body: Form(
+        body: model.isLoading.value
+            ? const Center(
+          child: SpinKitDoubleBounce(
+            color: Colors.black,
+            size: 50.0,
+          ),
+        ): Form(
           key: model.formKey,
           child: Padding(
             padding: const EdgeInsets.all(8.0),
@@ -145,8 +152,8 @@ class SignupView extends StatelessWidget {
                   _buildDropdown(context,
                       value: model.businessType,
                       items: model.businessTypeSelections, onChanged: (value) {
-                    model.onChangedBusiness(value ?? "");
-                  }, hintText: 'Business Type'),
+                        model.onChangedBusiness(value ?? "");
+                      }, hintText: 'Business Type'),
                   if (model.businessType == 'Other')
                     Column(
                       children: [
@@ -166,32 +173,32 @@ class SignupView extends StatelessWidget {
                   _buildDropdown(context,
                       value: model.country,
                       items: model.countryList, onChanged: (value) {
-                    model.onCountryChanged(value ?? "");
-                  }, hintText: 'Country'),
+                        model.onCountryChanged(value ?? "");
+                      }, hintText: 'Country'),
                   12.0.sbH,
                   _buildDropdown(context,
                       value: model.stateValue,
                       items: model.statesList, onChanged: (value) {
-                    model.onStateChanged(value ?? "");
-                  }, hintText: 'State'),
+                        model.onStateChanged(value ?? "");
+                      }, hintText: 'State'),
                   16.0.sbH,
                   _buildDropdown(context,
                       value: model.lgaValue,
                       items: model.lgaList, onChanged: (value) {
-                    model.onLGAChanged(value ?? "");
-                  }, hintText: 'City'),
+                        model.onLGAChanged(value ?? "");
+                      }, hintText: 'City'),
                   12.0.sbH,
                   _buildDropdown(context,
                       value: model.wardValue,
                       items: model.wardList, onChanged: (value) {
-                    model.onWardChanged(value ?? "");
-                  }, hintText: 'Area'),
+                        model.onWardChanged(value ?? "");
+                      }, hintText: 'Area'),
                   16.0.sbH,
                   _buildDropdown(context,
                       value: model.selectedCurrency,
                       items: model.currency, onChanged: (value) {
-                    model.onChangedCurrency(value ?? "");
-                  }, hintText: 'Currency'),
+                        model.onChangedCurrency(value ?? "");
+                      }, hintText: 'Currency'),
                   if (model.selectedCurrency == 'Other')
                     Column(
                       children: [
@@ -319,12 +326,12 @@ class SignupView extends StatelessWidget {
   }
 
   Widget _buildDropdown(
-    BuildContext context, {
-    required String? value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-    required String hintText,
-  }) {
+      BuildContext context, {
+        required String? value,
+        required List<String> items,
+        required ValueChanged<String?> onChanged,
+        required String hintText,
+      }) {
     String? selectedValue = items.contains(value) ? value : null;
 
     return Padding(
@@ -352,12 +359,12 @@ class SignupView extends StatelessWidget {
             value: selectedValue,
             items: items
                 .map((item) => DropdownMenuItem(
-                      value: item,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                        child: AppText(item.toCapitalized()),
-                      ),
-                    ))
+              value: item,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                child: AppText(item.toCapitalized()),
+              ),
+            ))
                 .toList(),
             onChanged: (newValue) {
               onChanged(newValue);
@@ -368,7 +375,7 @@ class SignupView extends StatelessWidget {
               return items.map((String value) {
                 return Padding(
                   padding:
-                      EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.sp),
+                  EdgeInsets.symmetric(horizontal: 5.0, vertical: 10.sp),
                   child: AppText(
                     value.toCapitalized(),
                     style: normalTextStyle12,

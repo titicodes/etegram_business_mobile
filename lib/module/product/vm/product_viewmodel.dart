@@ -1,584 +1,691 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
-
-import 'package:dio/dio.dart';
-import 'package:etegram_business/base/base_vm.dart';
-import 'package:etegram_business/locator.dart';
+import 'package:etegram_business/routes/routes.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
-import 'package:camera/camera.dart';
-import '../../../app_widget/add_product_scanner.dart';
-import '../../../app_widget/barcode_scanner_view.dart';
-import '../../../app_widget/celebration_widget.dart';
-import '../../../constants/assets.dart';
-import '../../../core/model/get_scan_response.dart';
-import '../../../core/model/get_search_response.dart';
-import '../../../core/model/product_model.dart';
-import '../../../service/local/user_service.dart'; // Import UserService
-import '../../../service/web/base_api.dart';
-import '../../../utils/snack_message.dart';
-import '../view/add_product.dart';
+import 'package:flutter_toggle_tab/flutter_toggle_tab.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:etegram_business/app_widget/celebration_widget.dart';
+import '../../../base/base_vm.dart';
+import '../../../constants/assets.dart';
+import '../../../constants/colors.dart';
+import '../../../core/model/product_history_model.dart';
+import '../../../core/model/product_model.dart';
+import '../../../utils/snack_message.dart';
 
-class PRoductViewModel extends BaseViewModel {
-  // Controllers for form fields
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController sizeController = TextEditingController();
-  final TextEditingController costPriceController =
-      TextEditingController(text: '0');
-  final TextEditingController unitPriceController =
-      TextEditingController(text: '0');
-  final TextEditingController quantityController =
-      TextEditingController(text: '1');
-  final TextEditingController minQuantityController =
-      TextEditingController(text: '1');
-  final TextEditingController filterController = TextEditingController();
-  final TextEditingController brandController = TextEditingController();
-  final TextEditingController codeController = TextEditingController();
-  final TextEditingController stockController =
-      TextEditingController(text: '0');
-  final TextEditingController totalValueController =
-      TextEditingController(text: '0');
-
-  bool isFetchingExternalData = false;
+class ProductViewModel extends BaseViewModel {
   int currentIndex = 0;
-  String productName = '';
-  String productSize = '';
-  String productFilter = '';
-  String suppliedTo = "";
-  int costPrice = 0;
-  double unitPrice = 0;
-  int quantity = 0;
-  int minQuantity = 0;
-  int totalValue = 0;
 
-  List<Product> _products = [];
-  final TabController? tabController;
-  bool _isLoading = false;
-  ProductData? selectedProduct;
-  AddProductResponse? _addProductResponse;
-  String search = "";
-  TextEditingController searchController = TextEditingController();
-  BarcodeScanner? _barcodeScanner;
-  CameraController? _cameraController;
+  // Form key
+  final formKey = GlobalKey<FormState>();
 
-  String filterBy = "";
-  String productImageUrl = "";
+  // Form controllers
+  final nameController = TextEditingController();
+  final codeController = TextEditingController();
+  final categoryController = TextEditingController();
+  final priceController = TextEditingController();
+  final costPriceController = TextEditingController();
+  final quantityController = TextEditingController();
+  final minQuantityController = TextEditingController();
+  final expiryDateController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final sizeController = TextEditingController();
+  final brandsController = TextEditingController();
+  final totalValueController = TextEditingController();
+  final searchController = TextEditingController();
+  final ValueNotifier<bool> isFetchingExternalData = ValueNotifier<bool>(false);
+  final errorMessage = ValueNotifier<String?>(null);
 
-  bool _isUpdating = false;
-
-  bool get isUpdating => _isUpdating;
-  String? _updateErrorMessage;
-
-  String? get updateErrorMessage => _updateErrorMessage;
-  bool _isUpdateSuccessful = false;
-
-  bool get isUpdateSuccessful => _isUpdateSuccessful;
-
-  List<Product> get products => _products;
-
-
-
-  bool _isAdding = false;
-
-  bool get isAdding => _isAdding;
-  String? _addErrorMessage;
-
-  String? get addErrorMessage => _addErrorMessage;
-  bool _isAddSuccessful = false;
-
-  bool get isAddSuccessful => _isAddSuccessful;
-  bool _isAddingProduct = false;
-
-  bool get isAddingProduct => _isAddingProduct;
-  bool _isCheckingProductExistence = false;
-
-  bool get isCheckingProductExistence => _isCheckingProductExistence;
-
-  PRoductViewModel({this.tabController}) {
-    unitPriceController.addListener(updateTotals);
+  ProductViewModel() {
+    priceController.addListener(updateTotals);
     quantityController.addListener(updateTotals);
-    stockController.addListener(updateTotals);
+    costPriceController.addListener(updateTotals);
+    minQuantityController.addListener(updateTotals);
   }
 
-  List<String> filterBySelection = ["Electronic", "Discounted Sales"];
-  bool _disposed = false;
-
-  @override
-  void dispose() {
-    unitPriceController.removeListener(updateTotals);
-    quantityController.removeListener(updateTotals);
-    stockController.removeListener(updateTotals);
-
-    searchController.dispose();
-    _barcodeScanner?.close();
-    _cameraController?.dispose();
-    nameController.dispose();
-    sizeController.dispose();
-    costPriceController.dispose();
-    unitPriceController.dispose();
-    quantityController.dispose();
-    minQuantityController.dispose();
-    filterController.dispose();
-    brandController.dispose();
-    stockController.dispose();
-    totalValueController.dispose();
-
-    _disposed = true;
-    super.dispose();
+  bool _isValidObjectId(String? id) {
+    if (id == null || id.isEmpty) return false;
+    final regex = RegExp(r'^[0-9a-fA-F]{24}$');
+    return regex.hasMatch(id);
   }
 
-  void updateTotals() {
-    if (_disposed) return;
-    int unitPrice = int.tryParse(unitPriceController.text) ?? 0;
-    int quantity = int.tryParse(quantityController.text) ?? 0;
-    int stock = int.tryParse(stockController.text) ?? 0;
-    totalValue = unitPrice * stock;
-    totalValueController.text = totalValue.toString();
-    notifyListeners();
+  // Product lists
+  ValueListenable<List<Product>> get allProducts => _allProducts;
+  final _allProducts = ValueNotifier<List<Product>>([]);
+  ValueListenable<List<Product>> get expiringProducts => _expiringProducts;
+  final _expiringProducts = ValueNotifier<List<Product>>([]);
+  ValueListenable<List<Product>> get lowStockProducts => _lowStockProducts;
+  final _lowStockProducts = ValueNotifier<List<Product>>([]);
+  ValueListenable<List<ProductHistory>> get productHistory => _productHistory;
+  final _productHistory = ValueNotifier<List<ProductHistory>>([]);
+
+  // Inventory summary
+  ValueListenable<double> get totalCost => _totalCost;
+  final _totalCost = ValueNotifier<double>(0.0);
+  ValueListenable<double> get totalSellingPrice => _totalSellingPrice;
+  final _totalSellingPrice = ValueNotifier<double>(0.0);
+  ValueListenable<int> get totalStock => _totalStock;
+  final _totalStock = ValueNotifier<int>(0);
+
+  // UI state
+  String? productImageUrl;
+  ValueListenable<bool> get isLoadingExpiring => _isLoadingExpiring;
+  final _isLoadingExpiring = ValueNotifier<bool>(false);
+  ValueListenable<bool> get isLoadingLowStock => _isLoadingLowStock;
+  final _isLoadingLowStock = ValueNotifier<bool>(false);
+  final _productTabIndex = ValueNotifier<int>(0);
+  Timer? _debounce;
+  final ValueNotifier<int> productTabIndex = ValueNotifier(0);
+
+  void init() {
+    initialize();
   }
 
-  void _safeNotifyListeners() {
-    if (!_disposed) {
-      notifyListeners();
+  final ValueNotifier<int> tabIndex = ValueNotifier(0);
+
+  List<DataTab> get tabOptions => [
+    DataTab(title: "Sent"),
+    DataTab(title: "Received"),
+  ];
+
+  List<DataTab> get productTabOptions => [
+    DataTab(title: "All Product"),
+    DataTab(title: "Expiring"),
+    DataTab(title: "Low Stock"),
+  ];
+
+  Future<void> initialize() async {
+    final storeId = customerService.activeStoreId;
+    if (storeId == null) {
+      errorMessage.value = 'No active store selected.';
+      showCustomToast('No active store selected.');
+      return;
     }
+    errorMessage.value = null;
+    await Future.wait([
+      fetchAllProducts(storeId),
+      fetchExpiringProducts(storeId),
+      fetchLowStockProducts(storeId),
+      fetchInventorySummary(storeId),
+      fetchTotalStock(storeId),
+    ]);
   }
 
-  Future<void> init() async {
-    await fetchProducts();
-  }
-
-  void addProduct(Product product) {
-    final newProduct = Product(
-      name: productName,
-      size: productSize,
-      price: unitPrice.toInt(),
-      quantity: quantity,
-    );
-    _products.add(newProduct);
+  void populateControllers(Product product) {
+    nameController.text = product.name ?? '';
+    codeController.text = product.code ?? '';
+    categoryController.text = product.category ?? '';
+    costPriceController.text = product.costPrice?.toStringAsFixed(2) ?? '0.00';
+    priceController.text = product.price?.toStringAsFixed(2) ?? '0.00';
+    quantityController.text = product.quantity?.toString() ?? '1';
+    minQuantityController.text = product.minQuantity?.toString() ?? '1';
+    expiryDateController.text = product.expiryDate ?? '';
+    descriptionController.text = product.description ?? '';
+    sizeController.text = product.size ?? '';
+    brandsController.text = product.brands ?? '';
+    productImageUrl = product.imageUrl;
+    updateTotals();
     notifyListeners();
   }
 
-  bool disposed = false;
-
-  Future<void> fetchProducts({String? query}) async {
+  Future<void> fetchAllProducts(String storeId, {String? search, String? category}) async {
+    startLoader();
+    errorMessage.value = null;
     try {
-      _isLoading = true;
-      notifyListeners();
-      List<Product>? response;
-      if (query != null && query.isNotEmpty) {
-        response = await productRepository.searchProduct(query);
-      } else {
-        response = await productRepository.searchProduct("");
+      if (category != null && !_isValidObjectId(category)) {
+        print('Invalid category ID: $category, omitting category filter');
+        category = null;
       }
-      if (response != null) {
-        _products = response;
-      } else {
-        _products = [];
+
+      print('Fetching all products: storeId=$storeId, search=$search, category=$category');
+      final totalStockResponse = await productRepository.getTotalStockWithProducts(storeId);
+      final products = totalStockResponse['products'] as List<dynamic>;
+      print('Fetched ${products.length} products from total stock: $products');
+      _allProducts.value = products.map((json) => Product.fromJson(json)).toList();
+      if (_allProducts.value.isEmpty && (search == null || search.isEmpty)) {
+        errorMessage.value = 'No products found for this store.';
       }
     } catch (e) {
-      debugPrint("Error fetching products: $e");
-      showCustomToast('Error loading products.');
-      _products = [];
+      print('Error fetching all products: $e');
+      errorMessage.value = 'Failed to fetch products: $e';
+      showCustomToast('Failed to fetch products.');
+      _allProducts.value = [];
     } finally {
-      _isLoading = false;
-      if (!disposed) notifyListeners();
-    }
-  }
-
-  Future<void> searchProduct(String query) async {
-    if (query.isEmpty) {
-      await fetchProducts();
-    } else {
-      await fetchProducts(query: query);
-    }
-  }
-
-  Future<void> updateProduct(Product updatedProduct) async {
-    try {
-      _isUpdating = true;
-      _updateErrorMessage = null;
-      _isUpdateSuccessful = false;
-      notifyListeners();
-      final response = await productRepository.updateProduct(
-          updatedProduct.id!, updatedProduct);
-      if (response != null) {
-        showCustomToast('Product updated successfully.');
-        _isUpdateSuccessful = true;
-        await fetchProducts();
-      } else {
-        _updateErrorMessage = 'Failed to update product.';
-        showCustomToast('Failed to update product.');
-      }
-    } catch (e) {
-      debugPrint("Error updating product: $e");
-      _updateErrorMessage = 'Error updating product: ${e.toString()}';
-      showCustomToast('Error updating product.');
-    } finally {
-      _isUpdating = false;
-      notifyListeners();
-    }
-  }
-
-  void clearControllers() {
-    nameController.clear();
-    sizeController.clear();
-    filterController.clear();
-    costPriceController.text = '0';
-    unitPriceController.text = '0';
-    quantityController.text = '1';
-    minQuantityController.text = '1';
-    brandController.clear();
-    stockController.text = '0';
-    totalValueController.text = '0';
-    productImageUrl = '';
-    notifyListeners();
-  }
-
-  Future<void> startBarcodeScan(BuildContext context) async {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const AddProductScannerView(),
-      ),
-    );
-  }
-
-  final List<Cart> _cartItems = [];
-  List<Cart> get cartItems => _cartItems;
-
-  // Update the scanAndAddProduct method to show celebration screen on success
-  Future<void> scanAndAddProduct(
-    Product product,
-    String scannedCode,
-    BuildContext context,
-    String ownerId,
-    String storeId,
-  ) async {
-    if (_isAddingProduct) return;
-    _isAddingProduct = true;
-    notifyListeners();
-
-    try {
-      // Debug log for parameter verification
-      debugPrint('ViewModel - scanAndAddProduct called with:');
-      debugPrint('- scannedCode: $scannedCode');
-      debugPrint('- ownerId: $ownerId');
-      debugPrint('- storeId: $storeId');
-
-      // Parameter validation
-      if (scannedCode.isEmpty) {
-        showCustomToast('Scanned code is missing.');
-        _isAddingProduct = false;
-        notifyListeners();
-        return;
-      }
-
-      if (ownerId.isEmpty) {
-        showCustomToast('Owner ID is missing.');
-        _isAddingProduct = false;
-        notifyListeners();
-        return;
-      }
-
-      if (storeId.isEmpty) {
-        showCustomToast('Store ID is missing.');
-        _isAddingProduct = false;
-        notifyListeners();
-        return;
-      }
-
-      final AddProductResponse? response =
-          await productRepository.scanAndAddProduct(
-        data: product,
-        scannedCode: scannedCode,
-        context: context,
-        storeId: storeId,
-        ownerId: ownerId,
-      );
-
-      // If the response is not null, it means the product was added successfully
-      if (response != null) {
-        // Show the celebration screen
-        await showCelebrationScreen(context, productName: product.name);
-      }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 409) {
-        showCustomToast('Product with this code already exists.');
-      } else {
-        debugPrint('Error adding product via scan: $e');
-        showCustomToast('Error adding product.');
-      }
-    } catch (e) {
-      debugPrint('General error adding product via scan: $e');
-      showCustomToast('An unexpected error occurred.');
-    } finally {
-      _isAddingProduct = false;
-      if (!disposed) notifyListeners();
-    }
-  }
-
-  Future<bool> checkProductExistence(String code, BuildContext context) async {
-    if (_isCheckingProductExistence) return false;
-    _isCheckingProductExistence = true;
-    notifyListeners();
-    try {
-      startLoader();
-      final String? ownerId = await locator<CustomerService>().getOwnerId();
-      final String? storeId = await locator<CustomerService>().getStoreId();
-
-      print(
-          'Checking Existence - Code: $code, Owner ID: $ownerId, Store ID: $storeId'); // Add logging
-
-      if (ownerId == null || storeId == null) {
-        showCustomToast('Could not retrieve user or store information.');
-        stopLoader();
-        _isCheckingProductExistence = false;
-        notifyListeners();
-        return false;
-      }
-
-      Response response =
-          await connect().get("products/check-code", queryParameters: {
-        'code': code,
-        'ownerId': ownerId,
-        'storeId': storeId,
-      });
-
-      if (response.statusCode == 200) {
-        dynamic responseData = response.data; // Don't immediately cast
-
-        if (responseData is String) {
-          debugPrint('Error: Unexpected String response: $responseData');
-          showCustomToast('Error checking product existence.');
-          stopLoader();
-          _isCheckingProductExistence = false;
-          notifyListeners();
-          return false;
-        } else if (responseData is Map<String, dynamic>) {
-          final existsData = responseData['data'] as Map<String, dynamic>?;
-          final exists = existsData?['exists'] as bool?;
-          stopLoader();
-          _isCheckingProductExistence = false;
-          notifyListeners();
-          return exists ?? false;
-        } else {
-          debugPrint('Error: Unexpected response format: $responseData');
-          showCustomToast('Error checking product existence.');
-          stopLoader();
-          _isCheckingProductExistence = false;
-          notifyListeners();
-          return false;
-        }
-      } else {
-        debugPrint('Error checking product existence: ${response.statusCode}');
-        showCustomToast('Failed to check product existence.');
-        stopLoader();
-        _isCheckingProductExistence = false;
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
-      debugPrint('Error checking product existence: $e');
-      showCustomToast('Error checking product existence.');
       stopLoader();
-      _isCheckingProductExistence = false;
-      notifyListeners();
-      return false;
-    } finally {
-      if (!_isCheckingProductExistence) {
-        stopLoader(); // Ensure stopLoader is called if not already done
-        _isCheckingProductExistence = false;
-        notifyListeners();
+    }
+  }
+
+  Future<void> fetchExpiringProducts(String storeId) async {
+    _isLoadingExpiring.value = true;
+    errorMessage.value = null;
+    try {
+      final products = await productRepository.getExpiringProducts(storeId: storeId);
+      _expiringProducts.value = products;
+      if (products.isEmpty) {
+        errorMessage.value = 'No expiring products found.';
       }
+    } catch (e) {
+      print('Error fetching expiring products: $e');
+      errorMessage.value = 'Failed to fetch expiring products: $e';
+      showCustomToast('Failed to fetch expiring products.');
+      _expiringProducts.value = [];
+    } finally {
+      _isLoadingExpiring.value = false;
+    }
+  }
+
+  Future<void> fetchLowStockProducts(String storeId) async {
+    _isLoadingLowStock.value = true;
+    errorMessage.value = null;
+    try {
+      final products = await productRepository.getLowStockProducts(storeId: storeId);
+      _lowStockProducts.value = products;
+      if (products.isEmpty) {
+        errorMessage.value = 'No low stock products found.';
+      }
+    } catch (e) {
+      print('Error fetching low stock products: $e');
+      errorMessage.value = 'Failed to fetch low stock products: $e';
+      showCustomToast('Failed to fetch low stock products.');
+      _lowStockProducts.value = [];
+    } finally {
+      _isLoadingLowStock.value = false;
+    }
+  }
+
+  Future<void> fetchInventorySummary(String storeId) async {
+    try {
+      final summary = await productRepository.getInventorySummary(storeId);
+      if (summary != null) {
+        _totalCost.value = (summary['totalCost'] ?? 0).toDouble();
+        _totalSellingPrice.value = (summary['totalSellingPrice'] ?? 0).toDouble();
+        _totalStock.value = (summary['totalQuantity'] ?? 0).toInt();
+      }
+    } catch (e) {
+      print('Error fetching inventory summary: $e');
+      errorMessage.value = 'Failed to fetch inventory summary: $e';
+      showCustomToast('Failed to fetch inventory summary.');
+    }
+  }
+
+  Future<void> fetchTotalStock(String storeId) async {
+    try {
+      final total = await productRepository.getTotalStockWithProducts(storeId);
+      _totalStock.value = (total['totalQuantity'] ?? 0).toInt();
+      final products = total['products'] as List<dynamic>;
+      if (_allProducts.value.isEmpty) {
+        _allProducts.value = products.map((json) => Product.fromJson(json)).toList();
+      }
+    } catch (e) {
+      print('Error fetching total stock: $e');
+      errorMessage.value = 'Failed to fetch total stock: $e';
+      showCustomToast('Failed to fetch total stock.');
+    }
+  }
+
+  Future<void> fetchProductHistory(String productId, String storeId) async {
+    startLoader();
+    try {
+      final history = await productRepository.getProductHistory(productId: productId, storeId: storeId);
+      _productHistory.value = history;
+    } catch (e) {
+      print('Error fetching product history: $e');
+      showCustomToast('Failed to fetch product history.');
+    } finally {
+      stopLoader();
     }
   }
 
   Future<void> fetchProductDetailsFromAPI(String barcode) async {
-    isFetchingExternalData = true;
+    isFetchingExternalData.value = true;
     notifyListeners();
-
-    final apiUrl =
-        'https://world.openfoodfacts.org/api/v0/product/$barcode.json';
+    print('Fetching product details for barcode: $barcode');
 
     try {
-      debugPrint('Fetching product data from: $apiUrl');
-      final response = await http.get(Uri.parse(apiUrl));
-
-      debugPrint('API Response Status: ${response.statusCode}');
-      debugPrint(
-          'API Response Body: ${response.body.substring(0, min(100, response.body.length))}...');
-
+      final response = await http.get(Uri.parse('https://world.openfoodfacts.org/api/v0/product/$barcode.json'));
+      print('API response status: ${response.statusCode}');
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-
+        final data = json.decode(response.body);
         if (data['status'] == 1) {
           final productData = data['product'];
-
-          nameController.text = productData['product_name']?.toString() ??
-              productData['generic_name']?.toString() ??
-              'Unknown Product';
-
-          String size = '';
-          for (var sizeField in [
-            'quantity',
-            'net_weight',
-            'serving_size',
-            'packaging'
-          ]) {
-            if (productData.containsKey(sizeField) &&
-                productData[sizeField] != null &&
-                productData[sizeField].toString().isNotEmpty) {
-              size = productData[sizeField].toString();
-              break;
-            }
-          }
-          sizeController.text = size;
-
-          brandController.text =
-              productData['brands']?.toString() ?? 'Unknown Brand';
-
-          filterController.text =
-              productData['categories']?.toString() ?? 'Unknown Category';
-
-          productImageUrl = productData['image_front_url']?.toString() ??
-              productData['image_url']?.toString() ??
-              productData['image_thumb_url']?.toString() ??
-              '';
-
-          costPriceController.text = '0';
-          unitPriceController.text = '0';
+          nameController.text = productData['product_name'] ?? productData['generic_name'] ?? '';
+          categoryController.text = productData['categories'] ?? 'Uncategorized';
+          brandsController.text = productData['brands'] ?? '';
+          sizeController.text = productData['quantity'] ?? productData['net_weight'] ?? '';
+          productImageUrl = productData['image_front_url'] ?? '';
+          codeController.text = barcode;
+          priceController.text = '0.00';
+          costPriceController.text = '0.00';
           quantityController.text = '1';
-          minQuantityController.text = '1';
-          stockController.text = '0';
-
+          minQuantityController.text = '5';
+          descriptionController.text = productData['ingredients_text'] ?? '';
           updateTotals();
-
-          showCustomToast('Product details found!');
+          showCustomToast('Product details fetched successfully!');
         } else {
-          debugPrint(
-              'Product not found in Open Food Facts for barcode: $barcode');
-          showCustomToast('Product not found. Please enter details manually.');
           clearControllers();
+          codeController.text = barcode;
+          showCustomToast('Product not found. Please enter details manually.');
         }
       } else {
-        debugPrint(
-            'Failed to fetch product details for barcode: $barcode. Status: ${response.statusCode}');
-        showCustomToast(
-            'Failed to fetch product details. Please enter manually.');
         clearControllers();
+        codeController.text = barcode;
+        showCustomToast('Failed to fetch product details.');
       }
     } catch (e) {
-      debugPrint(
-          'Error fetching product details from API for barcode: $barcode. Error: $e');
-      showCustomToast('Error fetching product details. Please enter manually.');
+      print('Error fetching product details: $e');
       clearControllers();
+      codeController.text = barcode;
+      showCustomToast('Error fetching product details.');
     } finally {
-      isFetchingExternalData = false;
+      isFetchingExternalData.value = false;
       notifyListeners();
     }
   }
 
-  /// ✅ Save or Update Product
-  // Update the saveOrUpdateProduct method to show celebration for new products
-  Future<void> saveOrUpdateProduct({
-    Product? existingProduct,
-    bool isEditing = false,
-    String? scannedCode,
-    required BuildContext context,
-    required String ownerId,
-    required String storeId,
-  }) async {
-    if (formKey.currentState!.validate()) {
-      try {
-        startLoader();
-        updateTotals();
-
-        int? stock = int.tryParse(stockController.text);
-        int? costPrice = int.tryParse(costPriceController.text);
-        int? unitPrice = int.tryParse(unitPriceController.text);
-        int? quantity = int.tryParse(quantityController.text);
-        int? minQuantity = int.tryParse(minQuantityController.text);
-        int? totalValue = int.tryParse(totalValueController.text);
-
-        if (stock == null ||
-            costPrice == null ||
-            unitPrice == null ||
-            quantity == null ||
-            minQuantity == null) {
-          showCustomToast("Please enter valid numbers for all fields.");
-          stopLoader();
-          return;
-        }
-
-        Product productData = Product(
-          name: nameController.text,
-          code: scannedCode,
-          category: filterController.text,
-          price: unitPrice * quantity,
-          quantity: quantity,
-          unitPrice: unitPrice,
-          minQuantity: minQuantity,
-          size: sizeController.text,
-          brands: brandController.text,
-          stock: stock,
-          totalCost: totalValue ?? (unitPrice * stock),
-          owner: ownerId,
-        );
-
-        if (isEditing && existingProduct != null) {
-          await updateProduct(productData.copyWith(id: existingProduct.id));
-          showCustomToast("Product updated successfully");
-        } else {
-          // Parameter validation
-          if (scannedCode == null || scannedCode.isEmpty) {
-            showCustomToast(
-                "Scanned code is missing. Please scan a barcode first.");
-            stopLoader();
-            return;
-          }
-
-          if (ownerId.isEmpty) {
-            showCustomToast(
-                "Owner ID is missing. Please check your account settings.");
-            stopLoader();
-            return;
-          }
-
-          if (storeId.isEmpty) {
-            showCustomToast(
-                "Store ID is missing. Please check your store settings.");
-            stopLoader();
-            return;
-          }
-
-          // Add the product
-          await scanAndAddProduct(
-              productData, scannedCode, context, ownerId, storeId);
-
-          // Note: We don't need a separate showCelebrationScreen call here
-          // since scanAndAddProduct already handles it
-        }
-
-        stopLoader();
-      } catch (e) {
-        stopLoader();
-        debugPrint("Error saving/updating product: $e");
-        showCustomToast("Failed to save/update product. Please try again.");
+  Future<bool> checkProductExistence(String code, BuildContext context) async {
+    startLoader();
+    try {
+      final storeId = customerService.activeStoreId;
+      if (storeId == null) {
+        showCustomToast('No active store selected.');
+        return false;
       }
+      final ownerId = await customerService.getOwnerId();
+      if (ownerId == null) {
+        showCustomToast('No owner ID found.');
+        return false;
+      }
+
+      print('Checking product existence: code=$code, storeId=$storeId, ownerId=$ownerId');
+      final exists = await productRepository.checkProductExistence(code, storeId);
+      if (exists) {
+        final product = await productRepository.getProductById(code, storeId);
+        if (product != null) {
+          return true;
+        } else {
+          showCustomToast('Failed to fetch existing product details.');
+          return false;
+        }
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print('Error checking product existence: $e');
+      showCustomToast('Error checking product existence.');
+      return false;
+    } finally {
+      stopLoader();
+      notifyListeners();
     }
   }
 
+  Future<void> showDuplicateDialog(BuildContext context, Product? product, {bool fromSave = false}) async {
+    if (product == null) {
+      showCustomToast('Failed to fetch product details.');
+      return;
+    }
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Product Already Exists'),
+        content: Text('The product "${product.name}" with barcode "${product.code}" is already in your store. Would you like to edit it or scan another product?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              if (fromSave) {
+                navigationService.navigateTo(addProductScannerRoute);
+              }
+            },
+            child: const Text('Scan Another'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ColorValues.primaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              navigationService.navigateTo(addProductViewRoute, arguments: {
+                'isEditing': true,
+                'product': product,
+                'storeId': customerService.activeStoreId,
+                'ownerId': customerService.getOwnerId(),
+              });
+            },
+            child: const Text('Edit Product'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> saveOrUpdateProduct({
+    required BuildContext context,
+    bool isEditing = false,
+    Product? existingProduct,
+    String? scannedCode,
+    required String ownerId,
+    required String storeId,
+  }) async {
+    if (!formKey.currentState!.validate()) {
+      showCustomToast('Please fill all required fields with valid values.');
+      return;
+    }
+
+    if (!_validateForm()) {
+      showCustomToast('Please ensure all numerical fields are valid.');
+      return;
+    }
+
+    startLoader(message: isEditing ? 'Updating product...' : 'Adding product to your store...');
+    try {
+      final productCode = codeController.text.trim().isEmpty ? scannedCode : codeController.text.trim();
+      print('Saving product: name=${nameController.text}, code=$productCode, scannedCode=$scannedCode');
+
+      if (!isEditing && productCode != null && productCode.isNotEmpty) {
+        final exists = await checkProductExistence(productCode, context);
+        print('Check product existence result: exists=$exists');
+        if (exists) {
+          final product = await productRepository.getProductById(productCode, storeId);
+          print('Fetched duplicate product: ${product?.toJson()}');
+          stopLoader();
+          if (product != null) {
+            await showDuplicateDialog(context, product, fromSave: true);
+          } else {
+            showCustomToast('Failed to fetch existing product details.');
+          }
+          return;
+        }
+      }
+
+      final productData = Product(
+        id: existingProduct?.id,
+        name: nameController.text.trim(),
+        code: productCode,
+        category: categoryController.text.trim().isEmpty ? 'Uncategorized' : categoryController.text.trim(),
+        price: double.tryParse(priceController.text)?.toInt() ?? 0,
+        costPrice: double.tryParse(costPriceController.text)?.toInt() ?? 0,
+        quantity: int.tryParse(quantityController.text) ?? 1,
+        minQuantity: int.tryParse(minQuantityController.text) ?? 1,
+        expiryDate: expiryDateController.text.trim().isEmpty ? null : expiryDateController.text.trim(),
+        description: descriptionController.text.trim().isEmpty ? null : descriptionController.text.trim(),
+        size: sizeController.text.trim().isEmpty ? null : sizeController.text.trim(),
+        brands: brandsController.text.trim().isEmpty ? null : brandsController.text.trim(),
+        store: storeId,
+        owner: ownerId,
+        imageUrl: productImageUrl,
+      );
+
+      if (isEditing && existingProduct != null) {
+        final updated = await productRepository.updateProduct(existingProduct.id!, productData, storeId);
+        if (updated != null) {
+          _updateProductLists(updated);
+          await fetchTotalStock(storeId);
+          showCustomToast('Product updated successfully!');
+          navigationService.goBack();
+        } else {
+          showCustomToast('Failed to update product.');
+        }
+      } else {
+        final response = await productRepository.scanAndAddProduct(
+          data: productData,
+          scannedCode: productCode ?? '',
+          context: context,
+          storeId: storeId,
+          ownerId: ownerId,
+        );
+        print('Scan and add response: ${response?.data}');
+        if (response != null && response.success && response.data != null) {
+          _allProducts.value = [..._allProducts.value, response.data!];
+          await fetchTotalStock(storeId);
+          clearControllers();
+          navigationService.navigateToWidget(
+            CelebrationWidget(
+              title: 'Back to Dashboard',
+              onTap: () {
+                navigationService.navigateTo(dashboardRoute);
+              },
+              child: Text(
+                'Product "${productData.name}" Added Successfully!',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            transitionBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1.0, 0.0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+          );
+        } else {
+          if (response?.message?.contains('already exists') ?? false) {
+            print('Duplicate detected in response message');
+            final product = await productRepository.getProductById(productCode!, storeId);
+            print('Fetched duplicate product: ${product?.toJson()}');
+            if (product != null) {
+              await showDuplicateDialog(context, product, fromSave: true);
+            } else {
+              showCustomToast('Failed to fetch existing product details.');
+            }
+          } else {
+            showCustomToast('Failed to add product: ${response?.message ?? 'Unknown error'}');
+          }
+        }
+      }
+    } catch (e) {
+      print('Error saving/updating product: $e');
+      if (e.toString().contains('E11000 duplicate key error') || e.toString().contains('already exists')) {
+        print('Handling E11000 duplicate error');
+        final productCode = codeController.text.trim().isEmpty ? scannedCode : codeController.text.trim();
+        final product = await productRepository.getProductById(productCode!, storeId);
+        print('Fetched duplicate product in catch: ${product?.toJson()}');
+        if (product != null) {
+          await showDuplicateDialog(context, product, fromSave: true);
+        } else {
+          showCustomToast('Failed to fetch existing product details: $e');
+        }
+      } else {
+        showCustomToast('Error processing product: $e');
+      }
+    } finally {
+      stopLoader();
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteProduct(BuildContext context, Product product) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Product'),
+        content: Text('Are you sure you want to delete "${product.name}" from your store?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    startLoader(message: 'Deleting product...');
+    try {
+      final storeId = customerService.activeStoreId!;
+      final deleted = await productRepository.deleteProduct(product.id!, storeId);
+      if (deleted) {
+        _allProducts.value = _allProducts.value.where((p) => p.id != product.id).toList();
+        _expiringProducts.value = _expiringProducts.value.where((p) => p.id != product.id).toList();
+        _lowStockProducts.value = _lowStockProducts.value.where((p) => p.id != product.id).toList();
+        await fetchTotalStock(storeId);
+        showCustomToast('Product deleted successfully.');
+      } else {
+        showCustomToast('Failed to delete product.');
+      }
+    } catch (e) {
+      print('Error deleting product: $e');
+      showCustomToast('Error deleting product: $e');
+    } finally {
+      stopLoader();
+      notifyListeners();
+    }
+  }
+
+  Future<void> supplyProduct(BuildContext context, Product product, int additionalQuantity) async {
+    if (additionalQuantity <= 0) {
+      showCustomToast('Please enter a valid quantity.');
+      return;
+    }
+
+    startLoader(message: 'Restocking product...');
+    try {
+      final storeId = customerService.activeStoreId!;
+      final updated = await productRepository.supplyProduct(product.id!, additionalQuantity, storeId);
+      if (updated != null) {
+        _updateProductLists(updated);
+        await fetchTotalStock(storeId);
+        showCustomToast('Product restocked successfully!');
+      } else {
+        showCustomToast('Failed to restock product.');
+      }
+    } catch (e) {
+      print('Error restocking product: $e');
+      showCustomToast('Error restocking product: $e');
+    } finally {
+      stopLoader();
+      notifyListeners();
+    }
+  }
+
+  void searchProduct(String query) {
+    if (_debounce?.isActive ?? false) {
+      _debounce?.cancel();
+    }
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      final storeId = customerService.activeStoreId;
+      if (storeId == null) {
+        errorMessage.value = 'No active store selected.';
+        showCustomToast('No active store selected.');
+        return;
+      }
+      await fetchAllProducts(storeId, search: query.trim().isEmpty ? null : query);
+    });
+  }
+
+  void _updateProductLists(Product updated) {
+    _allProducts.value = _allProducts.value.map((p) => p.id == updated.id ? updated : p).toList();
+    if (_expiringProducts.value.any((p) => p.id == updated.id)) {
+      _expiringProducts.value = _expiringProducts.value.map((p) => p.id == updated.id ? updated : p).toList();
+    }
+    if (_lowStockProducts.value.any((p) => p.id == updated.id)) {
+      _lowStockProducts.value = _lowStockProducts.value.map((p) => p.id == updated.id ? updated : p).toList();
+    }
+  }
+
+  bool _validateForm() {
+    final price = double.tryParse(priceController.text);
+    final costPrice = double.tryParse(costPriceController.text);
+    final quantity = int.tryParse(quantityController.text);
+    final minQuantity = int.tryParse(minQuantityController.text);
+
+    return nameController.text.trim().isNotEmpty &&
+        categoryController.text.trim().isNotEmpty &&
+        price != null &&
+        price >= 0.0 &&
+        costPrice != null &&
+        costPrice >= 0.0 &&
+        quantity != null &&
+        quantity >= 1 &&
+        minQuantity != null &&
+        minQuantity >= 1;
+  }
+
+  void updateTotals() {
+    final price = double.tryParse(priceController.text) ?? 0.0;
+    final quantity = int.tryParse(quantityController.text) ?? 1;
+    final total = price * quantity;
+    totalValueController.text = total.toStringAsFixed(2);
+    notifyListeners();
+  }
+
+  String getTotalValue() {
+    return totalValueController.text.isEmpty ? '0.00' : totalValueController.text;
+  }
+
+  void clearControllers() {
+    nameController.clear();
+    codeController.clear();
+    categoryController.clear();
+    priceController.clear();
+    costPriceController.clear();
+    quantityController.clear();
+    minQuantityController.clear();
+    expiryDateController.clear();
+    descriptionController.clear();
+    sizeController.clear();
+    brandsController.clear();
+    totalValueController.clear();
+    productImageUrl = null;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    nameController.dispose();
+    codeController.dispose();
+    categoryController.dispose();
+    priceController.dispose();
+    costPriceController.dispose();
+    quantityController.dispose();
+    minQuantityController.dispose();
+    expiryDateController.dispose();
+    descriptionController.dispose();
+    sizeController.dispose();
+    brandsController.dispose();
+    totalValueController.dispose();
+    searchController.dispose();
+    _allProducts.dispose();
+    _expiringProducts.dispose();
+    _lowStockProducts.dispose();
+    _productHistory.dispose();
+    _totalCost.dispose();
+    _totalSellingPrice.dispose();
+    _totalStock.dispose();
+    _isLoadingExpiring.dispose();
+    _isLoadingLowStock.dispose();
+    _productTabIndex.dispose();
+    isFetchingExternalData.dispose();
+    super.dispose();
+  }
+
   final List<Color> containerColor = [
-    Color(0xffFFF7E6),
-    Color(0xffF0F0FF),
-    Color(0xffFEEAFA)
+    const Color(0xffFFF7E6),
+    const Color(0xffF0F0FF),
+    const Color(0xffFEEAFA),
   ];
 
   final List<String> productOperations = [
     "Add Product",
     "Product List",
-    "Move Products"
+    "Move Products",
   ];
 
   final List<String> images = [
@@ -588,59 +695,7 @@ class PRoductViewModel extends BaseViewModel {
   ];
 
   void changeContainer() {
-    currentIndex = ((currentIndex + 1) % containerColor.length);
+    currentIndex = (currentIndex + 1) % containerColor.length;
     notifyListeners();
-  }
-
-  // Add this method to your PRoductViewModel class
-  Future<void> showCelebrationScreen(BuildContext context,
-      {String? productName}) async {
-    // Wait a moment for any ongoing operations to complete
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    // Navigate to the celebration screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CelebrationWidget(
-          title: "Scan Another Product",
-          onTap: () {
-            // Close the celebration screen
-            Navigator.pop(context);
-            // Go back to the scanner
-            startBarcodeScan(context);
-          },
-          child: Column(
-            children: [
-              const Icon(
-                Icons.check_circle_outline,
-                color: Colors.green,
-                size: 80,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                "Product Added Successfully!",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green[800],
-                ),
-              ),
-              const SizedBox(height: 10),
-              if (productName != null && productName.isNotEmpty)
-                Text(
-                  productName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

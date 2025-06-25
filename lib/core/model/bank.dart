@@ -6,8 +6,8 @@ class Bank {
 
   factory Bank.fromJson(Map<String, dynamic> json) {
     return Bank(
-      name: json['name'],
-      code: json['code'],
+      name: json['name'] as String,
+      code: json['code'] as String,
     );
   }
 }

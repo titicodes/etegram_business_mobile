@@ -17,16 +17,19 @@ class MainNav extends StatelessWidget {
         backgroundColor: ColorValues.backgroundColor,
         body: model.pages.elementAt(model.selectedPage),
         bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
           currentIndex: model.selectedPage,
           backgroundColor: ColorValues.whiteColor,
           elevation: 0,
           iconSize: 40,
           mouseCursor: SystemMouseCursors.grab,
           selectedFontSize: 16,
-          selectedIconTheme:
-              IconThemeData(color: ColorValues.primaryDarkColor, size: 40),
+          selectedIconTheme: IconThemeData(
+            color: ColorValues.primaryDarkColor,
+            size: 30,
+          ),
           selectedItemColor: ColorValues.primaryDarkColor,
-          selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
+          selectedLabelStyle: TextStyle(fontWeight: FontWeight.w500),
           unselectedIconTheme: IconThemeData(
             color: ColorValues.appTextColor,
           ),
@@ -34,27 +37,53 @@ class MainNav extends StatelessWidget {
           onTap: model.onNavigationItem,
           items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(SvgAssets.home),
+              icon: SvgPicture.asset(
+                SvgAssets.home,
+                color: model.selectedPage == 0
+                    ? ColorValues.primaryDarkColor
+                    : ColorValues.appTextColor,
+              ),
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(SvgAssets.chart),
+              icon: SvgPicture.asset(
+                SvgAssets.chart,
+                color: model.selectedPage == 1
+                    ? ColorValues.primaryDarkColor
+                    : ColorValues.appTextColor,
+              ),
               label: 'Sales',
             ),
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(SvgAssets.product),
+              icon: SvgPicture.asset(
+                SvgAssets.product,
+                color: model.selectedPage == 2
+                    ? ColorValues.primaryDarkColor
+                    : ColorValues.appTextColor,
+              ),
               label: 'Product',
             ),
+            // BottomNavigationBarItem(
+            //   icon: SvgPicture.asset(
+            //     SvgAssets.truck,
+            //     color: model.selectedPage == 3
+            //         ? ColorValues.primaryDarkColor
+            //         : ColorValues.appTextColor,
+            //   ),
+            //   label: 'Supply',
+            // ),
             BottomNavigationBarItem(
-              icon: SvgPicture.asset(SvgAssets.truck),
-              label: 'Supply',
-            ),
-            BottomNavigationBarItem(
-              icon: SvgPicture.asset(SvgAssets.profile),
+              icon: SvgPicture.asset(
+                SvgAssets.profile,
+                color: model.selectedPage == 3
+                    ? ColorValues.primaryDarkColor
+                    : ColorValues.appTextColor,
+              ),
               label: 'Account',
             ),
           ],
         ),
+
       ),
     );
   }

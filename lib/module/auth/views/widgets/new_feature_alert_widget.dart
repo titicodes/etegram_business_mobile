@@ -9,12 +9,12 @@ import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';
 
 class NewFeatureAlertWidget extends StatelessWidget {
-   const NewFeatureAlertWidget({super.key});
+  const NewFeatureAlertWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BaseView<SignInViewModel>(
-      builder:(_,model,child) => Scaffold(
+    return BaseView<LoginViewModel>(
+      builder: (_, model, child) => Scaffold(
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -48,20 +48,23 @@ class NewFeatureAlertWidget extends StatelessWidget {
             20.0.sbH,
             TextButton(onPressed: () {}, child: AppText(StringValues.dismiss)),
             30.0.sbH,
-           Row(
-             crossAxisAlignment: CrossAxisAlignment.center,
-             children: [
-               Checkbox(
-                 checkColor: Colors.white,
-                 value: model.isChecked,
-                 onChanged: (bool? value) {
-                   model.oncheckedChanged(value!);
-                 },
-               ),
-               20.0.sbW,
-               AppText(StringValues.dontShowAgain, style: normalTextStyle,)
-             ],
-           )
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Checkbox(
+                  checkColor: Colors.white,
+                  value: model.isChecked,
+                  onChanged: (bool? value) {
+                    model.onCheckedChanged(value!);
+                  },
+                ),
+                20.0.sbW,
+                AppText(
+                  StringValues.dontShowAgain,
+                  style: normalTextStyle,
+                )
+              ],
+            )
           ],
         ),
       ),

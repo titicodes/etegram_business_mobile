@@ -3,12 +3,11 @@ import 'package:etegram_business/module/account/viewmodel/profile_vw.dart';
 import 'package:etegram_business/module/auth/viewmodel/signin_vm.dart';
 import 'package:etegram_business/module/auth/viewmodel/signup_vm.dart';
 import 'package:etegram_business/module/auth/viewmodel/verify_email.dart';
-import 'package:etegram_business/module/customer/vm/customer_vm.dart';
 import 'package:etegram_business/module/deliveries/vm/delivery_vm.dart';
 import 'package:etegram_business/module/expenses/vm/expenses_viewmodel.dart';
 import 'package:etegram_business/module/home/vm/home_vm.dart';
 import 'package:etegram_business/module/product/vm/product_viewmodel.dart';
-import 'package:etegram_business/module/product/vm/product_vm.dart';
+import 'package:etegram_business/module/splash/splash_view_model.dart';
 
 import 'package:etegram_business/repository/auth_repository.dart';
 import 'package:etegram_business/repository/customer_repository.dart';
@@ -36,6 +35,8 @@ import 'package:get_it/get_it.dart';
 
 import 'module/auth/viewmodel/add_payment_method_vm.dart';
 import 'module/auth/viewmodel/forget_password_vm.dart';
+import 'module/customer/vm/customer_vm.dart';
+import 'module/deliveries/vm/moved_product_vm.dart';
 import 'module/home/vm/main_nav_vm.dart';
 import 'module/onboarding/onboarding_vm.dart';
 import 'module/sales/vm/new_sales_vm.dart';
@@ -78,29 +79,31 @@ void registerServices() {
   locator.registerLazySingleton<ExpensesRepository>(() => ExpensesRepository());
   locator.registerLazySingleton<DeliveryRepository>(() => DeliveryRepository());
   locator.registerLazySingleton<DeliveryApiService>(() => DeliveryApiService());
+  locator.registerLazySingleton<SaleViewModel>(() => SaleViewModel());
 }
 
 void registerViewModels() {
   locator.registerFactory<OnBoardingViewModel>(() => OnBoardingViewModel());
   locator.registerFactory<SignUpViewModel>(() => SignUpViewModel());
-  locator.registerFactory<SignInViewModel>(() => SignInViewModel());
+  locator.registerFactory<LoginViewModel>(() => LoginViewModel());
   locator.registerFactory<MainNavViewModel>(() => MainNavViewModel());
-  locator.registerFactory<ProductViewModel>(() => ProductViewModel());
+  locator.registerFactory<MoveProductViewModel>(() => MoveProductViewModel());
   locator.registerFactory<SupplierViewModel>(() => SupplierViewModel());
   locator.registerFactory<SalesRecordViewModel>(() => SalesRecordViewModel());
   locator.registerFactory<HomeViewModel>(() => HomeViewModel());
   locator.registerFactory<VerifyEmailViewModel>(() => VerifyEmailViewModel());
   locator.registerFactory<StoresViewModel>(() => StoresViewModel());
-  locator.registerFactory<PRoductViewModel>(() => PRoductViewModel());
+  locator.registerFactory<ProductViewModel>(() => ProductViewModel());
   locator.registerFactory<ProfileViewModel>(() => ProfileViewModel());
-  locator.registerFactory<SaleViewModel>(() => SaleViewModel());
+  // locator.registerFactory<SaleViewModel>(() => SaleViewModel());
   locator.registerFactory<ChangePinViewModel>(() => ChangePinViewModel());
   locator.registerFactory<SupplierListViewModel>(() => SupplierListViewModel());
   locator.registerFactory<CustomerViewModel>(() => CustomerViewModel());
   locator.registerFactory<ExpensesViewModel>(() => ExpensesViewModel());
-  locator.registerFactory<AddPaymentMethodViwModel>(
-      () => AddPaymentMethodViwModel());
+  locator.registerFactory<AddPaymentMethodViewModel>(
+      () => AddPaymentMethodViewModel());
   locator.registerFactory<DeliveryViewModel>(() => DeliveryViewModel());
   locator.registerFactory<ForgetPasswordViewModel>(
       () => ForgetPasswordViewModel());
+  locator.registerFactory<SplashScreenViewModel>(() => SplashScreenViewModel());
 }

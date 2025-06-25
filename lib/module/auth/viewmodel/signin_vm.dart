@@ -1,120 +1,107 @@
 import 'package:dio/dio.dart';
-import 'package:etegram_business/base/base_vm.dart';
-import 'package:etegram_business/core/model/auth_response.dart';
-import 'package:etegram_business/routes/routes.dart';
 import 'package:flutter/material.dart';
-
-import '../../../constants/reuseable.dart';
+import '../../../base/base_vm.dart';
+import '../../../core/model/auth_response.dart';
 import '../../../locator.dart';
+import '../../../routes/routes.dart';
+import '../../../service/local/cache.dart';
+import '../../../service/local/user_service.dart';
+import '../../../utils/snack_message.dart';
 
+class LoginViewModel extends BaseViewModel {
+  final CustomerService customerService = locator<CustomerService>();
+  final AppCache appCache = locator<AppCache>();
 
-class SignInViewModel extends BaseViewModel {
-  var emailNameController = TextEditingController();
-  var passwordNameController = TextEditingController();
-
-  final emailUnameTextController = TextEditingController();
-  final passwordTextController = TextEditingController();
-
-  final FocusScopeNode focusNode = FocusScopeNode();
-  final _showPassword = true;
-  final _isLoading = false;
-  var _isChecked = false;
-
-  bool get showPassword => _showPassword;
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  bool showPassword = false;
+  final isFormValid = ValueNotifier<bool>(false);
+  bool _isChecked = false; // Commented out as unused in SigninView
   bool get isChecked => _isChecked;
-
-  oncheckedChanged(bool val) {
-    _isChecked = val;
+  void onCheckedChanged(bool value) {
+    _isChecked = value;
     notifyListeners();
   }
 
-  onChange() {
-    formKey.currentState?.validate();
-    notifyListeners();
-  }
-
-  goToHomeScreen() {
-    navigationService.navigateTo(homeViewRoute);
-  }
-
-  goToMainNavScreen() {
-    navigationService.navigateTo(mainNavViewRoute);
-  }
-
-  goToSignUpView(){
-    navigationService.navigateTo(signUpScreenRoute);
-  }
-  
-  goToForgetPasswordView(){
-    navigationService.navigateTo(forgetPasswordRoute);
-  }
-
-  // @override
-  // bool get isLoading => _isLoading;
-
-  void toggleViewPassword() {
-    _showPassword;
-    notifyListeners();
-  }
-
-  void _clearLoginTextControllers() {
-    emailUnameTextController.clear();
-    passwordTextController.clear();
-  }
-
-  // Add the init() method here
   void init() {
-    getUser();
-    // For example, you might want to clear text controllers or
-    // set initial values.
-    emailNameController.clear();
-    passwordNameController.clear();
+    emailController.addListener(validateForm);
+    passwordController.addListener(validateForm);
   }
 
-  submit() async {
-    FocusManager.instance.primaryFocus?.unfocus();
+  void validateForm() {
+    isFormValid.value =
+        emailController.text.isNotEmpty && passwordController.text.isNotEmpty;
+    notifyListeners();
+  }
+
+  void togglePasswordVisibility() {
+    showPassword = !showPassword;
+    notifyListeners();
+  }
+
+  Future<void> submit() async {
+    if (!formKey.currentState!.validate() || !isFormValid.value) {
+      showCustomToast("Please fill all required fields");
+      return;
+    }
+
     startLoader();
     try {
       var userData = Customer(
-          email: emailNameController.text.trim(),
-          password: passwordNameController.text.trim());
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
 
-      var response = await authRepository.login(data: userData);
+      final response = await authRepository.login(customer: userData);
 
-      if (response?.customer?.emailVerified == false) {
-        stopLoader();
-        notifyListeners();
-        navigationService.navigateTo(verifyEmailView);
-      } else if (response?.customer?.emailVerified == true) {
-        notifyListeners();
-        await getUser();
-        print(response?.customer?.emailVerified);
-        stopLoader();
+      if (response?.success == true) {
+        await customerService.storeToken(response);
+        appCache.registerResponse = response ?? AuthResponse();
+
+        if (response?.data?.user?.emailVerified == false) {
+          navigationService.navigateTo(verifyEmailView);
+          showCustomToast("Please verify your email");
+          return;
+        }
+
+        // Setup check
+        await customerService.checkUserSetup();
+
+        // 🔍 Add store check here if no navigation occurred
+        if (customerService.stores.isEmpty) {
+          print(
+              "LoginViewModel: No stores found. Navigating to createStoreRoute.");
+          navigationService.navigateToAndRemoveUntil(createStoreRoute);
+          return;
+        }
+
+        // checkUserSetup will already handle dashboard or addPaymentMethod navigation
+      } else {
+        showCustomToast(response?.message ?? "Login failed");
       }
-      stopLoader();
-      notifyListeners();
-    } on DioException {
+    } catch (e) {
+      showCustomToast("Login failed: $e");
+    } finally {
       stopLoader();
       notifyListeners();
     }
   }
 
+  void goToSignUpView() {
+    print("Navigating to signupRoute");
+    navigationService.navigateTo(signUpScreenRoute);
+  }
 
+  void goToForgotPasswordView() {
+    print("Navigating to forgotPasswordRoute");
+    navigationService.navigateTo(forgetPasswordRoute);
+  }
 
-  getUser() async {
-    startLoader();
-    try {
-      var response = await authRepository.getUser();
-      notifyListeners();
-      if (response?.id != null) {
-        await userService.initializer();
-        navigationService.navigateToAndRemoveUntil(dashboardRoute);
-      }
-      stopLoader();
-    } catch (err) {
-      print(err);
-      stopLoader();
-      notifyListeners();
-    }
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    isFormValid.dispose();
+    super.dispose();
   }
 }

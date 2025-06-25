@@ -1,18 +1,19 @@
-import 'package:etegram_business/app_widget/custom_appbar.dart';
-import 'package:etegram_business/constants/colors.dart';
-import 'package:etegram_business/constants/reuseable.dart';
-import 'package:etegram_business/constants/strings.dart';
-import 'package:etegram_business/module/auth/viewmodel/verify_email.dart';
-import 'package:etegram_business/utils/string_extension.dart';
+// Modified VerifyEmailView
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 
 import '../../../app_widget/app_button.dart';
 import '../../../app_widget/app_text.dart';
+import '../../../app_widget/custom_appbar.dart';
 import '../../../base/base_ui.dart';
+import '../../../constants/colors.dart';
+import '../../../constants/reuseable.dart';
+import '../../../constants/strings.dart';
 import '../../../constants/style.dart';
+import '../viewmodel/verify_email.dart';
 
 class VerifyEmailView extends StatelessWidget {
   const VerifyEmailView({super.key});
@@ -20,16 +21,14 @@ class VerifyEmailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BaseView<VerifyEmailViewModel>(
-      onModelReady: (model) async => await model.verifyOTP(),
+      onModelReady: (model) => model.onModelReady(),
       builder: (context, model, child) => Scaffold(
         appBar: CustomAppBar(
-          title: "verify phone number".toTitleCase(),
-          onBackPressed: () {
-            navigationService.goBack();
-          },
+          title: "Verify Email",
+          onBackPressed: navigationService.goBack,
         ),
         body: Padding(
-          padding: 16.0.padH,
+          padding: EdgeInsets.symmetric(horizontal: 16.0),
           child: Form(
             key: model.formKey,
             child: ListView(
@@ -37,7 +36,7 @@ class VerifyEmailView extends StatelessWidget {
                 20.0.sbH,
                 PinCodeTextField(
                   length: 6,
-                  textStyle: bodyTextStyle2.copyWith(fontSize: 20), // Reduced font size
+                  textStyle: bodyTextStyle2.copyWith(fontSize: 20),
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   obscureText: false,
                   autoFocus: true,
@@ -46,33 +45,26 @@ class VerifyEmailView extends StatelessWidget {
                   pinTheme: PinTheme(
                     shape: PinCodeFieldShape.box,
                     borderRadius: BorderRadius.circular(5),
-                    fieldHeight: 60, // Reduced field height
-                    fieldWidth: (width(context) - 60) / 6, // Reduced field width and adjusted calculation
+                    fieldHeight: 60,
+                    fieldWidth: (width(context) - 60) / 7,
                     inactiveFillColor: Colors.transparent,
                     inactiveColor:
-                    Theme.of(context).disabledColor.withOpacity(0.3),
+                        Theme.of(context).disabledColor.withOpacity(0.3),
                     selectedFillColor: Colors.transparent,
                     selectedColor: Theme.of(context).primaryColor,
                     activeColor: Colors.transparent,
                     activeFillColor:
-                    Theme.of(context).iconTheme.color?.withOpacity(0.1),
+                        Theme.of(context).iconTheme.color?.withOpacity(0.1),
                   ),
                   animationDuration: const Duration(milliseconds: 300),
                   backgroundColor: Colors.transparent,
                   controller: model.pinCodeController,
                   enableActiveFill: true,
-                  validator: (val) {
-                    if (model.pinCodeController.text.trim().length != 6) {
-                      return "Pin Code must be 6 characters";
-                    } else {
-                      return null;
-                    }
-                  },
+                  validator: (val) =>
+                      model.pinCodeController.text.trim().length != 6
+                          ? "Pin Code must be 6 characters"
+                          : null,
                   onChanged: model.onChange,
-                  beforeTextPaste: (text) {
-                    print("Allowing to paste $text");
-                    return true;
-                  },
                   appContext: context,
                 ),
                 12.0.sbH,
@@ -83,17 +75,12 @@ class VerifyEmailView extends StatelessWidget {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: StringValues.enterOTP,
-                            style: subStyle.copyWith(fontSize: 15),
-                          ),
+                              text: StringValues.enterOTP,
+                              style: subStyle.copyWith(fontSize: 12)),
                           TextSpan(
-                            text: "${model.appCache.phoneNumber}",
+                            text: model.email,
                             style: subStyle.copyWith(
-                                fontSize: 15, color: ColorValues.primaryColor),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                print('Details tapped!');
-                              },
+                                fontSize: 12, color: ColorValues.primaryColor),
                           ),
                         ],
                       ),
@@ -102,12 +89,15 @@ class VerifyEmailView extends StatelessWidget {
                   ],
                 ),
                 32.0.sbH,
-                AppButton(
-                  text: "Verify & Proceed",
-                  onTap: model.formKey.currentState?.validate() != true
-                      ? null
-                      : model.verifyOTP,
-                ),
+                model.isLoading.value
+                    ? const SpinKitDoubleBounce(
+                        color: ColorValues.primaryColor, size: 50.0)
+                    : AppButton(
+                        text: "Verify & Proceed",
+                        onTap: model.formKey.currentState?.validate() == true
+                            ? model.verifyOTP
+                            : null,
+                      ),
                 16.0.sbH,
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -116,22 +106,22 @@ class VerifyEmailView extends StatelessWidget {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: StringValues.didntReceive,
-                            style: subStyle.copyWith(fontSize: 15),
-                          ),
+                              text: StringValues.didntReceive,
+                              style: subStyle.copyWith(fontSize: 15)),
                           model.timer?.isActive == true
                               ? TextSpan(
-                            text:
-                            "Wait ${model.formatTime(model.secondsRemaining)} mins",
-                            style: normalTextStyle.copyWith(fontSize: 15),
-                          )
+                                  text:
+                                      "Wait ${model.formatTime(model.secondsRemaining)}",
+                                  style: normalTextStyle.copyWith(fontSize: 15),
+                                )
                               : TextSpan(
-                            text: "Resend OTP",
-                            style: subUnderlineGreenStyle.copyWith(
-                                fontSize: 15, color:ColorValues.primaryColor),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = model.verifyOTP,
-                          ),
+                                  text: "Resend OTP",
+                                  style: subUnderlineGreenStyle.copyWith(
+                                      fontSize: 15,
+                                      color: ColorValues.primaryColor),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = model.verifyOTP,
+                                ),
                         ],
                       ),
                       textAlign: TextAlign.center,
@@ -139,17 +129,12 @@ class VerifyEmailView extends StatelessWidget {
                   ],
                 ),
                 30.0.sbH,
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    InkWell(
-                      onTap: navigationService.goBack,
-                      child: AppText(
-                        "Wrong Email?",
-                        style: subUnderlineGreenStyle.copyWith(fontSize: 15),
-                      ),
-                    )
-                  ],
+                Center(
+                  child: InkWell(
+                    onTap: model.goToUserLogin,
+                    child: AppText("Wrong Email?",
+                        style: subUnderlineGreenStyle.copyWith(fontSize: 15)),
+                  ),
                 ),
               ],
             ),

@@ -24,17 +24,16 @@ class SalesApiService {
     return accessToken;
   }
 
-  // FIXED: Corrected getScanProduct method
   Future<GetScanResponse?> getScanProduct({
-    required int? code,
+    required String code,
     required String ownerId,
     required String storeId,
   }) async {
-    if (code == null) {
-      print('Barcode cannot be null');
+    if (code.isEmpty) {
+      print('Barcode cannot be empty');
       return GetScanResponse(
         success: false,
-        message: 'Barcode cannot be null',
+        message: 'Barcode cannot be empty',
         data: null,
       );
     }
@@ -42,98 +41,11 @@ class SalesApiService {
     final token = await _getToken();
 
     try {
-      // Log the request details for debugging
-      print(
-          'Checking existence of barcode: $code, Owner ID: $ownerId, Store ID: $storeId');
+      print('Checking product with barcode: $code, Owner ID: $ownerId, Store ID: $storeId');
 
-      // Make sure we have the complete URL with proper path construction
-      final endpoint = "checkout/scan/$code";
+      final endpoint = "checkout/check-product/$code";
       print('Request URL: ${AppUrls.baseUrl}$endpoint');
-      print('Query Parameters: storeId=$storeId');
-
-      // FIXED: Use a consistent baseUrl in connect() and ensure proper URL construction
-      Response response = await connect().get(
-        endpoint,
-        queryParameters: {
-          'storeId': storeId,
-          'ownerId': ownerId, // ADDED: Include ownerId in query parameters
-        },
-        options: Options(
-          headers: {'Authorization': 'Bearer $token'},
-          validateStatus: (status) =>
-              true, // Accept all status codes for proper error handling
-        ),
-      );
-
-      // Log response for debugging
-      print('Response Status: ${response.statusCode}');
-      print('Response Data: ${response.data}');
-
-      // Check if the request was successful
-      if (response.statusCode == 200) {
-        if (response.data is String) {
-          final parsed = jsonDecode(response.data);
-          return GetScanResponse.fromJson(parsed);
-        } else if (response.data is Map<String, dynamic>) {
-          return GetScanResponse.fromJson(response.data);
-        } else {
-          print('Unexpected response type: ${response.data.runtimeType}');
-          return GetScanResponse(
-            success: false,
-            message: 'Unexpected response type: ${response.data.runtimeType}',
-            data: null,
-          );
-        }
-      } else {
-        // Handle 404 and other error cases
-        if (response.statusCode == 404) {
-          // Return a valid response object with success = false
-          print(
-              'DEBUG: 404 received, product not found. Trying as String barcode...');
-
-          // ADDED: Try again with barcode as string in case backend is expecting string format
-          return await _retryWithStringBarcode(
-              code.toString(), ownerId, storeId, token);
-        } else {
-          // Handle other error status codes
-          return GetScanResponse(
-            success: false,
-            message: 'Error ${response.statusCode}: ${response.statusMessage}',
-            data: null,
-          );
-        }
-      }
-    } on DioException catch (e) {
-      print('DioException in getScanProduct: ${e.message}');
-      print('Error Status: ${e.response?.statusCode}');
-      print('Error Data: ${e.response?.data}');
-
-      // Return a valid response object instead of throwing
-      return GetScanResponse(
-        success: false,
-        message: 'Failed to scan product: ${e.message ?? "Unknown error"}',
-        data: null,
-      );
-    } catch (e) {
-      print('Unexpected error in getScanProduct: $e');
-
-      // Return a valid response object instead of throwing
-      return GetScanResponse(
-        success: false,
-        message: 'Unexpected error: $e',
-        data: null,
-      );
-    }
-  }
-
-  // ADDED: New method to retry with string barcode
-  Future<GetScanResponse?> _retryWithStringBarcode(String barcodeAsString,
-      String ownerId, String storeId, String token) async {
-    try {
-      print('Retrying with barcode as string: $barcodeAsString');
-
-      final endpoint = "checkout/scan/$barcodeAsString";
-      print('Retry Request URL: ${AppUrls.baseUrl}$endpoint');
+      print('Query Parameters: storeId=$storeId, ownerId=$ownerId');
 
       Response response = await connect().get(
         endpoint,
@@ -147,30 +59,51 @@ class SalesApiService {
         ),
       );
 
-      print('Retry Response Status: ${response.statusCode}');
-      print('Retry Response Data: ${response.data}');
+      print('Response Status: ${response.statusCode}');
+      print('Response Data: ${response.data}');
 
       if (response.statusCode == 200) {
-        if (response.data is String) {
-          final parsed = jsonDecode(response.data);
-          return GetScanResponse.fromJson(parsed);
-        } else if (response.data is Map<String, dynamic>) {
-          return GetScanResponse.fromJson(response.data);
+        dynamic responseData = response.data;
+        if (responseData is String) {
+          responseData = jsonDecode(responseData);
         }
+        if (responseData is Map<String, dynamic>) {
+          return GetScanResponse.fromJson(responseData);
+        }
+        return GetScanResponse(
+          success: false,
+          message: 'Unexpected response format',
+          data: null,
+        );
+      } else if (response.statusCode == 404) {
+        return GetScanResponse(
+          success: false,
+          message: 'Product with barcode $code not found in store',
+          data: null,
+        );
+      } else {
+        return GetScanResponse(
+          success: false,
+          message: 'Error ${response.statusCode}: ${response.statusMessage}',
+          data: null,
+        );
       }
+    } on DioException catch (e) {
+      print('DioException in getScanProduct: ${e.message}');
+      print('Error Status: ${e.response?.statusCode}');
+      print('Error Data: ${e.response?.data}');
 
-      // If still failed, return original error
       return GetScanResponse(
         success: false,
-        message:
-            'Product with barcode $barcodeAsString not found in your store',
+        message: 'Failed to scan product: ${e.message ?? "Unknown error"}',
         data: null,
       );
     } catch (e) {
-      print('Error in retry with string barcode: $e');
+      print('Unexpected error in getScanProduct: $e');
+
       return GetScanResponse(
         success: false,
-        message: 'Failed to scan product: $e',
+        message: 'Unexpected error: $e',
         data: null,
       );
     }
@@ -198,41 +131,32 @@ class SalesApiService {
     }
 
     try {
-      // Log the request details for debugging
-      print(
-          'Checkout Request URL: ${AppUrls.baseUrl}${AppUrls.createCheckout}'); // FIXED: Use full URL
+      print('Checkout Request URL: ${AppUrls.baseUrl}${AppUrls.createCheckout}');
       print('Checkout Payload: $payload');
 
       Response response = await connect().post(
         AppUrls.createCheckout,
         options: Options(
           headers: {'Authorization': 'Bearer $token'},
-          validateStatus: (status) =>
-              true, // Accept all status codes for proper error handling
+          validateStatus: (status) => true,
         ),
         data: payload,
       );
 
-      // Log response for debugging
       print('Checkout Response Status: ${response.statusCode}');
       print('Checkout Response Data: ${response.data}');
 
       dynamic responseData = response.data;
-
-      // Decode manually if response.data is a String
       if (responseData is String) {
-        print("Received string response: $responseData");
         responseData = jsonDecode(responseData);
       }
 
-      // Check if the request was successful
       if (response.statusCode == 200 || response.statusCode == 201) {
         return CheckoutResponse.fromJson(responseData);
       } else {
         return CheckoutResponse(
           success: false,
-          message: responseData['message'] ??
-              'Checkout failed with status code ${response.statusCode}',
+          message: responseData['message'] ?? 'Checkout failed with status code ${response.statusCode}',
           data: null,
         );
       }
@@ -241,17 +165,14 @@ class SalesApiService {
       print('Error Status: ${e.response?.statusCode}');
       print('Error Data: ${e.response?.data}');
 
-      // Return a valid response object instead of throwing
       return CheckoutResponse(
         success: false,
-        message:
-            'Checkout failed: ${e.response?.data?['message'] ?? e.message}',
+        message: 'Checkout failed: ${e.response?.data?['message'] ?? e.message}',
         data: null,
       );
     } catch (e) {
       print('Unexpected error in checkout: $e');
 
-      // Return a valid response object instead of throwing
       return CheckoutResponse(
         success: false,
         message: 'Unexpected error during checkout: $e',
@@ -264,7 +185,7 @@ class SalesApiService {
     final token = await _getToken();
     try {
       await connect().post(
-        'users/$userId/fcm-token', // Use correct URL (or AppUrls constant)
+        'users/$userId/fcm-token',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
         data: {'fcmToken': fcmToken},
       );

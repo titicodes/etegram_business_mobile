@@ -14,13 +14,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../constants/colors.dart';
+import '../../../routes/routes.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    var logic = locator<PRoductViewModel>();
+    var logic = locator<ProductViewModel>();
     return BaseView<HomeViewModel>(
       onModelReady: (model) => model.init(),
       builder: (_, model, child) => Scaffold(
@@ -111,7 +112,7 @@ class HomeView extends StatelessWidget {
                 30.0.sbH,
                 GestureDetector(
                     onTap: () {
-                      logic.startBarcodeScan(context);
+                      navigationService.navigateTo(addProductScannerRoute);
                     },
                     child: SvgPicture.asset(SvgAssets.scan)),
                 20.0.sbH,

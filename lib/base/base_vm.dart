@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:etegram_business/repository/auth_repository.dart';
-import 'package:etegram_business/repository/customer_repository.dart';
 import 'package:etegram_business/repository/delivery_repository.dart';
 import 'package:etegram_business/repository/expenses_repository.dart';
 import 'package:etegram_business/repository/payment_method_repository.dart';
@@ -22,6 +21,7 @@ import '../app_widget/bottom_sheet.dart';
 import '../app_widget/popup_dialog.dart';
 import '../app_widget/success_pupup_widget.dart';
 import '../constants/reuseable.dart';
+import '../repository/customer_repository.dart';
 import '../service/local/cache.dart';
 import '../service/local/navigation_service.dart';
 import '../service/local/storage_service.dart';
@@ -43,6 +43,7 @@ class BaseViewModel extends ChangeNotifier {
   ExpensesRepository expenseRepository = locator<ExpensesRepository>();
   DeliveryRepository deliveryRepository = locator<DeliveryRepository>();
   // final FlutterContactPicker contactPicker = FlutterContactPicker();
+  String? loadingMessage = "";
 
   ViewState get viewState => _viewState;
 
@@ -137,10 +138,11 @@ class BaseViewModel extends ChangeNotifier {
  // bool isLoading = false;
   ValueNotifier<bool> isLoading = ValueNotifier(false);
 
-  void startLoader() {
+  void startLoader({String? message}) {
     if (!isLoading.value) {
       isLoading.value = true;
       viewState = ViewState.busy;
+      loadingMessage = message;
       notifyListeners();
     }
   }
@@ -275,6 +277,7 @@ class BaseViewModel extends ChangeNotifier {
     if (isLoading.value) {
       isLoading.value = false;
       viewState = ViewState.idle;
+      loadingMessage = null;
       notifyListeners();
     }
   }

@@ -1,179 +1,120 @@
 class AddProductResponse {
-  final bool? success;
+  final bool success;
   final Product? data;
   final String? message;
 
-  AddProductResponse({
-    this.success,
-    this.data,
-    this.message,
-  });
+  AddProductResponse({required this.success, this.data, this.message});
 
   factory AddProductResponse.fromJson(Map<String, dynamic> json) {
-    Map<String, dynamic>? productData = json['data'] as Map<String, dynamic>?;
-
     return AddProductResponse(
-      success: json['success'] as bool? ?? false,
-      data: productData != null ? Product.fromJson(productData) : null,
-      message: json['message'] as String? ?? '',
+      success: json['success'] ?? false,
+      data: json['data'] != null ? Product.fromJson(json['data']) : null,
+      message: json['message'],
     );
   }
 }
 
-
 class Product {
-  Product({
-    this.name,
-    this.price,
-    this.category,
-    this.code,
-    this.quantity,
-    this.categoryId,
-    this.unitId,
-    this.stock,
-    this.size,
-    this.totalQuantity,
-    this.totalCost,
-    this.unitPrice,
-    this.minQuantity,
-    this.expiryDate,
-    this.brands,
-    this.id,
-    this.owner,
-    this.createdAt,
-    this.updatedAt,
-    this.v,
-  });
-
+  final String? id;
   final String? name;
-  final int? price;
-  final String? category;
+  final String? imageUrl;
   final String? code;
+  final String? category;
+  final String? categoryId;
+  final int? price;
+  final int? costPrice;
   final int? quantity;
-  final Category? categoryId;
-  final int? unitId;
-  final int? stock;
   final String? size;
-  final int? totalQuantity;
-  final int? totalCost;
-  final int? unitPrice;
-  final int? minQuantity;
   final String? expiryDate;
   final String? brands;
-  final String? id;
+  final String? store;
   final String? owner;
+  final int? stock;
+  final int? minQuantity;
+  final String? description;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final int? v;
+
+  Product({
+    this.id,
+    this.name,
+    this.imageUrl = "PR",
+    this.code,
+    this.category,
+    this.categoryId,
+    this.price,
+    this.costPrice,
+    this.quantity,
+    this.size,
+    this.expiryDate,
+    this.brands,
+    this.store,
+    this.owner,
+    this.stock,
+    this.minQuantity,
+    this.description,
+    this.createdAt,
+    this.updatedAt,
+  });
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      name: json["name"] as String?,
-      price: int.tryParse(json["price"]?.toString() ?? ''),
-      category: json["category"] as String?,
-      code: json["code"] as String?,
-      quantity: int.tryParse(json["quantity"]?.toString() ?? ''),
-      categoryId: json["categoryId"] is Map<String, dynamic>
-          ? Category.fromJson(json["categoryId"])
-          : (json["categoryId"] is String
-          ? Category(id: json["categoryId"])
-          : null),
-      unitId: int.tryParse(json["unitId"]?.toString() ?? ''),
-      stock: int.tryParse(json["stock"]?.toString() ?? ''),
-      size: json["size"]?.toString(),
-      totalQuantity: int.tryParse(json["totalQuantity"]?.toString() ?? ''),
-      totalCost: int.tryParse(json["totalCost"]?.toString() ?? ''),
-      unitPrice: int.tryParse(json["unitPrice"]?.toString() ?? ''),
-      minQuantity: int.tryParse(json["minQuantity"]?.toString() ?? ''),
-      expiryDate: json["expiryDate"]?.toString(),
-      brands: json["brands"]?.toString(),
-      id: json["_id"]?.toString(),
-      owner: json["owner"]?.toString(),
-      createdAt: DateTime.tryParse(json["createdAt"]?.toString() ?? ''),
-      updatedAt: DateTime.tryParse(json["updatedAt"]?.toString() ?? ''),
-      v: int.tryParse(json["__v"]?.toString() ?? ''),
+      id: json['_id']?.toString(),
+      name: json['name'],
+      code: json['code'],
+      category: json['category'],
+      categoryId: json['categoryId'] is Map
+          ? json['categoryId']['_id']?.toString()
+          : json['categoryId']?.toString(),
+      price: json['price']?.toInt(),
+      costPrice: json['costPrice']?.toInt(),
+      quantity: json['quantity']?.toInt(),
+      size: json['size'],
+      expiryDate: json['expiryDate'],
+      brands:
+          json['brands'] is List ? json['brands'].join(', ') : json['brands'],
+      store: json['store']?.toString(),
+      owner: json['owner']?.toString(),
+      stock: json['stock']?.toInt(),
+      minQuantity: json['minQuantity']?.toInt(),
+      description: json['description'],
+      createdAt:
+          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
+      updatedAt:
+          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    "name": name,
-    "price": price,
-    "category": category,
-    "code": code,
-    "quantity": quantity,
-    "categoryId": categoryId?.toJson(),
-    "unitId": unitId,
-    "stock": stock,
-    "size": size,
-    "totalQuantity": totalQuantity,
-    "totalCost": totalCost,
-    "unitPrice": unitPrice,
-    "minQuantity": minQuantity,
-    "expiryDate": expiryDate,
-    "brands": brands,
-    "_id": id,
-    "owner":owner,
-    "createdAt": createdAt?.toIso8601String(),
-    "updatedAt": updatedAt?.toIso8601String(),
-    "__v": v,
-  };
-
-  // Add the copyWith method
-  Product copyWith({
-    String? name,
-    int? price,
-    String? category,
-    String? code,
-    int? quantity,
-    Category? categoryId,
-    int? unitId,
-    int? stock,
-    String? size,
-    int? totalQuantity,
-    int? totalCost,
-    int? unitPrice,
-    int? minQuantity,
-    String? expiryDate,
-    String? brands,
-    String? id,
-    String? owner,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    int? v,
-  }) {
-    return Product(
-      name: name ?? this.name,
-      price: price ?? this.price,
-      category: category ?? this.category,
-      code: code ?? this.code,
-      quantity: quantity ?? this.quantity,
-      categoryId: categoryId ?? this.categoryId,
-      unitId: unitId ?? this.unitId,
-      stock: stock ?? this.stock,
-      size: size ?? this.size,
-      totalQuantity: totalQuantity ?? this.totalQuantity,
-      totalCost: totalCost ?? this.totalCost,
-      unitPrice: unitPrice ?? this.unitPrice,
-      minQuantity: minQuantity ?? this.minQuantity,
-      expiryDate: expiryDate ?? this.expiryDate,
-      brands: brands ?? this.brands,
-      id: id ?? this.id,
-      owner: owner ?? this.owner,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      v: v ?? this.v,
-    );
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'name': name,
+      'code': code,
+      'category': category,
+      'categoryId': categoryId,
+      'price': price,
+      'costPrice': costPrice,
+      'quantity': quantity,
+      'size': size,
+      'expiryDate': expiryDate,
+      'brands': brands,
+      'store': store,
+      'owner': owner,
+      'stock': stock,
+      'minQuantity': minQuantity,
+      'description': description,
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
+    };
   }
 }
-
-
 
 class Category {
   final String? id;
   final String? name;
   final int? v;
 
-  Category( { this.id,  this.name, this.v});
+  Category({this.id, this.name, this.v});
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
@@ -183,14 +124,9 @@ class Category {
     );
   }
 
-
-  Map<String, dynamic> toJson() =>{
-    "_id": id,
-    "name": name,
-    "__v": v,
-  };
+  Map<String, dynamic> toJson() => {
+        "_id": id,
+        "name": name,
+        "__v": v,
+      };
 }
-
-
-
-

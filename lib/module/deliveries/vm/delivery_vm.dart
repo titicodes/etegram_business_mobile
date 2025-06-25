@@ -1,83 +1,60 @@
 import 'dart:convert';
-
-import 'package:dio/dio.dart';
-import 'package:etegram_business/base/base_vm.dart';
-import 'package:etegram_business/core/model/delivery_response.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:etegram_business/base/base_vm.dart';
+import 'package:etegram_business/core/model/delivery_response.dart';
+import 'package:etegram_business/locator.dart';
+import 'package:etegram_business/repository/delivery_repository.dart';
+import 'package:etegram_business/routes/routes.dart';
+import 'package:etegram_business/service/local/user_service.dart';
+import 'package:etegram_business/utils/snack_message.dart';
 
-import '../../../app_widget/bottom_sheet.dart';
-import '../../../app_widget/success_pupup_widget.dart';
-import '../../../utils/snack_message.dart';
+import '../../../app_widget/celebration_widget.dart';
 
 class DeliveryViewModel extends BaseViewModel {
-  String businessTypes = "";
-  var phoneController = TextEditingController();
-  var businessController = TextEditingController();
-  var emailNameController = TextEditingController();
-  var firstNameController = TextEditingController();
-  var businessNameController = TextEditingController();
-  var lastNameController = TextEditingController();
-  var estateController = TextEditingController();
-  String countries = "";
-  String area = "";
-  String estate = '';
-  String? phoneNumber;
-  String? businessPhone;
-  // State variables
+  final formKey = GlobalKey<FormState>();
+  final firstNameController = TextEditingController();
+  final lastNameController = TextEditingController();
+  final emailController = TextEditingController();
+  final phoneController = TextEditingController();
+  final extraPhoneController = TextEditingController();
+  final estateController = TextEditingController();
+  final extraDetailsController = TextEditingController();
+  final ValueNotifier<bool> isFormValid = ValueNotifier<bool>(false);
+  final CustomerService _customerService = locator<CustomerService>();
+  final DeliveryRepository _deliveryRepository = locator<DeliveryRepository>();
+
+  String _storeId = '';
+  String country = 'Nigeria';
+  String? state;
+  String? city;
+  String? area;
+  String supplierType = '';
   List<Map<String, dynamic>> statesAndLGAs = [];
   List<String> statesList = [];
   List<String> lgaList = [];
   List<String> wardList = [];
+  List<String> countryList = ['Nigeria', 'Gambia'];
+  List<String> supplierTypeList = ['Individual', 'Business'];
 
-  String stateValue = "Select State";
-  String lgaValue = "Select Local Government";
-  String wardValue = "Select Ward";
-  final ValueNotifier<bool> isFormValid = ValueNotifier<bool>(false);
-
-  void onInit() {
-    phoneController.addListener(validateForm);
-    businessController.addListener(validateForm);
-    emailNameController.addListener(validateForm);
-    phoneController.addListener(validateForm);
-    firstNameController.addListener(validateForm);
-    lastNameController.addListener(validateForm);
-    validateForm();
+  DeliveryViewModel() {
+    firstNameController.addListener(_validateForm);
+    lastNameController.addListener(_validateForm);
+    emailController.addListener(_validateForm);
+    phoneController.addListener(_validateForm);
+    extraPhoneController.addListener(_validateForm);
+    estateController.addListener(_validateForm);
+    extraDetailsController.addListener(_validateForm);
   }
 
-  void validateForm() {
-    isFormValid.value = firstNameController.text.isNotEmpty &&
-        lastNameController.text.isNotEmpty &&
-        emailNameController.text.isNotEmpty &&
-        phoneController.text.isNotEmpty &&
-        stateValue != "Select State" &&
-        lgaValue != "Select Local Government" &&
-        wardValue != "Select Ward";
-
-    notifyListeners();
-  }
-
-  onChangedBusinessType(String val) {
-    businessTypes = val;
-    validateForm();
-    notifyListeners();
-  }
-
-  onAreaChanged(String val) {
-    area = val;
-    validateForm();
-    notifyListeners();
-  }
-
-  onEstateChanged(String val) {
-    estate = val;
-    validateForm();
-    notifyListeners();
-  }
-
-  onChangedCountry(String val) {
-    countries = val;
-    validateForm();
+  Future<void> init() async {
+    final storeId = await _customerService.getActiveStoreId();
+    if (storeId == null) {
+      showCustomToast('Store information missing.');
+      return;
+    }
+    _storeId = storeId;
+    await loadStatesAndLGAs();
     notifyListeners();
   }
 
@@ -86,161 +63,208 @@ class DeliveryViewModel extends BaseViewModel {
       String jsonString = await rootBundle.loadString('assets/wards.json');
       List<dynamic> jsonData = json.decode(jsonString);
       statesAndLGAs = jsonData.cast<Map<String, dynamic>>();
-
-      statesList = ["Select State"]; // Ensure default option is included
-      statesList.addAll(
+      statesList = ['Select State']..addAll(
           statesAndLGAs.map((state) => state['state'].toString()).toList());
       notifyListeners();
     } catch (e) {
-      print("Error loading JSON: $e");
+      print('Error loading JSON: $e');
+      showCustomToast('Error loading location data.');
     }
   }
 
-  onChange(String? val) {
-    formKey.currentState?.validate();
-    validateForm();
-    notifyListeners();
+  void _validateForm() {
+    isFormValid.value = firstNameController.text.isNotEmpty &&
+        lastNameController.text.isNotEmpty &&
+        emailController.text.isNotEmpty &&
+        RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+            .hasMatch(emailController.text) &&
+        phoneController.text.isNotEmpty &&
+        RegExp(r'^0\d{10}$').hasMatch(phoneController.text) &&
+        (extraPhoneController.text.isEmpty ||
+            RegExp(r'^0\d{10}$').hasMatch(extraPhoneController.text)) &&
+        estateController.text.isNotEmpty &&
+        country.isNotEmpty &&
+        state != null &&
+        state != 'Select State' &&
+        city != null &&
+        city != 'Select City' &&
+        area != null &&
+        area != 'Select Area' &&
+        supplierType.isNotEmpty;
   }
 
-  // Method to handle LGA selection
-  void onStateChanged(String value) {
-    stateValue = value;
-    lgaValue = 'Select Local Government';
-    wardValue = 'Select Area';
-
-    var selectedState = statesAndLGAs.firstWhere(
-      (state) => state['state'] == value,
-      orElse: () => {},
-    );
-
-    lgaList = ['Select Local Government'];
-    lgaList.addAll(selectedState.isNotEmpty
-        ? selectedState['lgas']
-            .map<String>((lga) => lga['lga'].toString())
-            .toList()
-        : []);
-
-    wardList = [];
-    validateForm();
-    notifyListeners();
+  void onCountryChanged(String? value) {
+    if (value != null) {
+      country = value;
+      state = null;
+      city = null;
+      area = null;
+      lgaList = [];
+      wardList = [];
+      _validateForm();
+      notifyListeners();
+    }
   }
 
-  void onLGAChanged(String value) {
-    lgaValue = value;
-    wardValue = 'Select Area';
-
-    var selectedState = statesAndLGAs.firstWhere(
-      (state) => state['state'] == stateValue,
-      orElse: () => {},
-    );
-
-    var selectedLGA = selectedState.isNotEmpty
-        ? selectedState['lgas']
-            .firstWhere((lga) => lga['lga'] == value, orElse: () => {})
-        : {};
-
-    wardList = ['Select Ward'];
-    wardList.addAll(
-        selectedLGA.isNotEmpty ? selectedLGA['wards'].cast<String>() : []);
-    validateForm();
-    notifyListeners();
-  }
-
-  void onWardChanged(String value) {
-    wardValue = value;
-    validateForm();
-    notifyListeners();
-  }
-
-  onCountryChanged(String val) {
-    countries = val;
-    validateForm();
-    notifyListeners();
-  }
-
-  List<String> businessTypeSelection = ["", "Individual", "Business"];
-  List<String> countriesList = ["Nigeia", "Gambia"];
-  List<String> areaChoice = ["Uyo 1", "Uyo Urban", "Itu Road"];
-  List<String> estateChoie = ["Confi Estate", "Real Eatate"];
-
-  submit() async {
-    FocusManager.instance.primaryFocus?.unfocus();
-    startLoader();
-    if (formKey.currentState!.validate()) {
-      startLoader();
-      try {
-        String selectedState = stateValue;
-        String selectedLGA = lgaValue;
-        String selectedWard = wardValue;
-        String selectedCountry = countries ?? "Nigeria";
-
-        // Get and validate the phone number
-        String formattedPhoneNumber = phoneController.text.trim();
-
-        if (!RegExp(r'^0\d{10}$').hasMatch(formattedPhoneNumber)) {
-          showCustomToast(
-              "Enter a valid 11-digit Nigerian phone number starting with 0");
-          stopLoader();
-          return;
-        }
-
-        var delivery = DeliveryData(
-          firstName: firstNameController.text.trim(),
-          lastName: lastNameController.text.trim(),
-          email: emailNameController.text.trim(),
-          country: selectedCountry,
-          state: selectedState,
-          city: selectedLGA,
-          area: selectedWard,
-          phoneNumber: formattedPhoneNumber, // Send only 11 digits
-          estate: estateController.text.trim(),
+  void onStateChanged(String? value) {
+    if (value != null && value != state) {
+      state = value;
+      city = null;
+      area = null;
+      lgaList = ['Select City'];
+      wardList = [];
+      if (value != 'Select State') {
+        var selectedState = statesAndLGAs.firstWhere(
+          (s) => s['state'] == value,
+          orElse: () => {},
         );
-
-        print(
-            "Sending phone number: '$formattedPhoneNumber' Length: ${formattedPhoneNumber.length}");
-
-        var response = await deliveryRepository.createDelivery(delivery);
-        if (response != null) {
-          appCache.phoneNumber = formattedPhoneNumber;
-          appCache.businessPhone = formattedPhoneNumber;
-          appCache.deliveryData = delivery;
-          appCache.deliveryData = response;
-          showCustomToast("Operation successful, Start Delivering",
-              success: true);
-          stopLoader();
-          notifyListeners();
-          await showSuccessPopup();
-        } else {
-          stopLoader();
-          notifyListeners();
-          showCustomToast("Operation failed");
-        }
-      } on DioException {
-        stopLoader();
-        notifyListeners();
+        lgaList.addAll(selectedState['lgas']
+                ?.map<String>((lga) => lga['lga'].toString()) ??
+            []);
       }
-    } else {
-      showCustomToast("Input all fields");
+      _validateForm();
+      notifyListeners();
     }
   }
 
-  String trimPhone(String phone) {
-    return phone.replaceAll(RegExp(r'\s+'), '');
+  void onCityChanged(String? value) {
+    if (value != null && value != city) {
+      city = value;
+      area = null;
+      wardList = ['Select Area'];
+      if (value != 'Select City') {
+        var selectedState = statesAndLGAs.firstWhere(
+          (s) => s['state'] == state,
+          orElse: () => {},
+        );
+        var selectedLGA = selectedState['lgas']?.firstWhere(
+          (lga) => lga['lga'] == value,
+          orElse: () => {},
+        );
+        wardList.addAll(selectedLGA['wards']?.cast<String>() ?? []);
+      }
+      _validateForm();
+      notifyListeners();
+    }
   }
 
-  showSuccessPopup() {
-    showModalBottomSheet(
-      backgroundColor: Colors.transparent,
-      context: navigationService.navigatorKey.currentState!.context,
-      isScrollControlled: true,
-      isDismissible: false,
-      builder: (_) => BottomSheetScreen(
-        child: SuccessfulPopUpWidget(
-          title: "Delivery Agent Created successfully!",
-          subTitle: "You are now registered as a delivery agent.",
-          onTap: navigationService.goBack,
-        ),
-      ),
-    ).whenComplete(navigationService.goBack);
+  void onAreaChanged(String? value) {
+    if (value != null && value != area) {
+      area = value;
+      _validateForm();
+      notifyListeners();
+    }
+  }
+
+  void onSupplierTypeChanged(String? value) {
+    if (value != null) {
+      supplierType = value;
+      _validateForm();
+      notifyListeners();
+    }
+  }
+
+  Future<void> submit(BuildContext context) async {
+    if (!formKey.currentState!.validate() || isLoading.value) return;
+
+    isLoading.value = true;
+    notifyListeners();
+
+    try {
+      final delivery = DeliveryData(
+        firstName: firstNameController.text.trim(),
+        lastName: lastNameController.text.trim(),
+        email: emailController.text.trim(),
+        phoneNumber: phoneController.text.trim(),
+        extraPhone: extraPhoneController.text.trim().isNotEmpty
+            ? extraPhoneController.text.trim()
+            : null,
+        estate: estateController.text.trim(),
+        country: country,
+        state: state!,
+        city: city!,
+        area: area!,
+        supplierType: supplierType,
+        extraDetails: extraDetailsController.text.trim().isNotEmpty
+            ? extraDetailsController.text.trim()
+            : null,
+        storeId: _storeId,
+      );
+
+      final createdDelivery =
+          await _deliveryRepository.createDeliveryAgent(delivery);
+      if (createdDelivery != null) {
+        showCustomToast('Delivery agent created successfully!');
+        _resetForm();
+        navigationService.navigateToWidget(
+          CelebrationWidget(
+            title: 'Back to Dashboard',
+            onTap: () {
+              navigationService.navigateTo(dashboardRoute);
+            },
+            child: const Text(
+              'Delivery Agent Created Successfully!',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          transitionBuilder: (context, animation, secondaryAnimation, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            );
+          },
+        );
+      } else {
+        showCustomToast('Failed to create delivery agent.');
+      }
+    } catch (e) {
+      print('Error creating delivery agent: $e');
+      showCustomToast('Error creating delivery agent: $e');
+    } finally {
+      isLoading.value = false;
+      notifyListeners();
+    }
+  }
+
+  void _resetForm() {
+    firstNameController.clear();
+    lastNameController.clear();
+    emailController.clear();
+    phoneController.clear();
+    extraPhoneController.clear();
+    estateController.clear();
+    extraDetailsController.clear();
+    country = 'Nigeria';
+    state = null;
+    city = null;
+    area = null;
+    supplierType = '';
+    lgaList = [];
+    wardList = [];
+    isFormValid.value = false;
+  }
+
+  @override
+  void dispose() {
+    firstNameController.removeListener(_validateForm);
+    lastNameController.removeListener(_validateForm);
+    emailController.removeListener(_validateForm);
+    phoneController.removeListener(_validateForm);
+    extraPhoneController.removeListener(_validateForm);
+    estateController.removeListener(_validateForm);
+    extraDetailsController.removeListener(_validateForm);
+    firstNameController.dispose();
+    lastNameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    extraPhoneController.dispose();
+    estateController.dispose();
+    extraDetailsController.dispose();
+    isFormValid.dispose();
+    super.dispose();
   }
 }

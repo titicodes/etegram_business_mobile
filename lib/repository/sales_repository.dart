@@ -8,13 +8,13 @@ class SalesRepository {
 
   // FIXED: Improved error handling in getScanProduct
   Future<GetScanResponse?> getScanProduct({
-    required int code,
+    required String code,
     required String ownerId,
     required String storeId,
   }) async {
     try {
       // Validate inputs
-      if (code <= 0) {
+      if (code == "0") {
         return GetScanResponse(
           success: false,
           message: 'Invalid barcode',

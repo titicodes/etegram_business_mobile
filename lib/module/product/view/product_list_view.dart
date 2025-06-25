@@ -1,141 +1,392 @@
-import 'package:etegram_business/app_widget/app_text.dart';
-import 'package:etegram_business/app_widget/input_fields.dart';
-import 'package:etegram_business/base/base_ui.dart';
-import 'package:etegram_business/constants/colors.dart';
-import 'package:etegram_business/constants/style.dart';
-import 'package:etegram_business/locator.dart';
-import 'package:etegram_business/module/home/drawer/nav_drawer.dart';
-import 'package:etegram_business/module/home/vm/home_vm.dart';
 import 'package:etegram_business/module/product/view/search_view.dart';
-import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_toggle_tab/flutter_toggle_tab.dart';
-
-import '../../../app_widget/custom_sliver_appbar.dart';
+import 'package:shimmer/shimmer.dart';
+import '../../../app_widget/app_text.dart';
+import '../../../app_widget/input_fields.dart';
+import '../../../base/base_ui.dart';
 import '../../../constants/assets.dart';
+import '../../../constants/colors.dart';
 import '../../../constants/reuseable.dart';
 import '../../../constants/strings.dart';
 import '../../../core/model/product_model.dart';
-import '../vm/product_vm.dart';
+import '../../../locator.dart';
+import '../../../routes/routes.dart';
+import '../../../service/local/user_service.dart';
+import '../../../utils/snack_message.dart';
+import '../../home/drawer/nav_drawer.dart';
+import '../../home/vm/home_vm.dart';
+import '../vm/product_viewmodel.dart';
+import 'product_details_view.dart';
 
 class AddProductListView extends StatefulWidget {
   const AddProductListView({super.key});
 
   @override
-  State<AddProductListView> createState() => _AddProductListViewState();
+  _AddProductListViewState createState() => _AddProductListViewState();
 }
 
 class _AddProductListViewState extends State<AddProductListView> {
   @override
   Widget build(BuildContext context) {
-    var model = locator<HomeViewModel>();
+    final homeModel = locator<HomeViewModel>();
     return BaseView<ProductViewModel>(
       onModelReady: (vm) => vm.initialize(),
-      builder: (_, logic, child) => Scaffold(
-        key: model.scaffoldKey,
-        drawer: NavDrawer(),
+      builder: (context, logic, _) => Scaffold(
+        key: homeModel.scaffoldKey,
+        drawer: const NavDrawer(),
         backgroundColor: ColorValues.backgroundColor,
-        body: CustomScrollView(
-          slivers: [
-            CustomSliverAppBar(
-              title: StringValues.productList,
-              onBackPressed: () {
-                navigationService.goBack();
-              },
-              showMenuIcon: true,
-              onMenuPressed: () {
-                model.openDrawer();
-              },
-              showNotificationIcon: false,
-              logoAsset: SvgAssets.appLogo,
-              showLogo: true,
+        appBar: AppBar(
+          title: const Text(StringValues.productList),
+          backgroundColor: ColorValues.backgroundColor,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => navigationService.goBack(),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => homeModel.openDrawer(),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    30.0.sbH,
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: () => logic.initialize(),
+          child: CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.all(16.0),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
                     ValueListenableBuilder<double>(
                       valueListenable: logic.totalCost,
-                      builder: (context, totalCostValue, child) {
-                        return ValueListenableBuilder<double>(
-                          valueListenable: logic.totalSellingPrice,
-                          builder: (context, totalPriceValue, child) {
-                            return ValueListenableBuilder<int>(
-                              valueListenable: logic.totalStock,
-                              builder: (context, totalStockValue, child) {
-                                return buildInventoryWidget(
-                                  context,
-                                  totalCost: totalCostValue,
-                                  totalSellingPrice: totalPriceValue,
-                                  totalStock: totalStockValue,
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
-                    30.0.sbH,
-                    AppTextField(
-                      prefix: const Icon(
-                        Icons.search,
-                        color: ColorValues.greyColor,
+                      builder: (context, totalCostValue, _) =>
+                          ValueListenableBuilder<double>(
+                        valueListenable: logic.totalSellingPrice,
+                        builder: (context, totalSellingPriceValue, _) =>
+                            ValueListenableBuilder<int>(
+                          valueListenable: logic.totalStock,
+                          builder: (context, totalStockValue, _) =>
+                              buildInventoryWidget(
+                            context,
+                            totalCost: totalCostValue,
+                            totalSellingPrice: totalSellingPriceValue,
+                            totalStock: totalStockValue,
+                          ),
+                        ),
                       ),
+                    ),
+                    const SizedBox(height: 20),
+                    AppTextField(
+                      prefix: const Icon(Icons.search,
+                          color: ColorValues.greyColor),
                       hint: StringValues.tapToChech,
-                      onTap: () {
-                        navigationService
-                            .navigateToWidget(const SearchProductView());
-                      },
+                      onTap: () => navigationService
+                          .navigateToWidget(const SearchProductView()),
                     ),
-                    20.0.sbH,
-                    // Use FlutterToggleTab for tabs
+                    const SizedBox(height: 20),
                     ValueListenableBuilder<int>(
                       valueListenable: logic.productTabIndex,
-                      builder: (context, selectedIndex, child) {
-                        return FlutterToggleTab(
-                          width: 90,
-                          borderRadius: 30,
-                          height: 40,
-                          selectedIndex: selectedIndex,
-                          selectedBackgroundColors: const [
-                            ColorValues.primaryColor,
-                            Colors.blueAccent,
-                          ],
-                          selectedTextStyle: normalTextStyle.copyWith(
-                              color: ColorValues.whiteColor),
-                          unSelectedTextStyle: normalTextStyle,
-                          dataTabs: logic.productTabOptions,
-                          selectedLabelIndex: (index) {
-                            logic.productTabIndex.value = index;
-                          },
-                          isScroll: false,
-                          isInnerShadowEnable: false,
-                          isShadowEnable: false,
-                        );
-                      },
+                      builder: (context, selectedIndex, _) => FlutterToggleTab(
+                        width: 90,
+                        borderRadius: 20,
+                        height: 40,
+                        selectedIndex: selectedIndex,
+                        selectedBackgroundColors: const [
+                          ColorValues.primaryColor,
+                          Colors.blueAccent
+                        ],
+                        selectedTextStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        unSelectedTextStyle: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 14,
+                          fontWeight: FontWeight.normal,
+                        ),
+                        selectedLabelIndex: (index) =>
+                            logic.productTabIndex.value = index,
+                        isScroll: false,
+                        dataTabs: logic.productTabOptions,
+                      ),
                     ),
-                    30.0.sbH,
-                    // Display content based on selected tab index
-                    ValueListenableBuilder<int>(
-                      valueListenable: logic.productTabIndex,
-                      builder: (context, index, child) {
-                        if (logic.isLoading.value && index == 0) {
-                          return const Center(child: CircularProgressIndicator());
-                        } else if (logic.isLoadingExpiring && index == 1) {
-                          return const Center(child: CircularProgressIndicator());
-                        } else if (logic.isLoadingLowStock && index == 2) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                        return _buildProductTabView(logic, index);
-                      },
-                    ),
-                  ],
+                    const SizedBox(height: 20),
+                  ]),
                 ),
               ),
+              SliverToBoxAdapter(
+                child: ValueListenableBuilder<String?>(
+                  valueListenable: logic.errorMessage,
+                  builder: (context, error, _) {
+                    if (error != null) {
+                      return Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          error,
+                          style:
+                              const TextStyle(color: Colors.red, fontSize: 16),
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+              ValueListenableBuilder<int>(
+                valueListenable: logic.productTabIndex,
+                builder: (context, index, _) =>
+                    _buildProductTabView(context, logic, index),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductTabView(
+      BuildContext context, ProductViewModel logic, int index) {
+    switch (index) {
+      case 0:
+        return ValueListenableBuilder<bool>(
+          valueListenable: logic.isLoading,
+          builder: (context, isLoading, _) => isLoading
+              ? const SliverShimmerProductList()
+              : ValueListenableBuilder<List<Product>>(
+                  valueListenable: logic.allProducts,
+                  builder: (context, products, _) =>
+                      _buildProductSliverList(context, logic, products),
+                ),
+        );
+      case 1:
+        return ValueListenableBuilder<bool>(
+          valueListenable: logic.isLoadingExpiring,
+          builder: (context, isLoading, _) => isLoading
+              ? const SliverShimmerProductList()
+              : ValueListenableBuilder<List<Product>>(
+                  valueListenable: logic.expiringProducts,
+                  builder: (context, products, _) =>
+                      _buildProductSliverList(context, logic, products),
+                ),
+        );
+      case 2:
+        return ValueListenableBuilder<bool>(
+          valueListenable: logic.isLoadingLowStock,
+          builder: (context, isLoading, _) => isLoading
+              ? const SliverShimmerProductList()
+              : ValueListenableBuilder<List<Product>>(
+                  valueListenable: logic.lowStockProducts,
+                  builder: (context, products, _) =>
+                      _buildProductSliverList(context, logic, products),
+                ),
+        );
+      default:
+        return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+  }
+
+  Widget _buildProductSliverList(
+      BuildContext context, ProductViewModel logic, List<Product> products) {
+    if (products.isEmpty) {
+      return SliverToBoxAdapter(
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.5,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SvgPicture.asset(SvgAssets.noRecord, height: 120),
+                const SizedBox(height: 8),
+                const Text(
+                  'No products available',
+                  style: TextStyle(fontSize: 18, color: ColorValues.greyColor),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final product = products[index];
+          final isExpiring = logic.productTabIndex.value == 1 &&
+              product.expiryDate?.isNotEmpty == true;
+          final isLowStock = logic.productTabIndex.value == 2 &&
+              product.quantity != null &&
+              product.minQuantity != null &&
+              product.quantity! <= product.minQuantity!;
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12.0),
+                color: ColorValues.whiteColor),
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(16),
+              leading: product.imageUrl != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        product.imageUrl!,
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.image_not_supported, size: 50),
+                      ),
+                    )
+                  : const Icon(Icons.inventory, size: 50),
+              title: Text(
+                product.name ?? 'Unknown Product',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (product.category != null)
+                    Text('Category: ${product.category}'),
+                  if (product.quantity != null)
+                    Text('Stock: ${product.quantity}'),
+                  if (isExpiring && product.expiryDate != null)
+                    Text(
+                      'Expires: ${product.expiryDate}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  if (isLowStock && product.minQuantity != null)
+                    Text(
+                      'Min. Quantity: ${product.minQuantity}',
+                      style: const TextStyle(color: Colors.orange),
+                    ),
+                ],
+              ),
+              trailing: PopupMenuButton<String>(
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'details',
+                    child: const Text('View Details'),
+                    onTap: () => navigationService
+                        .navigateToWidget(ProductDetailsView(product: product)),
+                  ),
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: const Text('Edit'),
+                    onTap: () => navigationService.navigateTo(
+                      addProductViewRoute,
+                      arguments: {
+                        'isEditing': true,
+                        'product': product,
+                        'storeId': locator<CustomerService>().activeStoreId,
+                        'ownerId': locator<CustomerService>().getOwnerId(),
+                      },
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: const Text('Delete',
+                        style: TextStyle(color: Colors.red)),
+                    onTap: () => logic.deleteProduct(context, product),
+                  ),
+                  if (isLowStock)
+                    PopupMenuItem(
+                      value: 'restock',
+                      child: const Text('Restock'),
+                      onTap: () => _showRestockDialog(context, product),
+                    ),
+                ],
+              ),
+              onTap: () => navigationService
+                  .navigateToWidget(ProductDetailsView(product: product)),
+            ),
+          );
+        },
+        childCount: products.length,
+      ),
+    );
+  }
+
+  void _showRestockDialog(BuildContext context, Product product) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Restock Product'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Enter additional quantity for "${product.name}".'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ColorValues.primaryColor,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              final qty = int.tryParse(controller.text);
+              if (qty != null && qty > 0) {
+                Navigator.pop(context);
+                await locator<ProductViewModel>()
+                    .supplyProduct(context, product, qty);
+              } else {
+                showCustomToast('Please enter a valid quantity.');
+              }
+            },
+            child: const Text('Restock'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildInventoryWidget(
+    BuildContext context, {
+    required double totalCost,
+    required double totalSellingPrice,
+    required int totalStock,
+  }) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildSummaryItem(
+              title: 'Total Cost',
+              value: '₦${totalCost.toStringAsFixed(2)}',
+            ),
+            const VerticalDivider(color: Colors.grey, thickness: 1),
+            _buildSummaryItem(
+              title: 'Selling Price',
+              value: '₦${totalSellingPrice.toStringAsFixed(2)}',
+            ),
+            const VerticalDivider(color: Colors.grey, thickness: 1),
+            _buildSummaryItem(
+              title: 'Total Stock',
+              value: totalStock.toString(),
             ),
           ],
         ),
@@ -143,143 +394,70 @@ class _AddProductListViewState extends State<AddProductListView> {
     );
   }
 
-  // Helper method to build each tab view (All, Expiring, Low Stock)
-  Widget _buildProductTabView(ProductViewModel logic, int index) {
-    switch (index) {
-      case 0:
-        return _buildProductListView(logic, logic.allProducts);
-      case 1:
-        return _buildProductListView(logic, logic.expiringProducts);
-      case 2:
-        return _buildProductListView(logic, logic.lowStockProducts);
-      default:
-        return Container();
-    }
-  }
-
-  // Helper method to build product list view
-  Widget _buildProductListView(ProductViewModel logic, List<Product> products) {
-    if (products.isEmpty) {
-      return Center(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SvgPicture.asset(SvgAssets.noRecord),
-              8.0.sbH,
-              const Text(
-                'No products available',
-                style: TextStyle(fontSize: 18, color: ColorValues.greyColor),
-              ),
-            ],
-          ));
-    }
-
-    return ListView.builder(
-      itemCount: products.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        final product = products[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name ?? "Unknown Product",
-                  style: normalTextStyle12.copyWith(fontSize: 16),
-                ),
-                8.0.sbH,
-                Text('Category: ${product.category ?? "No category"}'),
-                Text('Code: ${product.code ?? "N/A"}'),
-                Text('Price: ${product.price ?? "N/A"}'),
-                Text('Stock: ${product.stock ?? "N/A"}'),
-                if (logic.productTabIndex.value == 1 &&
-                    product.expiryDate != null &&
-                    product.expiryDate!.isNotEmpty)
-                  Text('Expiry: ${product.expiryDate}'),
-                if (logic.productTabIndex.value == 2)
-                  Text('Min. Quantity: ${product.minQuantity ?? "N/A"}'),
-                // Add more product details as needed
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget buildInventoryWidget(BuildContext context,
-      {double totalCost = 0.0,
-        double totalSellingPrice = 0.0,
-        int totalStock = 0}) {
-    return Container(
-      height: 100,
-      width: width(context),
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(color: ColorValues.whiteColor),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  Widget _buildSummaryItem({required String title, required String value}) {
+    return Expanded(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AppText(
-                  StringValues.totalProductCost,
-                  align: TextAlign.center,
-                  style: normalTextStyle,
-                ),
-                6.0.sbH,
-                AppText(
-                  '$totalCost',
-                  style: normalTextStyle,
-                ),
-              ],
-            ),
+          AppText(
+            title,
+            align: TextAlign.center,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
-          const VerticalDivider(
-              color: ColorValues.backgroundColor, thickness: 2),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AppText(
-                  StringValues.totalSellingPrice,
-                  align: TextAlign.center,
-                  style: normalTextStyle,
-                ),
-                6.0.sbH,
-                AppText(
-                  '$totalSellingPrice',
-                  style: normalTextStyle,
-                ),
-              ],
-            ),
-          ),
-          const VerticalDivider(
-              color: ColorValues.backgroundColor, thickness: 2),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AppText(
-                  StringValues.totalStock,
-                  align: TextAlign.center,
-                  style: normalTextStyle,
-                ),
-                6.0.sbH,
-                AppText(
-                  '$totalStock',
-                  style: normalTextStyle,
-                ),
-              ],
-            ),
+          const SizedBox(height: 8),
+          AppText(
+            value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class SliverShimmerProductList extends StatelessWidget {
+  const SliverShimmerProductList({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) => Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Card(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            elevation: 2,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: const ListTile(
+              contentPadding: EdgeInsets.all(16),
+              leading: CircleAvatar(radius: 25, backgroundColor: Colors.white),
+              title: SizedBox(
+                height: 16,
+                width: 150,
+                child: ColoredBox(color: Colors.white),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 8,
+                    width: 100,
+                    child: ColoredBox(color: Colors.white),
+                  ),
+                  SizedBox(
+                    height: 8,
+                    width: 80,
+                    child: ColoredBox(color: Colors.white),
+                  ),
+                ],
+              ),
+              trailing: Icon(Icons.more_vert),
+            ),
+          ),
+        ),
+        childCount: 8,
       ),
     );
   }

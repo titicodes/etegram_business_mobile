@@ -1,23 +1,25 @@
 import 'dart:convert';
-import 'package:etegram_business/constants/reuseable.dart';
-import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart'; // Use material.dart for BuildContext
+import 'package:flutter/services.dart'; // For rootBundle
+import '../../../base/base_vm.dart';
+import '../../../constants/reuseable.dart';
 import '../../../core/model/bank.dart';
 import '../../../core/model/payment_method_response.dart';
-import 'package:etegram_business/base/base_vm.dart';
+import '../../../routes/routes.dart';
+import '../../../utils/snack_message.dart';
 
-class AddPaymentMethodViwModel extends BaseViewModel {
+class AddPaymentMethodViewModel extends BaseViewModel {
   List<PaymentMethod> paymentMethods = [];
-  PaymentMethod? selectedPaymentMethod;
   String newMethodName = '';
   String newMethodBank = '';
   String newAccountNumber = '';
   String newAccountName = '';
   String? newExtraInfo;
-  bool isChecked = false;
-
   String? errorMessage;
   List<Bank> banks = [];
   Bank? selectedBank;
+  PaymentMethodType? selectedPaymentType;
 
   void init() {
     fetchPaymentMethods();
@@ -30,51 +32,66 @@ class AddPaymentMethodViwModel extends BaseViewModel {
     notifyListeners();
   }
 
+  // <<< NEW: Method to update selected payment type
+  void selectPaymentType(String? typeDisplayName) {
+    if (typeDisplayName == null) {
+      selectedPaymentType = null;
+    } else {
+      selectedPaymentType = PaymentMethodType.values.firstWhere(
+        (type) => type.toDisplayName() == typeDisplayName,
+        orElse: () => PaymentMethodType
+            .TRANSFER, // Fallback if not found (shouldn't happen with dropdown)
+      );
+    }
+    notifyListeners();
+  }
+
   Future<void> loadBanks() async {
+    startLoader();
     try {
-      final String response = await rootBundle.loadString('assets/nigerian-banks.json');
-      final data = json.decode(response);
+      final String response =
+          await rootBundle.loadString('assets/nigerian-banks.json');
+      final dynamic decoded = json.decode(response);
 
-      // Ensure the correct structure of the JSON and check if 'data' is a list or map
-      if (data['data'] is List) {
-        // If 'data' is a list, map it directly
-        banks = (data['data'] as List)
-            .map((json) => Bank.fromJson(json))
+      if (decoded is Map<String, dynamic> &&
+          decoded.containsKey('data') &&
+          decoded['data'] is List) {
+        final List<dynamic> banksJsonList = decoded['data'];
+        banks = banksJsonList
+            .map((jsonItem) => Bank.fromJson(jsonItem as Map<String, dynamic>))
             .toList();
-      } else if (data['data'] is Map) {
-        // If 'data' is a map, extract values
-        final Map<String, dynamic> bankMap = data['data'];
-        banks = bankMap.values
-            .map((json) => Bank.fromJson(json))
+        print("Successfully loaded ${banks.length} banks.");
+      } else if (decoded is List) {
+        // Fallback if JSON is a direct list
+        banks = decoded
+            .map((jsonItem) => Bank.fromJson(jsonItem as Map<String, dynamic>))
             .toList();
+        print("Successfully loaded ${banks.length} banks (direct list).");
       } else {
-        throw 'Unexpected data structure';
+        errorMessage = 'Nigerian banks JSON is not in expected format.';
+        print("Actual JSON: $decoded");
       }
-
-      notifyListeners();
     } catch (e) {
       errorMessage = 'Failed to load banks: $e';
+      print("ERROR loading banks: $e");
+    } finally {
+      stopLoader();
       notifyListeners();
     }
   }
 
-
-
   Future<void> fetchPaymentMethods() async {
-    isLoading.value = true;
-    notifyListeners();
+    startLoader();
     try {
       List<PaymentMethod>? storedMethods =
           await userService.getStoredPaymentMethods();
-      if (storedMethods != null) {
-        paymentMethods = storedMethods;
-      } else {
-        paymentMethods = (await paymentMethodRepository.getPaymentMethods())!;
-      }
+      paymentMethods = storedMethods ??
+          (await paymentMethodRepository.getPaymentMethods()) ??
+          [];
     } catch (e) {
       errorMessage = e.toString();
     } finally {
-      isLoading.value = false;
+      stopLoader();
       notifyListeners();
     }
   }
@@ -103,13 +120,28 @@ class AddPaymentMethodViwModel extends BaseViewModel {
     return newMethodName.isNotEmpty &&
         newMethodBank.isNotEmpty &&
         newAccountNumber.isNotEmpty &&
-        newAccountName.isNotEmpty;
+        newAccountName.isNotEmpty &&
+        selectedPaymentType !=
+            null && // <<< NEW: Check if payment type is selected
+        userService.activeStoreId != null;
   }
 
-  Future<void> savePaymentMethod() async {
-    isLoading.value = true;
-    notifyListeners();
+  Future<void> savePaymentMethod(BuildContext context) async {
+    startLoader();
     try {
+      final storeId = userService.activeStoreId;
+      if (storeId == null) {
+        showCustomToast("No active store selected", success: false);
+        stopLoader();
+        return;
+      }
+      if (selectedPaymentType == null) {
+        // <<< NEW: Validation for payment type
+        showCustomToast("Please select a payment type", success: false);
+        stopLoader();
+        return;
+      }
+
       final newMethod = PaymentMethod(
         id: '',
         name: newMethodName,
@@ -117,13 +149,24 @@ class AddPaymentMethodViwModel extends BaseViewModel {
         accountNumber: newAccountNumber,
         accountName: newAccountName,
         extraInfo: newExtraInfo,
+        store: storeId,
+        type: selectedPaymentType, // <<< Use the selected enum value
       );
+
       await paymentMethodRepository.createPaymentMethod(newMethod);
-      await fetchPaymentMethods(); // Refresh list
+      await userService.storePaymentMethod(newMethod);
+      showCustomToast("Payment method added successfully!", success: true);
+      navigationService.navigateToAndRemoveUntil(dashboardRoute);
+    } on DioException catch (e) {
+      showCustomToast(
+          "Failed to add payment method: ${e.response?.data['message'] ?? e.message}",
+          success: false);
+      print("Dio Error in savePaymentMethod: ${e.response?.data ?? e.message}");
     } catch (e) {
-      errorMessage = e.toString();
+      showCustomToast("Failed to add payment method: $e", success: false);
+      print("General Error in savePaymentMethod: $e");
     } finally {
-      isLoading.value = false;
+      stopLoader();
       notifyListeners();
     }
   }

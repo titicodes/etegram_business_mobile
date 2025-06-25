@@ -1,3 +1,30 @@
+// lib/core/model/payment_method_type.dart (or wherever you prefer)
+
+enum PaymentMethodType {
+  CASH,
+  CARD,
+  TRANSFER,
+}
+
+extension PaymentMethodTypeExtension on PaymentMethodType {
+  // For displaying in the UI dropdown
+  String toDisplayName() {
+    switch (this) {
+      case PaymentMethodType.CASH:
+        return 'Cash';
+      case PaymentMethodType.CARD:
+        return 'Card';
+      case PaymentMethodType.TRANSFER:
+        return 'Transfer';
+    }
+  }
+
+  // For sending to the backend API
+  String toBackendString() {
+    return toString().split('.').last; // Returns 'CASH', 'CARD', 'TRANSFER'
+  }
+}
+
 class PaymentResponse {
   PaymentResponse({
     this.success,
@@ -32,8 +59,11 @@ class PaymentMethod {
     this.accountNumber,
     this.accountName,
     this.extraInfo,
+    this.store,
     this.id,
     this.v,
+    this.type, // <<< ADD THIS FIELD
+    this.details, // <<< ADD THIS OPTIONAL FIELD if you plan to use it
   });
 
   final User? user;
@@ -44,6 +74,9 @@ class PaymentMethod {
   final String? extraInfo;
   final String? id;
   final int? v;
+  final String? store;
+  final PaymentMethodType? type; // <<< Type of the enum
+  final String? details; // <<< Optional details field
 
   factory PaymentMethod.fromJson(Map<String, dynamic> json) {
     return PaymentMethod(
@@ -53,20 +86,35 @@ class PaymentMethod {
       accountNumber: json["accountNumber"],
       accountName: json["accountName"],
       extraInfo: json["extraInfo"],
+      store:
+          json["store"], // Correctly map 'storeId' from backend to 'store' here
       id: json["_id"],
       v: json["__v"],
+      type: json["type"] != null
+          ? PaymentMethodType.values.firstWhere(
+              (e) => e.toBackendString() == json["type"],
+              orElse: () =>
+                  PaymentMethodType.TRANSFER, // Default or handle unknown type
+            )
+          : null, // <<< Parse type from JSON
+      details: json["details"], // <<< Parse details from JSON
     );
   }
 
   Map<String, dynamic> toJson() => {
-        "user": user?.toJson(),
+        "user": user
+            ?.toJson(), // This 'user' field is likely not needed for *creation* payload
         "name": name,
         "bank": bank,
         "accountNumber": accountNumber,
         "accountName": accountName,
         "extraInfo": extraInfo,
-        "_id": id,
-        "__v": v,
+        // _id and __v are typically not sent on creation
+        // "_id": id,
+        // "__v": v,
+        "storeId": store,
+        "type": type?.toBackendString(),
+        "details": details, // <<< Include details if availabl
       };
 }
 

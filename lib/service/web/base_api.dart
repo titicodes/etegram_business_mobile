@@ -21,7 +21,7 @@ connect() {
       baseUrl: AppUrls.baseUrl,
       connectTimeout: const Duration(seconds: 45),
       receiveTimeout: const Duration(seconds: 45),
-      responseType: ResponseType.plain);
+      responseType: ResponseType.json);
   Dio dio = Dio(options);
   dio.interceptors.add(
     InterceptorsWrapper(
@@ -30,8 +30,11 @@ connect() {
         print("Request Data: ${options.data.toString()}");
         final box = GetStorage();
         String? token = box.read(DbTable.tokenTableName);
-        if (token != null && token.isNotEmpty && options.uri.path != AppUrls.registerUrl) {
-          options.headers['Authorization'] = "Bearer $token"; // Use "Bearer" instead of "Token"
+        if (token != null &&
+            token.isNotEmpty &&
+            options.uri.path != AppUrls.registerUrl) {
+          options.headers['Authorization'] =
+              "Bearer $token"; // Use "Bearer" instead of "Token"
         }
         return handler.next(options);
       },
@@ -45,10 +48,12 @@ connect() {
         if (e.response != null) {
           print("Error Status: ${e.response?.statusCode}");
           print("Error Data: ${e.response?.data}");
-          try{
+          try {
             final errorData = jsonDecode(e.response?.data);
-            showCustomToast(errorData['detail'] ?? errorData['message'] ?? "An error occurred.");
-          }catch(err){
+            showCustomToast(errorData['detail'] ??
+                errorData['message'] ??
+                "An error occurred.");
+          } catch (err) {
             showCustomToast("An error occurred");
           }
         } else {
@@ -60,7 +65,6 @@ connect() {
   );
   return dio;
 }
-
 
 String getTitleFromHtml(String htmlString) {
   RegExp regex = RegExp(r'<title>(.*?)<\/title>');
@@ -111,10 +115,10 @@ privateConnect() {
         return handler.next(response);
       },
       onError: (DioError e, handler) async {
-        if(e.response == null){
+        if (e.response == null) {
           showCustomToast("Connect Internet to proceed");
           return handler.next(e);
-        }else{
+        } else {
           Map<String, dynamic> jsonMap = {};
           print(e.response?.statusCode);
           print(e.response?.data);
@@ -139,7 +143,6 @@ privateConnect() {
   return dio;
 }
 
-
 String displayFirstMessages(Map<String, dynamic> jsonMap) {
   String errorMessage = "";
   List<String> list = [];
@@ -163,23 +166,22 @@ String displayFirstMessages(Map<String, dynamic> jsonMap) {
   return errorMessage;
 }
 
-
 void handleError(dynamic error) {
   var errorString = error.response.toString();
   if (error is DioException) {
     switch (error.type) {
       case DioErrorType.cancel:
-      // showCustomToast("Request to API server was cancelled");
+        // showCustomToast("Request to API server was cancelled");
         break;
       case DioErrorType.connectionError:
-      // showCustomToast("Connection timeout with API server");
+        // showCustomToast("Connection timeout with API server");
         break;
       case DioExceptionType.unknown:
         showCustomToast(
             "Please enable internet connection to use ${StringValues.appName} App ");
         break;
       case DioExceptionType.receiveTimeout:
-      // showCustomToast("Receive timeout in connection with API server");
+        // showCustomToast("Receive timeout in connection with API server");
         break;
       case DioExceptionType.badResponse:
         final errorMessage = jsonDecode(error.response?.data)["detail"];
@@ -188,9 +190,9 @@ void handleError(dynamic error) {
             // showCustomToast(errorMessage);
             locator<CustomerService>().logout();
           } else {
-            if(isJson(errorMessage.toString())){
+            if (isJson(errorMessage.toString())) {
               showCustomToast(jsonDecode(errorMessage["message"]));
-            }else{
+            } else {
               showCustomToast(errorMessage.toString());
             }
             print(errorMessage);
@@ -201,7 +203,7 @@ void handleError(dynamic error) {
         }
         break;
       case DioErrorType.sendTimeout:
-      // showCustomToast("Send timeout in connection with API server");
+        // showCustomToast("Send timeout in connection with API server");
         break;
       default:
         showCustomToast("Something went wrong");

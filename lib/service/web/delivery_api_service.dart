@@ -1,88 +1,125 @@
 import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:etegram_business/constants/app_url.dart';
+import 'package:etegram_business/core/model/delivery_response.dart';
 import 'package:etegram_business/service/web/base_api.dart';
 
-import '../../core/model/delivery_response.dart';
-
 class DeliveryApiService {
-  Future<DeliveryData?> createDelivery(DeliveryData expense) async {
+  Future<DeliveryData?> createDeliveryAgent(DeliveryData deliveryData) async {
     try {
       Response response = await connect().post(
-        AppUrls.getExpenseUrl,
-        data: expense.toJson(),
+        '${AppUrls.createDeliveryUrl}/agent',
+        data: deliveryData.toCreateJson(),
       );
-      return DeliveryData.fromJson(json.decode(response.data));
+      return DeliveryData.fromJson(response.data['data']);
     } on DioException catch (e) {
-      print(e.response);
+      print('DioException: ${e.response?.data}');
       return null;
     } catch (e) {
-      print(e);
+      print('Error: $e');
       return null;
     }
   }
 
-  Future<List<DeliveryData>?> getAllDelivery() async {
+  Future<DeliveryTransactionData?> createDeliveryTransaction(DeliveryTransactionData transactionData) async {
     try {
-      Response response = await connect().get(AppUrls.createDeliveryUrl);
-
-      Map<String, dynamic> decodedData = json.decode(response.data);
-
-      DeliveryData delivery = DeliveryData.fromJson(decodedData);
-
-      return [delivery]; // Return as a list with one item
+      Response response = await connect().post(
+        '${AppUrls.createDeliveryUrl}/transaction',
+        data: transactionData.toJson(),
+      );
+      return DeliveryTransactionData.fromJson(response.data['data']);
     } on DioException catch (e) {
-      print(e.response);
+      print('DioException: ${e.response?.data}');
       return null;
     } catch (e) {
-      print('Json Decode Error: $e');
+      print('Error: $e');
       return null;
     }
   }
 
-  Future<DeliveryData?> getDeliveryById(String id, String userId) async {
+  Future<List<DeliveryData>?> getAllDeliveryAgents({String? storeId}) async {
     try {
       Response response = await connect().get(
-        '${AppUrls.getExpenseUrl}/$id/$userId',
+        '${AppUrls.createDeliveryUrl}/agents',
+        queryParameters: storeId != null ? {'storeId': storeId} : {},
       );
-      return DeliveryData.fromJson(json.decode(response.data));
+      return (response.data as List).map((json) => DeliveryData.fromJson(json)).toList();
     } on DioException catch (e) {
-      print(e.response);
+      print('DioException: ${e.response?.data}');
       return null;
     } catch (e) {
-      print(e);
+      print('Error: $e');
       return null;
     }
   }
 
-  Future<DeliveryData?> updateDelivery(DeliveryData expense) async {
+  Future<List<DeliveryTransactionData>?> getAllDeliveryTransactions({String? storeId}) async {
+    try {
+      Response response = await connect().get(
+        '${AppUrls.createDeliveryUrl}/transactions',
+        queryParameters: storeId != null ? {'storeId': storeId} : {},
+      );
+      return (response.data as List).map((json) => DeliveryTransactionData.fromJson(json)).toList();
+    } on DioException catch (e) {
+      print('DioException: ${e.response?.data}');
+      return null;
+    } catch (e) {
+      print('Error: $e');
+      return null;
+    }
+  }
+
+  Future<DeliveryData?> getDeliveryAgentById(String id) async {
+    try {
+      Response response = await connect().get('${AppUrls.createDeliveryUrl}/agent/$id');
+      return DeliveryData.fromJson(response.data);
+    } on DioException catch (e) {
+      print('DioException: ${e.response?.data}');
+      return null;
+    } catch (e) {
+      print('Error: $e');
+      return null;
+    }
+  }
+
+  Future<DeliveryTransactionData?> getDeliveryTransactionById(String id) async {
+    try {
+      Response response = await connect().get('${AppUrls.createDeliveryUrl}/transaction/$id');
+      return DeliveryTransactionData.fromJson(response.data);
+    } on DioException catch (e) {
+      print('DioException: ${e.response?.data}');
+      return null;
+    } catch (e) {
+      print('Error: $e');
+      return null;
+    }
+  }
+
+  Future<DeliveryData?> updateDeliveryAgent(DeliveryData delivery) async {
     try {
       Response response = await connect().put(
-        '${AppUrls.getExpenseUrl}/${expense.id}',
-        data: expense.toJson(),
+        '${AppUrls.createDeliveryUrl}/agent/${delivery.id}',
+        data: delivery.toJson(),
       );
-      return DeliveryData.fromJson(json.decode(response.data));
+      return DeliveryData.fromJson(response.data);
     } on DioException catch (e) {
-      print(e.response);
+      print('DioException: ${e.response?.data}');
       return null;
     } catch (e) {
-      print(e);
+      print('Error: $e');
       return null;
     }
   }
 
-  Future<bool> deleteDelivery(String id, String userId) async {
+  Future<bool> deleteDeliveryAgent(String id) async {
     try {
-      Response response = await connect().delete(
-        '${AppUrls.getExpenseUrl}/$id/$userId',
-      );
+      Response response = await connect().delete('${AppUrls.createDeliveryUrl}/agent/$id');
       return response.statusCode == 200;
     } on DioException catch (e) {
-      print(e.response);
+      print('DioException: ${e.response?.data}');
       return false;
     } catch (e) {
-      print(e);
+      print('Error: $e');
       return false;
     }
   }

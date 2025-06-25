@@ -103,54 +103,45 @@ class SupplierListViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  // void searchSuppliers(String keyword) {
-  //   _searchKeyword = keyword.toLowerCase();
-  //   _filteredSuppliers = _suppliers.where((supplier) {
-  //     final name = supplier.data?.businessName?.toLowerCase() ?? '';
-  //     final email = supplier.data?.email?.toLowerCase() ?? '';
-  //     return name.contains(_searchKeyword) || email.contains(_searchKeyword);
-  //   }).toList();
-  //   notifyListeners();
-  // }
 
-  Future<void> searchProducts(String query) async {
-    isSearching = true;
-    notifyListeners();
-    try {
-      final response = await productRepository.getFilteredProducts(query);
-      if (response != null && response.data != null) {
-        searchedProducts = response.data!.data.map((searchData) {
-          return Product(
-            id: searchData.id,
-            name: searchData.name ?? "Unknown Product",
-            size: searchData.size ?? "N/A",
-            expiryDate: searchData.expiryDate?.isNotEmpty == true
-                ? searchData.expiryDate
-                : null,
-            price: searchData.price?.toInt(),
-            code: searchData.code,
-            quantity: searchData.quantity,
-            categoryId: searchData.categoryId != null
-                ? Category.fromJson(
-                    searchData.categoryId as Map<String, dynamic>)
-                : null,
-            stock: searchData.stock,
-            createdAt: searchData.createdAt,
-            updatedAt: searchData.updatedAt,
-            v: searchData.v,
-          );
-        }).toList();
-      } else {
-        searchedProducts = [];
-      }
-    } catch (e) {
-      print("Error searching products: $e");
-      searchedProducts = [];
-    } finally {
-      isSearching = false;
-      notifyListeners();
-    }
-  }
+  // Future<void> searchProducts(String query) async {
+  //   isSearching = true;
+  //   notifyListeners();
+  //   try {
+  //     final response = await productRepository.getFilteredProducts(query);
+  //     if (response != null && response.data != null) {
+  //       searchedProducts = response.data!.data.map((searchData) {
+  //         return Product(
+  //           id: searchData.id,
+  //           name: searchData.name ?? "Unknown Product",
+  //           size: searchData.size ?? "N/A",
+  //           expiryDate: searchData.expiryDate?.isNotEmpty == true
+  //               ? searchData.expiryDate
+  //               : null,
+  //           price: searchData.price?.toInt(),
+  //           code: searchData.code,
+  //           quantity: searchData.quantity,
+  //           categoryId: searchData.categoryId != null
+  //               ? Category.fromJson(
+  //                   searchData.categoryId as Map<String, dynamic>)
+  //               : null,
+  //           stock: searchData.stock,
+  //           createdAt: searchData.createdAt,
+  //           updatedAt: searchData.updatedAt,
+  //           v: searchData.v,
+  //         );
+  //       }).toList();
+  //     } else {
+  //       searchedProducts = [];
+  //     }
+  //   } catch (e) {
+  //     print("Error searching products: $e");
+  //     searchedProducts = [];
+  //   } finally {
+  //     isSearching = false;
+  //     notifyListeners();
+  //   }
+  // }
 
   /// 📷 Scan a barcode and navigate to `AddProductView`
   Future<void> scanBarcode(BuildContext context) async {
@@ -178,7 +169,7 @@ class SupplierListViewModel extends BaseViewModel {
     );
 
     if (barcodeScanResult != null) {
-      await searchProducts(barcodeScanResult!);
+     // await searchProducts(barcodeScanResult!);
       if (selectedProduct != null && context.mounted) {
         Product convertedProduct = convertSearchDataToProduct(selectedProduct!);
         Navigator.push(

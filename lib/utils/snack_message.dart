@@ -41,7 +41,7 @@ Widget toast(String message, {bool? success}) {
 
 // styled! ?:
 
-showCustomToast(String message, {bool success = false, num? time}) {
+showCustomToasts(String message, {bool success = false, num? time}) {
 
   // toast message
   showToastWidget(
@@ -50,3 +50,20 @@ showCustomToast(String message, {bool success = false, num? time}) {
     onDismiss: () {},
   );
 }
+
+
+
+void showCustomToast(String message, {bool success = false}) {
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: success ? Colors.green : Colors.red,
+      duration: const Duration(seconds: 3),
+    ),
+  );
+}
+
+final navigatorKey = GlobalKey<NavigatorState>();

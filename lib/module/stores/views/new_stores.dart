@@ -1,19 +1,21 @@
-import 'package:etegram_business/app_widget/app_button.dart';
-import 'package:etegram_business/app_widget/app_text.dart';
-import 'package:etegram_business/app_widget/celebration_widget.dart';
-import 'package:etegram_business/app_widget/custom_appbar.dart';
-import 'package:etegram_business/app_widget/input_fields.dart';
-import 'package:etegram_business/base/base_ui.dart';
-import 'package:etegram_business/constants/colors.dart';
-import 'package:etegram_business/constants/reuseable.dart';
-import 'package:etegram_business/constants/strings.dart';
-import 'package:etegram_business/constants/style.dart';
-import 'package:etegram_business/module/stores/vm/stores_vm.dart';
-import 'package:etegram_business/utils/snack_message.dart';
+
+// Modified NewStores View
+import 'package:etegram_business/constants/assets.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../app_widget/app_button.dart';
+import '../../../app_widget/custom_appbar.dart';
 import '../../../app_widget/custom_dropdown.dart';
+import '../../../app_widget/input_fields.dart';
+import '../../../base/base_ui.dart';
+import '../../../constants/colors.dart';
+import '../../../constants/reuseable.dart';
+import '../../../constants/strings.dart';
+import '../../../constants/style.dart';
+import '../vm/stores_vm.dart';
 
 class NewStores extends StatelessWidget {
   const NewStores({super.key});
@@ -21,230 +23,138 @@ class NewStores extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BaseView<StoresViewModel>(
+      onModelReady: (model) => model.onInit(),
       builder: (_, logic, child) => Scaffold(
+        backgroundColor: ColorValues.backgroundColor,
         appBar: CustomAppBar(
-          title: "New Store/Warehouse",
-          onBackPressed: () {
-            navigationService.goBack();
-          },
+          title: logic.isEditing ? "Edit Store" : "Create Store",
+          onBackPressed: () => navigationService.goBack(),
           showNotificationIcon: false,
           showMenuIcon: false,
         ),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              AppText(
-                StringValues.storeWarehouse,
-                style: headerTextStyle,
-              ),
-              20.0.sbH,
-              RichText(
-                text: TextSpan(
-                  text: StringValues.branchOf,
-                  style: DefaultTextStyle.of(context).style,
-                  children: <TextSpan>[
-                    TextSpan(
-                        text: ' Company name',
-                        style: normalTextStyle12.copyWith(
-                            color: ColorValues.primaryColor)),
-                  ],
-                ),
-              ),
-              20.0.sbH,
-              CustomDropDown(
-                width: double.infinity,
-                hintText: "I am creating a...",
-                items: logic.getStoresListOptions(),
-                icon: Icon(Icons.arrow_drop_down, color: Colors.grey),
-                prefix: Icon(Icons.category, color: Colors.grey),
-                onChanged: (value) {
-                  logic.onStoreCategoryChanged(value);
-                },
-              ),
-              10.0.sbH,
-              AppTextField(
-                hintText: StringValues.typStoreName,
-                controller: logic.storeNameController,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your store name';
-                  }
-                  return null;
-                },
-              ),
-              10.0.sbH,
-              CustomDropDown(
-                width: double.infinity,
-                hintText: "Store type",
-                items: logic.getStoreTypeOption(),
-                icon: Icon(Icons.arrow_drop_down, color: Colors.grey),
-                prefix: Icon(Icons.category, color: Colors.grey),
-                onChanged: (value) {
-                  logic.onStoreTypeChanged(value);
-                },
-              ),
-              10.0.sbH,
-              CustomDropDown(
-                width: double.infinity,
-                hintText: "Store Classification",
-                items: logic.getClassificationOptions(),
-                icon: Icon(Icons.arrow_drop_down, color: Colors.grey),
-                prefix: Icon(Icons.category, color: Colors.grey),
-                onChanged: (value) {
-                  logic.onStoreClassificationChanged(value);
-                },
-              ),
-              10.0.sbH,
-              CustomDropDown(
-                width: double.infinity,
-                hintText: "Country",
-                items: logic.getCountrySelectionOptions(),
-                icon: Icon(Icons.arrow_drop_down, color: Colors.grey),
-                prefix: Icon(Icons.category, color: Colors.grey),
-                onChanged: (value) {
-                  logic.onCountryChanged(value);
-                },
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: ColorValues.whiteColor,
-                  border: Border.all(color: Colors.grey, width: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                child: DropdownButton<String>(
-                  onChanged: (val) => logic.onStateChanged(val?? ""),
-                  key: const ValueKey('States'),
-                  value: logic.stateValue,
-                  isExpanded: true,
-                  underline: const SizedBox.shrink(),
-                  hint:
-                      Text('What state are you located in?', style: titleLarge),
-                  items: logic.statesList
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: AppText(
-                        value,
-                        style: TextStyle(
-                            color: Color(0xFFD9D9D9),
-                            fontFamily: "Poppins",
-                            fontSize: 12),
+        body: logic.isLoading.value
+            ? const Center(child: SpinKitDoubleBounce(color: ColorValues.primaryColor, size: 50.0))
+            : SingleChildScrollView(
+          child: Padding(
+            padding: 16.0.padA,
+            child: Form(
+              key: logic.formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  20.0.sbH,
+                  Center(
+                    child: SvgPicture.asset(SvgAssets.appLogo),
+                  ),
+                  20.0.sbH,
+                  AnimatedBuilder(
+                    animation: logic,
+                    builder: (context, child) => RichText(
+                      text: TextSpan(
+                        text: StringValues.branchOf,
+                        style: normalTextStyle12,
+                        children: <TextSpan>[
+                          TextSpan(
+                            text: logic.businessName,
+                            style: normalTextStyle12.copyWith(color: ColorValues.primaryColor),
+                          ),
+                        ],
                       ),
-                    );
-                  }).toList(),
-                ),
+                    ),
+                  ),
+                  20.0.sbH,
+                  CustomDropDown(
+                    width: double.infinity,
+                    hintText: "I am creating a...",
+                    items: logic.storesListOptions,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    prefix: const Icon(Icons.category, color: Colors.grey),
+                    onChanged: logic.onStoreCategoryChanged,
+                  ),
+                  10.0.sbH,
+                  AppTextField(
+                    hint: StringValues.typStoreName,
+                    controller: logic.storeNameController,
+                    validator: (value) => value!.isEmpty ? 'Please enter your store name' : null,
+                  ),
+                  10.0.sbH,
+                  CustomDropDown(
+                    width: double.infinity,
+                    hintText: "Store type",
+                    items: logic.storeTypeOption,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    prefix: const Icon(Icons.category, color: Colors.grey),
+                    onChanged: logic.onStoreTypeChanged,
+                  ),
+                  10.0.sbH,
+                  CustomDropDown(
+                    width: double.infinity,
+                    hintText: "Store Classification",
+                    items: logic.classificationOptions,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    prefix: const Icon(Icons.category, color: Colors.grey),
+                    onChanged: logic.onStoreClassificationChanged,
+                  ),
+                  10.0.sbH,
+                  CustomDropDown(
+                    width: double.infinity,
+                    hintText: "Country",
+                    items: logic.countrySelectionOptions,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    prefix: const Icon(Icons.category, color: Colors.grey),
+                    onChanged: logic.onCountryChanged,
+                  ),
+                  10.0.sbH,
+                  CustomDropDown(
+                    width: double.infinity,
+                    hintText: logic.stateValue,
+                    items: logic.statesList,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    prefix: const Icon(Icons.location_on, color: Colors.grey),
+                    onChanged: logic.onStateChanged,
+                  ),
+                  10.0.sbH,
+                  CustomDropDown(
+                    width: double.infinity,
+                    hintText: logic.lgaValue,
+                    items: logic.lgaList,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    prefix: const Icon(Icons.map, color: Colors.grey),
+                    onChanged: logic.onLGAChanged,
+                  ),
+                  10.0.sbH,
+                  CustomDropDown(
+                    width: double.infinity,
+                    hintText: logic.wardValue,
+                    items: logic.wardList,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    prefix: const Icon(Icons.my_location, color: Colors.grey),
+                    onChanged: logic.onWardChanged,
+                  ),
+                  10.0.sbH,
+                  CustomDropDown(
+                    width: double.infinity,
+                    hintText: "Currency",
+                    items: logic.currencyChoice,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    prefix: const Icon(Icons.category, color: Colors.grey),
+                    onChanged: logic.onCurrencyChanged,
+                  ),
+                  40.0.sbH,
+                  ValueListenableBuilder<bool>(
+                    valueListenable: logic.isFormValid,
+                    builder: (context, isValid, child) => AppButton(
+                      text: logic.isEditing ? StringValues.updateStore : StringValues.addStore,
+                      onTap: isValid ? () => logic.saveStore() : null,
+                    ),
+                  ),
+                  30.0.sbH,
+                ],
               ),
-              10.0.sbH,
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                decoration: BoxDecoration(
-                  color: ColorValues.whiteColor,
-                  border: Border.all(color: Colors.grey, width: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: DropdownButton<String>(
-                  onChanged: (value) => logic.onLGAChanged(value!),
-                  key: const ValueKey('Local governments'),
-                  value: logic.lgaValue,
-                  isExpanded: true,
-                  underline: const SizedBox.shrink(),
-                  hint: Text('What LGA are you located in?',
-                      style: normalTextStyle12),
-                  items: logic.lgaList
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: AppText(
-                        value,
-                        style: TextStyle(
-                            color: Color(0xFFD9D9D9),
-                            fontFamily: "Poppins",
-                            fontSize: 12),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              10.0.sbH,
-              CustomDropDown(
-                width: double.infinity,
-                hintText: "Currency",
-                items: logic.getCurrencyChoiceOptions(),
-                icon: Icon(Icons.arrow_drop_down, color: Colors.grey),
-                prefix: Icon(Icons.category, color: Colors.grey),
-                onChanged: (value) {
-                  logic.onCurrencyChanged(value);
-                },
-              ),
-              10.0.sbH,
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                decoration: BoxDecoration(
-                  color: ColorValues.whiteColor,
-                  border: Border.all(color: Colors.grey, width: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: DropdownButton<String>(
-                  onChanged: (value) => logic.onWardChanged(value!),
-                  key: const ValueKey('Local governments'),
-                  value: logic.wardValue,
-                  isExpanded: true,
-                  underline: const SizedBox.shrink(),
-                  hint: Text('What Area is your store located in?',
-                      style: normalTextStyle12),
-                  items: logic.wardList
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: AppText(
-                        value,
-                        style: TextStyle(
-                            color: Color(0xFFD9D9D9),
-                            fontFamily: "Poppins",
-                            fontSize: 12),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              40.0.sbH,
-              ValueListenableBuilder<bool>(
-                valueListenable: logic.isFormValid,
-                builder: (context, isValid, child) {
-                  return AppButton(
-                    text: logic.isEditing ? StringValues.updateStore : StringValues.addStore, // Change button text
-                    onTap: isValid
-                        ? () {
-                      logic.saveStore(context); // Use saveStore method
-                    }
-                        : () {
-                      showCustomToast("Please fill all required fields", success: false);
-                    },
-                  );
-                },
-              ),
-              30.0.sbH
-            ],
+            ),
           ),
         ),
       ),
     );
   }
-}
-
-void _showSucces(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => CelebrationWidget(
-      title: "Store Created Successfully!",
-      onTap: () {
-        navigationService.goBack();
-      },
-    ),
-  );
 }

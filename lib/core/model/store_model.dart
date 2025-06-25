@@ -51,4 +51,16 @@ class Store {
       'area':area
     };
   }
+
+  Map<String, dynamic> toCreateJson() {
+    return {
+      'name': name,
+      'type': type,
+      'classification': classification,
+      'country': country,
+      'state': state,
+      'lga': lga,
+      'currency': currency,
+    };
+  }
 }

@@ -1,258 +1,114 @@
-// class AuthResponse {
-//   final bool? success;
-//   final Customer? data;
-//   final String? message;
-//
-//   AuthResponse({
-//     this.success,
-//     this.data,
-//     this.message,
-//   });
-//
-//   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-//     return AuthResponse(
-//       success: json["success"],
-//       data: json["data"] != null ? Customer.fromJson(json["data"]) : null,
-//       message: json["message"],
-//     );
-//   }
-//
-//   Map<String, dynamic> toJson() => {
-//     "success": success,
-//     "data": data?.toJson(),
-//     "message": message,
-//   };
-// }
-
-// class Customer {
-//   final bool? success;
-//   final String? id;
-//   final String? deviceToken;
-//   final String? email;
-//   final String? phone;
-//   final int? point;
-//   final dynamic image;
-//   final bool? isAdmin;
-//   final int? balance;
-//   final bool? emailVerified;
-//   final String? password;
-//   final String? country;
-//   final String? state;
-//   final String? city;
-//   final String? area;
-//   final String? firstName;
-//   final int? pin;
-//   final bool? defaultPinChanged;
-//   final String? lastName;
-//   final String? bio;
-//   final String? currency;
-//   final String? businessType;
-//   final String? businessName;
-//   final String? profilePhoto;
-//   final List<dynamic>? interests;
-//   final int? wallet;
-//   final bool? isGoogleAuth;
-//   final bool? isPremium;
-//   final dynamic subscriptionType;
-//   final dynamic subscriptionStartDate;
-//   final dynamic subscriptionEndDate;
-//   final DateTime? createdAt;
-//   final DateTime? updatedAt;
-//   final int? v;
-//   final String? refreshToken;
-//   final String? accessToken;
-//
-//   Customer({
-//     this.success,
-//     this.id,
-//     this.deviceToken,
-//     this.email,
-//     this.phone,
-//     this.point,
-//     this.image,
-//     this.isAdmin,
-//     this.balance,
-//     this.emailVerified,
-//     this.password,
-//     this.country,
-//     this.state,
-//     this.city,
-//     this.area,
-//     this.firstName,
-//     this.pin,
-//     this.defaultPinChanged,
-//     this.lastName,
-//     this.bio,
-//     this.currency,
-//     this.businessType,
-//     this.businessName,
-//     this.profilePhoto,
-//     this.interests,
-//     this.wallet,
-//     this.isGoogleAuth,
-//     this.isPremium,
-//     this.subscriptionType,
-//     this.subscriptionStartDate,
-//     this.subscriptionEndDate,
-//     this.createdAt,
-//     this.updatedAt,
-//     this.v,
-//     this.refreshToken,
-//     this.accessToken,
-//   });
-//
-//   factory Customer.fromJson(Map<String, dynamic> json) {
-//     return Customer(
-//       success: json["success"],
-//       id: json["_id"],
-//       deviceToken: json["deviceToken"],
-//       email: json["email"],
-//       phone: json["phone"],
-//       point: json["point"],
-//       image: json["image"],
-//       isAdmin: json["isAdmin"],
-//       balance: json["balance"],
-//       emailVerified: json["emailVerified"],
-//       password: json["password"],
-//       country: json["country"],
-//       state: json["state"],
-//       city: json["city"],
-//       area: json["area"],
-//       firstName: json["firstName"],
-//       pin: json["pin"],
-//       defaultPinChanged: json["defaultPinChanged"],
-//       lastName: json["lastName"],
-//       bio: json["bio"],
-//       currency: json["currency"],
-//       businessType: json["businessType"],
-//       businessName: json["businessName"],
-//       profilePhoto: json["profilePhoto"],
-//       interests: json["interests"] == null
-//           ? []
-//           : List<dynamic>.from(json["interests"]!.map((x) => x)),
-//       wallet: json["wallet"],
-//       isGoogleAuth: json["isGoogleAuth"],
-//       isPremium: json["isPremium"],
-//       subscriptionType: json["subscriptionType"],
-//       subscriptionStartDate: json["subscriptionStartDate"],
-//       subscriptionEndDate: json["subscriptionEndDate"],
-//       createdAt: DateTime.tryParse(json["createdAt"] ?? ""),
-//       updatedAt: DateTime.tryParse(json["updatedAt"] ?? ""),
-//       v: json["__v"],
-//       refreshToken: json["refreshToken"],
-//       accessToken: json["accessToken"],
-//     );
-//   }
-//
-//   Map<String, dynamic> toJson() => {
-//     "success": success,
-//     "_id": id,
-//     "deviceToken": deviceToken,
-//     "email": email,
-//     "phone": phone,
-//     "point": point,
-//     "image": image,
-//     "isAdmin": isAdmin,
-//     "balance": balance,
-//     "emailVerified": emailVerified,
-//     "password": password,
-//     "country": country,
-//     "state": state,
-//     "city": city,
-//     "area": area,
-//     "firstName": firstName,
-//     "pin": pin,
-//     "defaultPinChanged": defaultPinChanged,
-//     "lastName": lastName,
-//     "bio": bio,
-//     "currency": currency,
-//     "businessType": businessType,
-//     "businessName": businessName,
-//     "profilePhoto": profilePhoto,
-//     "interests": interests?.map((x) => x).toList(),
-//     "wallet": wallet,
-//     "isGoogleAuth": isGoogleAuth,
-//     "isPremium": isPremium,
-//     "subscriptionType": subscriptionType,
-//     "subscriptionStartDate": subscriptionStartDate,
-//     "subscriptionEndDate": subscriptionEndDate,
-//     "createdAt": createdAt?.toIso8601String(),
-//     "updatedAt": updatedAt?.toIso8601String(),
-//     "__v": v,
-//     "refreshToken": refreshToken,
-//     "accessToken": accessToken,
-//   };
-// }
-
+// No changes needed for AuthResponse itself, as it correctly points to AuthResponseData
 class AuthResponse {
-  bool? success;
-  Customer? customer;
-  String? message;
+  final bool? success;
+  final String? message;
+  final AuthResponseData? data;
 
-  AuthResponse({this.success, this.customer, this.message});
+  AuthResponse({
+    this.success,
+    this.message,
+    this.data,
+  });
 
-  AuthResponse.fromJson(Map<String, dynamic> json) {
-    success = json['success'];
-    customer = json['data'] != null ? Customer.fromJson(json['data']) : null;
-    message = json['message'];
+  factory AuthResponse.fromJson(Map<String, dynamic> json) {
+    return AuthResponse(
+      success: json["success"],
+      message: json["message"],
+      data:
+          json["data"] == null ? null : AuthResponseData.fromJson(json["data"]),
+    );
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['success'] = success;
-    if (this.customer != null) {
-      data['data'] = this.customer!.toJson();
-    }
-    data['message'] = message;
-    return data;
+  Map<String, dynamic> toJson() => {
+        "success": success,
+        "message": message,
+        "data": data?.toJson(),
+      };
+}
+
+class AuthResponseData {
+  final Customer? user; // This will now parse from '_doc'
+  final String? accessToken;
+  final String? refreshToken;
+
+  AuthResponseData({
+    this.user,
+    this.accessToken,
+    this.refreshToken,
+  });
+
+  factory AuthResponseData.fromJson(Map<String, dynamic> json) {
+    print("AuthResponseData.fromJson: Raw JSON: $json"); // Debug log
+    final rawUser = json["user"] ?? json;
+    final userData =
+        (rawUser is Map<String, dynamic> && rawUser.containsKey("_doc"))
+            ? rawUser["_doc"]
+            : rawUser;
+
+    print(
+        "AuthResponseData.fromJson: Parsed user data: $userData"); // Debug log
+
+    return AuthResponseData(
+      user: userData == null ? null : Customer.fromJson(userData),
+      accessToken: json["accessToken"],
+      refreshToken: json["refreshToken"],
+    );
   }
+
+  Map<String, dynamic> toJson() => {
+        "user": user?.toJson(),
+        "accessToken": accessToken,
+        "refreshToken": refreshToken,
+      };
 }
 
 class Customer {
-  bool? success;
-  String? id;
-  String? deviceToken;
-  String? email;
-  String? phone;
-  int? point;
-  String? image;
-  bool? isAdmin;
-  int? balance;
-  bool? emailVerified;
-  String? password;
-  String? country;
-  String? state;
-  String? city;
-  String? area;
-  String? firstName;
-  int? pin;
-  bool? defaultPinChanged;
-  String? lastName;
-  String? bio;
-  String? currency;
-  String? businessType;
-  String? businessName;
-  String? profilePhoto;
-  List<dynamic>? interests; // Or a more specific type if you have an Interest model
-  int? wallet;
-  bool? isGoogleAuth;
-  bool? isPremium;
-  String? subscriptionType;
-  DateTime? subscriptionStartDate;
-  DateTime? subscriptionEndDate;
-  List<dynamic>? stores; // This is the empty stores array
-  DateTime? createdAt;
-  DateTime? updatedAt;
-  int? v;
-  String? refreshToken;
-  String? accessToken;
+  final String? id;
+  final String? email;
+  final String? phoneNumber;
+  final List<String>? stores;
+  final bool? emailVerified;
+  final List<String>? role;
+
+  final String? deviceToken;
+  final int? point;
+  final String? image;
+  final bool? isAdmin;
+  final int? balance;
+  final String? password;
+  final String? country;
+  final String? state;
+  final String? city;
+  final String? area;
+  final String? firstName;
+  final int? pin;
+  final bool? defaultPinChanged;
+  final String? lastName;
+  final String? bio;
+  final String? currency;
+  final String? businessType;
+  final String? businessName;
+  final String? profilePhoto;
+  final List<dynamic>? interests;
+  final int? wallet;
+  final bool? isGoogleAuth;
+  final bool? isPremium;
+  final String? subscriptionType;
+  final DateTime? subscriptionStartDate;
+  final DateTime? subscriptionEndDate;
+  final dynamic
+      store; // This looks like it might be a single store ID or object
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final int? v;
 
   Customer({
-    this.success,
+    this.stores,
+    this.role,
     this.id,
     this.deviceToken,
     this.email,
-    this.phone,
+    this.phoneNumber,
     this.point,
     this.image,
     this.isAdmin,
@@ -279,113 +135,114 @@ class Customer {
     this.subscriptionType,
     this.subscriptionStartDate,
     this.subscriptionEndDate,
-    this.stores,
+    this.store,
     this.createdAt,
     this.updatedAt,
     this.v,
-    this.refreshToken,
-    this.accessToken,
   });
 
-  Customer.fromJson(Map<String, dynamic> json) {
-    success = json['success'];
-    id = json['_id'];
-    deviceToken = json['deviceToken'];
-    email = json['email'];
-    phone = json['phone'];
-    point = json['point'];
-    image = json['image'];
-    isAdmin = json['isAdmin'];
-    balance = json['balance'];
-    emailVerified = json['emailVerified'];
-    password = json['password'];
-    country = json['country'];
-    state = json['state'];
-    city = json['city'];
-    area = json['area'];
-    firstName = json['firstName'];
-    pin = json['pin'];
-    defaultPinChanged = json['defaultPinChanged'];
-    lastName = json['lastName'];
-    bio = json['bio'];
-    currency = json['currency'];
-    businessType = json['businessType'];
-    businessName = json['businessName'];
-    profilePhoto = json['profilePhoto'];
-    if (json['interests'] != null) {
-      interests = <dynamic>[]; // Adjust if you have a specific Interest model
-      json['interests'].forEach((v) {
-        interests!.add(v); // Adjust based on your Interest model
-      });
-    }
-    wallet = json['wallet'];
-    isGoogleAuth = json['isGoogleAuth'];
-    isPremium = json['isPremium'];
-    subscriptionType = json['subscriptionType'];
-    subscriptionStartDate = json['subscriptionStartDate'] != null
-        ? DateTime.parse(json['subscriptionStartDate'])
-        : null;
-    subscriptionEndDate = json['subscriptionEndDate'] != null
-        ? DateTime.parse(json['subscriptionEndDate'])
-        : null;
-    if (json['stores'] != null) {
-      stores = <dynamic>[]; // This will likely be a list of store IDs (strings)
-      json['stores'].forEach((v) {
-        stores!.add(v);
-      });
-    }
-    createdAt =
-    json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null;
-    updatedAt =
-    json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null;
-    v = json['__v'];
-    refreshToken = json['refreshToken'];
-    accessToken = json['accessToken'];
+  factory Customer.fromJson(Map<String, dynamic> json) {
+    print("Customer.fromJson: Parsing JSON data: $json"); // Debug log
+
+    return Customer(
+      id: json["_id"]?.toString(),
+      deviceToken: json["deviceToken"],
+      email: json["email"],
+      phoneNumber: json["phoneNumber"],
+      point:
+          json["point"] != null ? int.tryParse(json["point"].toString()) : null,
+      image: json["image"],
+      isAdmin: json["isAdmin"],
+      balance: json["balance"] != null
+          ? int.tryParse(json["balance"].toString())
+          : null,
+      emailVerified: json["emailVerified"] ?? false,
+      password: json["password"],
+      country: json["country"],
+      state: json["state"],
+      city: json["city"],
+      area: json["area"],
+      firstName: json["firstName"],
+      pin: json["pin"] != null ? int.tryParse(json["pin"].toString()) : null,
+      defaultPinChanged: json["defaultPinChanged"] ?? false,
+      lastName: json["lastName"],
+      bio: json["bio"],
+      currency: json["currency"],
+      businessType: json["businessType"],
+      businessName: json["businessName"],
+      profilePhoto: json["profilePhoto"],
+      interests: json["interests"] == null
+          ? []
+          : List<dynamic>.from(json["interests"].map((x) => x)),
+      wallet: json["wallet"] != null
+          ? int.tryParse(json["wallet"].toString())
+          : null,
+      isGoogleAuth: json["isGoogleAuth"],
+      isPremium: json["isPremium"],
+      subscriptionType: json["subscriptionType"],
+      subscriptionStartDate: _parseDate(json["subscriptionStartDate"]),
+      subscriptionEndDate: _parseDate(json["subscriptionEndDate"]),
+      store: json["store"],
+      createdAt: _parseDate(json["createdAt"]),
+      updatedAt: _parseDate(json["updatedAt"]),
+      v: json["__v"] != null ? int.tryParse(json["__v"].toString()) : null,
+      stores: json["stores"] == null
+          ? []
+          : List<String>.from(json["stores"].map((x) => x.toString())),
+      role: json["role"] == null
+          ? []
+          : List<String>.from(json["role"].map((x) => x.toString())),
+    );
   }
 
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['success'] = success;
-    data['_id'] = id;
-    data['deviceToken'] = deviceToken;
-    data['email'] = email;
-    data['phone'] = phone;
-    data['point'] = point;
-    data['image'] = image;
-    data['isAdmin'] = isAdmin;
-    data['balance'] = balance;
-    data['emailVerified'] = emailVerified;
-    data['password'] = password;
-    data['country'] = country;
-    data['state'] = state;
-    data['city'] = city;
-    data['area'] = area;
-    data['firstName'] = firstName;
-    data['pin'] = pin;
-    data['defaultPinChanged'] = defaultPinChanged;
-    data['lastName'] = lastName;
-    data['bio'] = bio;
-    data['currency'] = currency;
-    data['businessType'] = businessType;
-    data['businessName'] = businessName;
-    data['profilePhoto'] = profilePhoto;
-    if (interests != null) {
-      data['interests'] = interests!.map((v) => v).toList(); // Adjust based on your Interest model
+  static DateTime? _parseDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) {
+      print("Warning: Invalid date string provided: $dateStr");
+      return null;
     }
-    data['wallet'] = wallet;
-    data['isGoogleAuth'] = isGoogleAuth;
-    data['isPremium'] = isPremium;
-    data['subscriptionType'] = subscriptionType;
-    data['subscriptionStartDate'] = subscriptionStartDate?.toIso8601String();
-    data['subscriptionEndDate'] = subscriptionEndDate?.toIso8601String();
-    if (stores != null) {
-      data['stores'] = stores!.map((v) => v).toList();
+    final parsed = DateTime.tryParse(dateStr);
+    if (parsed == null) {
+      print("Warning: Failed to parse date string: $dateStr");
     }
-    data['createdAt'] = createdAt?.toIso8601String();
-    data['updatedAt'] = updatedAt?.toIso8601String();
-    data['__v'] = v;
-    data['refreshToken'] = refreshToken;
-    data['accessToken'] = accessToken;
-    return data;
+    return parsed;
   }
+
+  Map<String, dynamic> toJson() => {
+        "_id": id,
+        "deviceToken": deviceToken,
+        "email": email,
+        "phoneNumber": phoneNumber,
+        "point": point,
+        "image": image,
+        "isAdmin": isAdmin,
+        "balance": balance,
+        "emailVerified": emailVerified,
+        "password": password,
+        "country": country,
+        "state": state,
+        "city": city,
+        "area": area,
+        "firstName": firstName,
+        "pin": pin,
+        "defaultPinChanged": defaultPinChanged,
+        "lastName": lastName,
+        "bio": bio,
+        "currency": currency,
+        "businessType": businessType,
+        "businessName": businessName,
+        "profilePhoto": profilePhoto,
+        "interests": interests?.map((x) => x).toList(),
+        "wallet": wallet,
+        "isGoogleAuth": isGoogleAuth,
+        "isPremium": isPremium,
+        "subscriptionType": subscriptionType,
+        "subscriptionStartDate": subscriptionStartDate?.toIso8601String(),
+        "subscriptionEndDate": subscriptionEndDate?.toIso8601String(),
+        "store": store,
+        "createdAt": createdAt?.toIso8601String(),
+        "updatedAt": updatedAt?.toIso8601String(),
+        "__v": v,
+        "stores": stores?.map((x) => x).toList(),
+        "role": role?.map((x) => x).toList(),
+      };
 }

@@ -12,23 +12,37 @@ class DeliveryRepository {
   CustomerService customerService = locator<CustomerService>();
   StorageService storageService = locator<StorageService>();
 
-  Future<DeliveryData?> createDelivery(DeliveryData expense) async {
-    return deliveryApiService.createDelivery(expense);
+  Future<DeliveryData?> createDeliveryAgent(DeliveryData delivery) {
+    return deliveryApiService.createDeliveryAgent(delivery);
   }
 
-  Future<List<DeliveryData>?> getAllDelivery() async {
-    return deliveryApiService.getAllDelivery();
+  Future<DeliveryTransactionData?> createDeliveryTransaction(
+      DeliveryTransactionData transaction) {
+    return deliveryApiService.createDeliveryTransaction(transaction);
   }
 
-  Future<DeliveryData?> getDeliveryById(String id, String userId) async {
-    return deliveryApiService.getDeliveryById(id, userId);
+  Future<List<DeliveryData>?> getAllDeliveryAgents({String? storeId}) {
+    return deliveryApiService.getAllDeliveryAgents(storeId: storeId);
   }
 
-  Future<DeliveryData?> updateDelivery(DeliveryData expense) async {
-    return deliveryApiService.updateDelivery(expense);
+  Future<List<DeliveryTransactionData>?> getAllDeliveryTransactions(
+      {String? storeId}) {
+    return deliveryApiService.getAllDeliveryTransactions(storeId: storeId);
   }
 
-  Future<bool> deleteDelivery(String id, String userId) async {
-    return deliveryApiService.deleteDelivery(id, userId);
+  Future<DeliveryData?> getDeliveryAgentById(String id) {
+    return deliveryApiService.getDeliveryAgentById(id);
+  }
+
+  Future<DeliveryTransactionData?> getDeliveryTransactionById(String id) {
+    return deliveryApiService.getDeliveryTransactionById(id);
+  }
+
+  Future<DeliveryData?> updateDeliveryAgent(DeliveryData delivery) {
+    return deliveryApiService.updateDeliveryAgent(delivery);
+  }
+
+  Future<bool> deleteDeliveryAgent(String id) {
+    return deliveryApiService.deleteDeliveryAgent(id);
   }
 }

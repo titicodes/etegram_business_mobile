@@ -1,60 +1,59 @@
-import 'dart:convert';
 
-import 'package:etegram_business/locator.dart';
-import 'package:etegram_business/service/local/cache.dart';
-import 'package:etegram_business/service/web/store_api_service.dart';
+// Modified StoreRepository
+import 'dart:convert';
 
 import '../constants/reuseable.dart';
 import '../core/model/store_model.dart';
+import '../locator.dart';
+import '../service/local/cache.dart';
 import '../service/local/storage_service.dart';
 import '../service/local/user_service.dart';
+import '../service/web/store_api_service.dart';
 
 class StoreRepository {
-  AppCache appCache = locator<AppCache>();
-  CustomerService customerService = locator<CustomerService>();
-  StorageService storageService = locator<StorageService>();
-  StoreApiService storeApiService = locator<StoreApiService>();
+  final AppCache appCache = locator<AppCache>();
+  final CustomerService customerService = locator<CustomerService>();
+  final StorageService storageService = locator<StorageService>();
+  final StoreApiService storeApiService = locator<StoreApiService>();
 
   Future<Store?> createStore(Store store) async {
-    var response = await storeApiService.createStore(store);
-    if (response != null) {
-      await storeCreatedStore(response);
+    try {
+      var response = await storeApiService.createStore(store);
+      if (response != null) {
+        await customerService.fetchStores();
+        customerService.setActiveStore(response.id!);
+      }
+      return response;
+    } catch (e) {
+      throw "Failed to create store: $e";
     }
-    return response;
   }
 
-  storeCreatedStore(Store store) async {
-    print("Storing Product: ${store.name}");
-    await storageService.storeItem(
-        key: DbTable.storeTableName, value: jsonEncode(store.toJson()));
-  }
-
-  Future<List<Store>> getStoresByOwner(String ownerId) async {
-    var response = await storeApiService.getStoresByOwner(ownerId);
-    if (response != null) {
-      await storeOwner(response);
+  Future<List<Store>> getStoresByOwner() async {
+    try {
+      var response = await storeApiService.getStoresByOwner();
+      if (response != null) {
+        await storageService.storeItem(
+          key: DbTable.storeTableName,
+          value: jsonEncode(response.map((store) => store.toJson()).toList()),
+        );
+        return response;
+      }
+      return [];
+    } catch (e) {
+      throw "Failed to fetch stores: $e";
     }
-    return response;
-  }
-
-  storeOwner(List<Store> stores) async {
-    // Renamed 'store' to 'stores' for clarity
-    print("Owner stored: ${stores.length}");
-
-    // Convert each Store object to its JSON representation
-    List<Map<String, dynamic>> storeJsonList =
-        stores.map((store) => store.toJson()).toList();
-
-    // Encode the list of JSON objects
-    String encodedStores = jsonEncode(storeJsonList);
-
-    await storageService.storeItem(
-      key: DbTable.storeTableName,
-      value: encodedStores,
-    );
   }
 
   Future<Store?> updateStore(Store store, String storeId) async {
-    return await storeApiService.updateStore(store, storeId);
+    try {
+      var response = await storeApiService.updateStore(store, storeId);
+      if (response != null) {
+        await customerService.fetchStores();
+      }
+      return response;
+    } catch (e) {
+      throw "Failed to update store: $e";
+    }
   }
 }

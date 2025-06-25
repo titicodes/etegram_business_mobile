@@ -5,48 +5,43 @@ import '../../constants/assets.dart';
 import '../../constants/strings.dart';
 import '../../routes/routes.dart';
 
-class OnBoardingViewModel extends BaseViewModel{
+// Modified OnBoardingViewModel
+class OnBoardingViewModel extends BaseViewModel {
   int currentIndex = 0;
   PageController? controller;
-
   int sliderIndex = 0;
   int totalSize = 3;
 
-  void init()async{
+  void init() {
     controller = PageController(initialPage: 0);
-    print('ControllerOne onInit');
+    notifyListeners();
   }
 
   @override
   void dispose() {
-    controller!.dispose();
+    controller?.dispose();
     super.dispose();
   }
 
   List<OnBoardingData> onBoardingObjects = [
     OnBoardingData(
-        image: SvgAssets.onboarding1,
-        details: StringValues.onBoarding1,
-        ),
+        image: SvgAssets.onboarding1, details: StringValues.onBoarding1),
     OnBoardingData(
-        image: SvgAssets.onboarding2,
-        details: StringValues.onBoarding2,
-       ),
+        image: SvgAssets.onboarding2, details: StringValues.onBoarding2),
     OnBoardingData(
-        image: SvgAssets.onboarding3,
-        details: StringValues.onBoarding3,
-       ),
+        image: SvgAssets.onboarding3, details: StringValues.onBoarding3),
   ];
-  changeCarouselIndexValue(int indexValue) {
+
+  void changeCarouselIndexValue(int indexValue) {
     sliderIndex = indexValue;
     notifyListeners();
   }
 
-  goToWelcomeScreen(){
+  void goToWelcomeScreen() {
     navigationService.navigateTo(welcomeScreenRoute);
   }
 
-  goToUserLogin(){
+  void goToUserLogin() {
     navigationService.navigateTo(loginScreenRoute);
   }
 }
@@ -56,10 +51,9 @@ class OnBoardingData {
   String details;
   String? value;
 
-
-  OnBoardingData(
-      {required this.image,
-        required this.details,
-        this.value,
-       });
+  OnBoardingData({
+    required this.image,
+    required this.details,
+    this.value,
+  });
 }

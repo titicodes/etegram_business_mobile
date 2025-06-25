@@ -1,128 +1,198 @@
-import 'package:etegram_business/utils/widget_extension.dart';
+// scan_to_checkout_view.dart
 import 'package:flutter/material.dart';
+import 'package:etegram_business/app_widget/app_button.dart';
+import 'package:etegram_business/app_widget/app_text.dart';
+import 'package:etegram_business/app_widget/barcode_scanner_view.dart';
+import 'package:etegram_business/app_widget/custom_appbar.dart';
+import 'package:etegram_business/constants/colors.dart';
+import 'package:etegram_business/constants/reuseable.dart';
+import 'package:etegram_business/constants/style.dart';
+import 'package:etegram_business/core/model/cart_item.dart';
+import 'package:etegram_business/module/product/view/tabs/new_scan_checkout.dart';
+import 'package:etegram_business/module/sales/vm/new_sales_vm.dart';
+import 'package:etegram_business/utils/snack_message.dart';
+import 'package:etegram_business/utils/widget_extension.dart';
+import 'package:lottie/lottie.dart';
 
-import '../../../app_widget/app_button.dart';
-import '../../../app_widget/barcode_scanner_view.dart';
-import '../../../app_widget/custom_appbar.dart';
 import '../../../base/base_ui.dart';
-import '../../../constants/reuseable.dart';
-import '../../../locator.dart';
-import '../vm/new_sales_vm.dart';
+import '../../../core/model/get_scan_response.dart';
 import '../vm/review_screen.dart';
 
-class ScanToCheckoutView extends StatefulWidget {
-  final String? scannedCode;
 
-  const ScanToCheckoutView({super.key, this.scannedCode});
+class ScanToCheckoutView extends StatefulWidget {
+  const ScanToCheckoutView({super.key});
 
   @override
   State<ScanToCheckoutView> createState() => _ScanToCheckoutViewState();
 }
 
-class _ScanToCheckoutViewState extends State<ScanToCheckoutView> {
+class _ScanToCheckoutViewState extends State<ScanToCheckoutView> with TickerProviderStateMixin {
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+
   @override
   Widget build(BuildContext context) {
-    final viewModel = locator<SaleViewModel>();
-
     return BaseView<SaleViewModel>(
-      onModelReady: (model) {
-        if (widget.scannedCode != null) {
-          model
-              .checkIfProductExists(widget.scannedCode!, context)
-              .then((added) {
-            if (added) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Product added to cart')),
-              );
-            }
-          });
-        }
-      },
-      builder: (context, model, child) => Scaffold(
-        backgroundColor: Colors.grey[100],
-        appBar: CustomAppBar(
-          title: "Scan to Checkout",
-          onBackPressed: () => Navigator.pop(context),
-          showMenuIcon: false,
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (context, model, child) {
+        print("Cart items in ScanToCheckoutView: ${model.cartItems.length}");
+        return Scaffold(
+          backgroundColor: Colors.grey[100],
+          appBar: CustomAppBar(
+            title: 'Cart',
+            onBackPressed: navigationService.goBack,
+            showMenuIcon: false,
+            actions: [
+              if (model.cartItems.isNotEmpty)
+                IconButton(
+                  icon: Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => model.clearCart(context),
+                ),
+            ],
+          ),
+          body: Column(
             children: [
-              Text("Scan Products for Checkout",
-                  style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 20),
+              if (model.isLoading.value)
+                Center(
+                  child: Lottie.asset(
+                    'assets/animations/loading.json',
+                    width: 100,
+                  ),
+                ),
               Expanded(
                 child: model.cartItems.isEmpty
-                    ? const Center(child: Text("No products in cart"))
-                    : ListView.builder(
-                        itemCount: model.cartItems.length,
-                        itemBuilder: (context, index) {
-                          final product = model.cartItems[index];
-                          return ListTile(
-                            title: Text(product.name ?? 'Unnamed Product'),
-                            subtitle: Text("Price: ${product.price} Naira"),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.remove),
-                                  onPressed: () =>
-                                      model.updateItemQuantityInReview(
-                                    product,
-                                    (product.quantity ?? 1) - 1,
-                                  ),
-                                ),
-                                Text("${product.quantity ?? 1}"),
-                                IconButton(
-                                  icon: const Icon(Icons.add),
-                                  onPressed: () =>
-                                      model.updateItemQuantityInReview(
-                                    product,
-                                    (product.quantity ?? 1) + 1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                    ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Lottie.asset(
+                        'assets/animations/empty_cart.json',
+                        height: 150,
                       ),
+                      10.0.sbH,
+                      AppText(
+                        'Your cart is empty.',
+                        style: subHeaderTextStyle,
+                      ),
+                    ],
+                  ),
+                )
+                    : AnimatedList(
+                  key: _listKey,
+                  initialItemCount: model.cartItems.length,
+                  itemBuilder: (context, index, animation) => _buildItem(context, model, model.cartItems[index], animation, index),
+                ),
               ),
-              const SizedBox(height: 20),
-              Text("Total Price: ${model.calculateTotalPrice()} Naira",
-                  style: const TextStyle(fontSize: 18)),
-              20.0.sbH,
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: AppButton(
-                      text: "Scan More Products",
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CheckoutScannerView(),
+              Padding(
+                padding: 16.0.padA,
+                child: Column(
+                  children: [
+                    AppText(
+                      'Total: \u20A6${model.calculateTotalPrice().toStringAsFixed(2)}',
+                      style: headerTextStyle.copyWith(color: ColorValues.primaryColor),
+                    ),
+                    20.0.sbH,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppButton(
+                            text: 'Scan More',
+                            backGroundColor: Colors.grey[300],
+                            textColor: Colors.black,
+                            onTap: () => navigationService.navigateToWidget(
+                              CheckoutScannerView(),
+                              transitionBuilder: (context, animation, secondaryAnimation, child) {
+                                return SlideTransition(
+                                  position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(animation),
+                                  child: child,
+                                );
+                              },
+                            ),
+                          ),
                         ),
-                      ),
+                        10.0.sbW,
+                        Expanded(
+                          child: AppButton(
+                            text: 'Review',
+                            isLoading: model.isLoading.value,
+                            onTap: model.cartItems.isEmpty
+                                ? null
+                                : () => navigationService.navigateToWidget(
+                              ReviewScreen(cartItems: model.cartItems),
+                              transitionBuilder: (context, animation, secondaryAnimation, child) {
+                                return SlideTransition(
+                                  position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
+                                  child: child,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 8.0),
-                  Expanded(
-                    child: AppButton(
-                      text: "Proceed to Review",
-                      onTap: () {
-                        // Passing the cart items to the review screen
-                        navigationService.navigateToWidget(
-                          ReviewScreen(cartItems: model.cartItems),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildItem(BuildContext context, SaleViewModel model, Cart item, Animation<double> animation, int index) {
+    return FadeTransition(
+      opacity: animation,
+      child: SizeTransition(
+        sizeFactor: animation,
+        child: _buildCartItem(context, model, item, index),
+      ),
+    );
+  }
+
+  Widget _buildCartItem(BuildContext context, SaleViewModel model, Cart item, int index) {
+    return Card(
+      elevation: 2,
+      margin: 8.0.padV,
+      child: ListTile(
+        title: AppText(
+          item.name ?? 'Unnamed Product',
+          style: bodyLarge,
+        ),
+        subtitle: AppText(
+          'Price: \u20A6${item.price.toStringAsFixed(2)} | Subtotal: \u20A6${item.subtotal.toStringAsFixed(2)}',
+          style: normalTextStyle12,
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+              onPressed: () {
+                if (item.quantity <= 1) {
+                  model.removeItemFromReview(item);
+                  _listKey.currentState?.removeItem(
+                    index,
+                        (context, animation) => _buildItem(context, model, item, animation, index),
+                    duration: const Duration(milliseconds: 300),
+                  );
+                } else {
+                  model.updateItemQuantityInReview(item, item.quantity - 1);
+                  setState(() {}); // Refresh UI
+                }
+              },
+            ),
+            AppText('${item.quantity}', style: bodyTextStyle),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline, color: Colors.green),
+              onPressed: () {
+                if (item.quantity < item.availableQuantity) {
+                  model.updateItemQuantityInReview(item, item.quantity + 1);
+                  setState(() {}); // Refresh UI
+                } else {
+                  showCustomToast('Maximum stock reached.');
+                }
+              },
+            ),
+          ],
         ),
       ),
     );

@@ -1,14 +1,18 @@
-import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../../app_widget/app_button.dart';
 import '../../../app_widget/custom_appbar.dart';
 import '../../../app_widget/input_fields.dart';
 import '../../../base/base_ui.dart';
 import '../../../constants/colors.dart';
+import '../../../constants/reuseable.dart';
 import '../../../constants/style.dart';
 import '../../../core/model/product_model.dart';
+import '../../../routes/routes.dart';
+import '../../../utils/snack_message.dart';
+import '../../../utils/widget_extension.dart';
 import '../vm/product_viewmodel.dart';
 
 class AddProductView extends StatefulWidget {
@@ -35,37 +39,20 @@ class _AddProductViewState extends State<AddProductView> {
   @override
   void initState() {
     super.initState();
-    print('AddProductView scannedCode: ${widget.scannedCode}'); // Debugging
+    print(
+        'AddProductView initState: scannedCode=${widget.scannedCode}, isEditing=${widget.isEditing}');
   }
 
   @override
   Widget build(BuildContext context) {
-    return BaseView<PRoductViewModel>(
+    return BaseView<ProductViewModel>(
       onModelReady: (model) {
         if (widget.scannedCode != null) {
-          // Fetch product details using the barcode
           model.fetchProductDetailsFromAPI(widget.scannedCode!);
-        } else if (widget.product != null) {
-          // If editing, populate the fields with existing product data
-          model.nameController.text = widget.product!.name ?? '';
-          model.sizeController.text = widget.product!.size ?? '';
-          model.brandController.text = widget.product!.brands ?? '';
-          model.filterController.text = widget.product!.category ?? '';
-          model.costPriceController.text = '${widget.product!.unitPrice ?? 0}';
-          model.unitPriceController.text = '${widget.product!.unitPrice ?? 0}';
-          model.quantityController.text = '${widget.product!.quantity ?? 1}';
-          model.minQuantityController.text =
-              '${widget.product!.minQuantity ?? 1}';
-          model.stockController.text = '${widget.product!.stock ?? 0}';
-          model.productImageUrl =
-              ''; // Load image URL from local data if needed
-
-          // Calculate totals after populating fields
-          model.updateTotals();
-          model.notifyListeners();
+        } else if (widget.isEditing && widget.product != null) {
+          model.populateControllers(widget.product!);
         } else {
-          model
-              .clearControllers(); // Clear fields if neither scannedCode nor product is available
+          model.clearControllers();
         }
       },
       builder: (context, model, child) => Stack(
@@ -74,8 +61,17 @@ class _AddProductViewState extends State<AddProductView> {
             backgroundColor: Colors.grey[100],
             appBar: CustomAppBar(
               title: widget.isEditing ? "Edit Product" : "Add Product",
-              onBackPressed: () => Navigator.pop(context),
+              onBackPressed: () => navigationService.goBack(),
               showMenuIcon: false,
+              actions: [
+                if (!widget.isEditing)
+                  IconButton(
+                    icon:
+                        const Icon(Icons.qr_code_scanner, color: Colors.white),
+                    onPressed: () =>
+                        navigationService.navigateTo(addProductScannerRoute),
+                  ),
+              ],
             ),
             body: Form(
               key: model.formKey,
@@ -84,9 +80,10 @@ class _AddProductViewState extends State<AddProductView> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      if (model.productImageUrl.isNotEmpty)
+                      if (model.productImageUrl != null &&
+                          model.productImageUrl!.isNotEmpty)
                         Image.network(
-                          model.productImageUrl,
+                          model.productImageUrl!,
                           height: 100,
                           width: 100,
                           fit: BoxFit.cover,
@@ -99,30 +96,73 @@ class _AddProductViewState extends State<AddProductView> {
                             size: 100, color: Colors.grey),
                       20.0.sbH,
                       AppTextField(
-                          hint: "Product Name",
-                          controller: model.nameController),
+                        hint: "Product Name",
+                        controller: model.nameController,
+                        validator: (value) =>
+                            value!.isEmpty ? 'Product name is required' : null,
+                      ),
                       20.0.sbH,
                       AppTextField(
-                          hint: "Size", controller: model.sizeController),
+                        hint: "Barcode (Optional)",
+                        controller: model.codeController,
+                      ),
                       20.0.sbH,
                       AppTextField(
-                          hint: "Brand", controller: model.brandController),
+                        hint: "Category",
+                        controller: model.categoryController,
+                        validator: (value) =>
+                            value!.isEmpty ? 'Category is required' : null,
+                      ),
                       20.0.sbH,
                       AppTextField(
-                          hint: "Category", controller: model.filterController),
+                        hint: "Size (Optional)",
+                        controller: model.sizeController,
+                      ),
+                      20.0.sbH,
+                      AppTextField(
+                        hint: "Brands (Optional)",
+                        controller: model.brandsController,
+                      ),
+                      20.0.sbH,
+                      AppTextField(
+                        hint: "Description (Optional)",
+                        controller: model.descriptionController,
+                        maxLength: 3,
+                      ),
+                      20.0.sbH,
+                      AppTextField(
+                        hint: "Expiry Date (Optional)",
+                        controller: model.expiryDateController,
+                        readonly: true,
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2100),
+                          );
+                          if (date != null) {
+                            model.expiryDateController.text =
+                                DateFormat('yyyy-MM-dd').format(date);
+                          }
+                        },
+                        suffixIcon: const Icon(Icons.calendar_today,
+                            color: ColorValues.greyColor),
+                      ),
                       20.0.sbH,
                       buildStepperField(
-                          "Cost Price", model.costPriceController),
+                          "Cost Price", model.costPriceController, model,
+                          isDecimal: true),
                       20.0.sbH,
                       buildStepperField(
-                          "Selling Price", model.unitPriceController),
-                      20.0.sbH,
-                      buildStepperField("Quantity", model.quantityController),
+                          "Selling Price", model.priceController, model,
+                          isDecimal: true),
                       20.0.sbH,
                       buildStepperField(
-                          "Minimum Quantity", model.minQuantityController),
+                          "Quantity", model.quantityController, model),
                       20.0.sbH,
-                      buildStepperField("Stock", model.stockController),
+                      buildStepperField("Minimum Quantity",
+                          model.minQuantityController, model),
                       20.0.sbH,
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -136,7 +176,7 @@ class _AddProductViewState extends State<AddProductView> {
                           children: [
                             Text("Total Value", style: normalTextStyle),
                             Text(
-                              model.totalValueController.text,
+                              model.getTotalValue(),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -155,24 +195,31 @@ class _AddProductViewState extends State<AddProductView> {
               padding: const EdgeInsets.all(16.0),
               child: AppButton(
                 text: widget.isEditing ? "Update Product" : "Add Product",
+                isLoading: model.isLoading.value,
                 onTap: () {
-                  print('Debug - Button pressed with:');
-                  print('scannedCode: ${widget.scannedCode}');
-                  print('ownerId: ${widget.ownerId}');
-                  print('storeId: ${widget.storeId}');
-                  model.saveOrUpdateProduct(
-                    isEditing: widget.isEditing,
-                    existingProduct: widget.product,
-                    scannedCode: widget.scannedCode,
-                    ownerId: widget.ownerId ?? '',
-                    storeId: widget.storeId ?? '',
-                    context: context,
-                  );
+                  print(
+                      'Add Product button pressed: ownerId=${widget.ownerId}, storeId=${widget.storeId}');
+                  if (model.formKey.currentState!.validate()) {
+                    if (widget.ownerId == null || widget.storeId == null) {
+                      showCustomToast('Error: Owner or store not selected.');
+                      return;
+                    }
+                    model.saveOrUpdateProduct(
+                      context: context,
+                      isEditing: widget.isEditing,
+                      existingProduct: widget.product,
+                      scannedCode: widget.scannedCode,
+                      ownerId: widget.ownerId!,
+                      storeId: widget.storeId!,
+                    );
+                  } else {
+                    showCustomToast('Please fill all required fields.');
+                  }
                 },
               ),
             ),
           ),
-          if (model.isFetchingExternalData)
+          if (model.isFetchingExternalData.value || model.isLoading.value)
             Container(
               color: Colors.black.withOpacity(0.3),
               child: Center(
@@ -187,8 +234,9 @@ class _AddProductViewState extends State<AddProductView> {
     );
   }
 
-  // Stepper Field for Quantity & Price Inputs
-  Widget buildStepperField(String label, TextEditingController controller) {
+  Widget buildStepperField(
+      String label, TextEditingController controller, ProductViewModel model,
+      {bool isDecimal = false}) {
     return StatefulBuilder(
       builder: (context, setState) {
         return Row(
@@ -204,9 +252,9 @@ class _AddProductViewState extends State<AddProductView> {
                   Container(
                     width: 60,
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: ColorValues.whiteColor,
-                      borderRadius: const BorderRadius.only(
+                      borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(16),
                         bottomLeft: Radius.circular(16),
                       ),
@@ -215,12 +263,17 @@ class _AddProductViewState extends State<AddProductView> {
                       icon: const Icon(Icons.remove,
                           color: ColorValues.greyColor),
                       onPressed: () {
-                        int currentValue = int.tryParse(controller.text) ?? 0;
+                        double currentValue =
+                            double.tryParse(controller.text) ?? 0;
                         if (currentValue > 0) {
-                          setState(() =>
-                              controller.text = (currentValue - 1).toString());
+                          setState(() {
+                            currentValue -= isDecimal ? 0.01 : 1;
+                            controller.text = isDecimal
+                                ? currentValue.toStringAsFixed(2)
+                                : currentValue.toInt().toString();
+                            model.updateTotals();
+                          });
                         }
-                        // No need to call updateTotals here as controller listeners will handle it
                       },
                     ),
                   ),
@@ -231,10 +284,13 @@ class _AddProductViewState extends State<AddProductView> {
                   ),
                   Container(
                     width: 70,
-                    decoration: BoxDecoration(color: ColorValues.whiteColor),
+                    decoration:
+                        const BoxDecoration(color: ColorValues.whiteColor),
                     child: TextField(
                       controller: controller,
-                      keyboardType: TextInputType.number,
+                      keyboardType: isDecimal
+                          ? const TextInputType.numberWithOptions(decimal: true)
+                          : TextInputType.number,
                       textAlign: TextAlign.center,
                       decoration: InputDecoration(
                         contentPadding:
@@ -246,11 +302,14 @@ class _AddProductViewState extends State<AddProductView> {
                       ),
                       onChanged: (value) {
                         setState(() {
-                          if (value.isEmpty || int.tryParse(value) == null) {
-                            controller.text = "0";
+                          if (value.isEmpty ||
+                              (isDecimal
+                                  ? double.tryParse(value) == null
+                                  : int.tryParse(value) == null)) {
+                            controller.text = isDecimal ? "0.00" : "0";
                           }
+                          model.updateTotals();
                         });
-                        // No need to call updateTotals here as controller listeners will handle it
                       },
                     ),
                   ),
@@ -262,20 +321,25 @@ class _AddProductViewState extends State<AddProductView> {
                   Container(
                     width: 60,
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: ColorValues.whiteColor,
-                      borderRadius: const BorderRadius.only(
+                      borderRadius: BorderRadius.only(
                         topRight: Radius.circular(16),
                         bottomRight: Radius.circular(16),
                       ),
                     ),
                     child: IconButton(
-                      icon: Icon(Icons.add, color: ColorValues.greyColor),
+                      icon: const Icon(Icons.add, color: ColorValues.greyColor),
                       onPressed: () {
-                        int currentValue = int.tryParse(controller.text) ?? 0;
-                        setState(() =>
-                            controller.text = (currentValue + 1).toString());
-                        // No need to call updateTotals here as controller listeners will handle it
+                        double currentValue =
+                            double.tryParse(controller.text) ?? 0;
+                        setState(() {
+                          currentValue += isDecimal ? 0.01 : 1;
+                          controller.text = isDecimal
+                              ? currentValue.toStringAsFixed(2)
+                              : currentValue.toInt().toString();
+                          model.updateTotals();
+                        });
                       },
                     ),
                   ),

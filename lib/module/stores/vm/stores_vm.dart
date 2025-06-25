@@ -1,14 +1,17 @@
+// Modified StoresViewModel
 import 'dart:convert';
-import 'package:etegram_business/base/base_vm.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../app_widget/celebration_widget.dart';
+
+import '../../../base/base_vm.dart';
 import '../../../constants/reuseable.dart';
+import '../../../core/model/auth_response.dart';
 import '../../../core/model/store_model.dart';
+import '../../../routes/routes.dart';
 import '../../../utils/snack_message.dart';
 
 class StoresViewModel extends BaseViewModel {
-  // Store Details
   String selectedStoreCategory = "";
   String selectedStoreType = "";
   String selectedStoreClassification = "";
@@ -19,47 +22,76 @@ class StoresViewModel extends BaseViewModel {
   String selectedCurrency = "Naira";
   var storeNameController = TextEditingController();
   List<Store>? allStores = [];
+  String businessName = "";
+  Customer? customer;
 
-  // Dropdown Lists
   List<Map<String, dynamic>> statesAndLGAs = [];
   List<String> statesList = [];
   List<String> lgaList = [];
   List<String> wardList = [];
-  List<String> currencyChoice = ["Naira", "Us Dollars", "EUROS", "YEN", "Others"];
+  List<String> currencyChoice = [
+    "Naira",
+    "US Dollars",
+    "EUROS",
+    "YEN",
+    "Others"
+  ];
   List<String> storesListOptions = ["Store", "Warehouse"];
-  List<String> storeTypeOption = ["Koisk", "Pharmacy", "Others", "Restaurant", "Recharge Card", "Whole sales", "Supermarket"];
-  List<String> classificationOptions = ["Main", 'Branch'];
+  List<String> storeTypeOption = [
+    "Kiosk",
+    "Pharmacy",
+    "Others",
+    "Restaurant",
+    "Recharge Card",
+    "Wholesale",
+    "Supermarket"
+  ];
+  List<String> classificationOptions = ["Main", "Branch"];
   List<String> countrySelectionOptions = ["Nigeria", "Gambia"];
 
-  // Form Validation and Editing State
   final ValueNotifier<bool> isFormValid = ValueNotifier<bool>(false);
   bool isEditing = false;
   Store? selectedStore;
 
-  void onInit() {
+  void onInit() async {
     storeNameController.addListener(validateForm);
-    loadStatesAndLGAs();
-    fetchStores();
+    await loadStatesAndLGAs();
+    await fetchStores();
+    customer = await authRepository.getUser() ??
+        await authRepository.getLocalServiceDetail();
+    if (customer != null) {
+      updateBusinessName();
+    }
+    notifyListeners();
   }
 
-  @override
-  void dispose() {
-    storeNameController.removeListener(validateForm);
-    storeNameController.dispose();
-    super.dispose();
+  Future<void> loadStatesAndLGAs() async {
+    try {
+      String jsonString = await rootBundle.loadString('assets/wards.json');
+      List<dynamic> jsonData = json.decode(jsonString);
+      statesAndLGAs = jsonData.cast<Map<String, dynamic>>();
+
+      statesList = ["Select State"]; // Ensure default option is included
+      statesList.addAll(
+          statesAndLGAs.map((state) => state['state'].toString()).toList());
+      notifyListeners();
+    } catch (e) {
+      print("Error loading JSON: $e");
+    }
   }
 
-  // Validation
   void validateForm() {
     isFormValid.value = storeNameController.text.isNotEmpty &&
         stateValue != "Select State" &&
         lgaValue != "Select Local Government" &&
         wardValue != "Select Ward" &&
         selectedStoreCategory.isNotEmpty &&
+        selectedStoreType.isNotEmpty &&
+        selectedStoreClassification.isNotEmpty &&
         selectedCurrency.isNotEmpty;
+    notifyListeners();
   }
 
-  // Dropdown Change Handlers
   void onStoreCategoryChanged(String category) {
     selectedStoreCategory = category;
     validateForm();
@@ -86,13 +118,14 @@ class StoresViewModel extends BaseViewModel {
 
   void onCountryChanged(String country) {
     selectedCountry = country;
+    validateForm();
     notifyListeners();
   }
 
   void onStateChanged(String value) {
     stateValue = value;
     lgaValue = 'Select Local Government';
-    wardValue = 'Select Ward';
+    wardValue = 'Select Area';
 
     var selectedState = statesAndLGAs.firstWhere(
           (state) => state['state'] == value,
@@ -101,7 +134,9 @@ class StoresViewModel extends BaseViewModel {
 
     lgaList = ['Select Local Government'];
     lgaList.addAll(selectedState.isNotEmpty
-        ? selectedState['lgas'].map<String>((lga) => lga['lga'].toString()).toList()
+        ? selectedState['lgas']
+        .map<String>((lga) => lga['lga'].toString())
+        .toList()
         : []);
 
     wardList = [];
@@ -111,7 +146,7 @@ class StoresViewModel extends BaseViewModel {
 
   void onLGAChanged(String value) {
     lgaValue = value;
-    wardValue = 'Select Ward';
+    wardValue = 'Select Area';
 
     var selectedState = statesAndLGAs.firstWhere(
           (state) => state['state'] == stateValue,
@@ -119,11 +154,13 @@ class StoresViewModel extends BaseViewModel {
     );
 
     var selectedLGA = selectedState.isNotEmpty
-        ? selectedState['lgas'].firstWhere((lga) => lga['lga'] == value, orElse: () => {})
+        ? selectedState['lgas']
+        .firstWhere((lga) => lga['lga'] == value, orElse: () => {})
         : {};
 
     wardList = ['Select Ward'];
-    wardList.addAll(selectedLGA.isNotEmpty ? selectedLGA['wards'].cast<String>() : []);
+    wardList.addAll(
+        selectedLGA.isNotEmpty ? selectedLGA['wards'].cast<String>() : []);
     validateForm();
     notifyListeners();
   }
@@ -134,36 +171,18 @@ class StoresViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  // Load States and LGAs
-  Future<void> loadStatesAndLGAs() async {
-    try {
-      String jsonString = await rootBundle.loadString('assets/wards.json');
-      List<dynamic> jsonData = json.decode(jsonString);
-      statesAndLGAs = jsonData.cast<Map<String, dynamic>>();
-
-      statesList = ["Select State"];
-      statesList.addAll(statesAndLGAs.map((state) => state['state'].toString()).toList());
-      notifyListeners();
-    } catch (e) {
-      print("Error loading JSON: $e");
-      showCustomToast("Error loading state and LGA data.", success: false);
-    }
-  }
-
-  // Editing State Management
   void setEditing(Store? store) {
     isEditing = store != null;
     selectedStore = store;
-
     if (isEditing && selectedStore != null) {
       storeNameController.text = selectedStore!.name ?? "";
-      selectedStoreType = selectedStore?.type ?? "";
-      selectedStoreClassification = selectedStore?.classification ?? "";
-      selectedCountry = selectedStore?.country ?? "";
-      stateValue = selectedStore?.state ?? "";
-      lgaValue = selectedStore?.lga ?? "";
-      selectedCurrency = selectedStore?.currency ?? '';
-      wardValue = selectedStore?.area ?? "";
+      selectedStoreType = selectedStore!.type ?? "";
+      selectedStoreClassification = selectedStore!.classification ?? "";
+      selectedCountry = selectedStore!.country ?? "";
+      stateValue = selectedStore!.state ?? "";
+      lgaValue = selectedStore!.lga ?? "";
+      selectedCurrency = selectedStore!.currency ?? '';
+      wardValue = selectedStore!.area ?? "";
     } else {
       storeNameController.clear();
       selectedStoreType = '';
@@ -174,14 +193,18 @@ class StoresViewModel extends BaseViewModel {
       selectedCurrency = '';
       wardValue = '';
     }
+    validateForm();
     notifyListeners();
   }
 
-  // Save Store (Create or Update)
-  Future<void> saveStore(BuildContext context) async {
+  Future<void> saveStore() async {
+    if (!isFormValid.value) {
+      showCustomToast("Please fill all required fields", success: false);
+      return;
+    }
     startLoader();
     try {
-      String ownerId = userService.customer.id ?? '';
+      String ownerId = userService.customer?.id ?? '';
       Store store = Store(
         id: isEditing ? selectedStore!.id : null,
         name: storeNameController.text,
@@ -195,67 +218,56 @@ class StoresViewModel extends BaseViewModel {
         owner: ownerId,
       );
 
-      Store? savedStore;
+      Store? savedStore; // Declare it here
       if (isEditing) {
-        // Call the updateStore method with the store ID and store data
         savedStore = await storeRepository.updateStore(store, selectedStore!.id!);
+        print("Updated Store Result: $savedStore"); // Add this print
       } else {
-        // Call the createStore method with the store data
         savedStore = await storeRepository.createStore(store);
+        print("Created Store Result: $savedStore"); // Add this print
       }
 
+      // Check the value of savedStore immediately
       if (savedStore != null) {
+        print("savedStore is NOT null. Proceeding to navigation."); // Crucial print
         showCustomToast(
-            isEditing ? "Store updated successfully!" : "Store created successfully!",
+            isEditing
+                ? "Store updated successfully!"
+                : "Store created successfully!",
             success: true);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CelebrationWidget(
-              title: isEditing ? "Store Updated Successfully!" : "Store Created Successfully!",
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
-              },
-            ),
-          ),
-        );
+        navigationService.navigateToAndRemoveUntil(addPaymentMethodRoute);
+        print("Navigation attempted for route: $addPaymentMethodRoute"); // Your existing print
       } else {
+        print("savedStore IS null. Navigation skipped."); // Crucial print
         showCustomToast(
             isEditing ? "Failed to update store." : "Failed to create store.",
             success: false);
       }
     } catch (e) {
+      print("Error in saveStore: $e"); // Ensure this catches unexpected errors
       showCustomToast("An error occurred: $e", success: false);
-      print("Error saving store: $e");
     } finally {
       stopLoader();
       notifyListeners();
     }
   }
 
-
-  // Fetch Stores
   Future<List<Store>> fetchStores() async {
     startLoader();
     try {
-      String ownerId = userService.customer.id ?? '';
-      List<Store> stores = await storeRepository.getStoresByOwner(ownerId);
-      stopLoader();
-      notifyListeners();
-      return stores;
+      allStores = await storeRepository.getStoresByOwner();
+      return allStores!;
     } catch (e) {
-      print("Error fetching stores: $e");
+      showCustomToast("Error fetching stores: $e", success: false);
+      return [];
+    } finally {
       stopLoader();
       notifyListeners();
-      return [];
     }
   }
 
-  // Getters for Dropdown Lists
-  List<String> getStoresListOptions() => storesListOptions;
-  List<String> getStoreTypeOption() => storeTypeOption;
-  List<String> getClassificationOptions() => classificationOptions;
-  List<String> getCountrySelectionOptions() => countrySelectionOptions;
-  List<String> getCurrencyChoiceOptions() => currencyChoice;
+  void updateBusinessName() {
+    businessName = customer?.businessName ?? '';
+    notifyListeners();
+  }
 }

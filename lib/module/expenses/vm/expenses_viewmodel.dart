@@ -1,65 +1,59 @@
-import 'package:etegram_business/base/base_vm.dart';
 import 'package:flutter/material.dart';
+import 'package:etegram_business/base/base_vm.dart';
+import 'package:etegram_business/core/model/expense_response.dart';
+import 'package:etegram_business/locator.dart';
+import 'package:etegram_business/service/local/user_service.dart';
+import 'package:etegram_business/utils/snack_message.dart';
+import 'package:etegram_business/routes/routes.dart';
 
-import '../../../app_widget/bottom_sheet.dart';
-import '../../../app_widget/success_pupup_widget.dart';
-import '../../../core/model/expense_response.dart';
+import '../../../app_widget/celebration_widget.dart';
 
 class ExpensesViewModel extends BaseViewModel {
-  // Add the form key that was missing
+  final formKey = GlobalKey<FormState>();
+  final amountController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final notesController = TextEditingController();
+  final ValueNotifier<bool> isFormValid = ValueNotifier<bool>(false);
+  final CustomerService _customerService = locator<CustomerService>();
 
-
-  ExpensesViewModel() {
-    // Set up listeners but with less frequent validation
-    amountController.addListener(_validateFormDebounced);
-    descriptionController.addListener(_validateFormDebounced);
-  }
-
-  /// 📝 State variables
   List<ExpenseData> _expenses = [];
   List<ExpenseData> get expenses => _expenses;
 
   ExpenseData? _expense;
   ExpenseData? get expense => _expense;
 
-  bool _isLoading = false;
+  String _userId = '';
+  String _storeId = '';
+  String category = '';
+  String paymentMethod = '';
+  String currency = '';
+  DateTime? selectedDate;
 
-  String _userId = "";
-  String category = "";
-  String paymentMethod = "";
-  String currency = "";
+  List<String> categoryList = ['UTILITIES', 'SUPPLIES', 'SALARIES', 'OTHER'];
+  List<String> paymentMethodList = ['Cash', 'Card', 'Online'];
+  List<String> currencyOption = ['Naira', 'USD', 'Euro'];
 
-  DateTime? selectedExpiryDate;
-
-  final TextEditingController amountController = TextEditingController();
-  final TextEditingController descriptionController = TextEditingController();
-
-  // Use ValueNotifier instead of calling notifyListeners for form validation
-  final ValueNotifier<bool> isFormValid = ValueNotifier<bool>(false);
-
-  // Debounce timer to prevent excessive validations
   DateTime? _lastValidationTime;
 
-  /// 🛑 Dispose controllers
-  @override
-  void dispose() {
-    amountController.removeListener(_validateFormDebounced);
-    descriptionController.removeListener(_validateFormDebounced);
-    amountController.dispose();
-    descriptionController.dispose();
-    isFormValid.dispose();
-    super.dispose();
+  ExpensesViewModel() {
+    amountController.addListener(_validateFormDebounced);
+    descriptionController.addListener(_validateFormDebounced);
+    notesController.addListener(_validateFormDebounced);
   }
 
-  void init() {
-    // Set initial userId if needed
-    // This can come from a service or provider
+  Future<void> init() async {
+    final userId = await _customerService.getOwnerId();
+    final storeId = await _customerService.getActiveStoreId();
+    if (userId == null || storeId == null) {
+      showCustomToast('User or store information missing.');
+      return;
+    }
+    _userId = userId;
+    _storeId = storeId;
     fetchExpenses();
   }
 
-  /// 🛠 Validate form fields with debouncing
   void _validateFormDebounced() {
-    // Only validate at most once every 500ms
     final now = DateTime.now();
     if (_lastValidationTime == null ||
         now.difference(_lastValidationTime!).inMilliseconds > 500) {
@@ -69,224 +63,235 @@ class ExpensesViewModel extends BaseViewModel {
   }
 
   void _validateForm() {
-    // Check all required fields
     bool valid = amountController.text.isNotEmpty &&
+        descriptionController.text.isNotEmpty &&
         category.isNotEmpty &&
         currency.isNotEmpty &&
-        paymentMethod.isNotEmpty;
-
-    // Only update if changed to prevent unnecessary rebuilds
+        paymentMethod.isNotEmpty &&
+        selectedDate != null;
     if (isFormValid.value != valid) {
       isFormValid.value = valid;
     }
   }
 
-  /// 📅 Show date picker
+  get validateForm => _validateForm();
+
   Future<void> selectDate(BuildContext context) async {
-    DateTime currentDate = DateTime.now();
-    DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
-      initialDate: selectedExpiryDate ?? currentDate,
-      firstDate: DateTime(1930), // Minimum date
-      lastDate: currentDate, // Prevent future dates
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
     );
 
-    if (picked != null && picked != selectedExpiryDate) {
-      selectedExpiryDate = picked;
-      notifyListeners();
-      _validateForm(); // Validate after date selection
-    }
-  }
-
-  /// 🏷️ Dropdown options
-  List<String> categoryList = [
-    "Health",
-    "School",
-    "Manufacture",
-    "Food",
-    "Agriculture",
-    "Budget"
-  ];
-
-  List<String> paymentMethodList = ["Cash", "Card", "Online"];
-  List<String> currencyOption = ["Naira", "USD", "Euro"];
-
-  /// 🔄 Handle dropdown changes
-  void onChangedPaymentMethod(String val) {
-    if (paymentMethod != val) {
-      paymentMethod = val;
+    if (picked != null && picked != selectedDate) {
+      selectedDate = picked;
       _validateForm();
       notifyListeners();
     }
   }
 
-  void onChangedCategory(String val) {
-    if (category != val) {
-      category = val;
+  void onChangedCategory(String? value) {
+    if (value != null && category != value) {
+      category = value;
       _validateForm();
       notifyListeners();
     }
   }
 
-  void onChangedCurrency(String val) {
-    if (currency != val) {
-      currency = val;
+  void onChangedPaymentMethod(String? value) {
+    if (value != null && paymentMethod != value) {
+      paymentMethod = value;
       _validateForm();
       notifyListeners();
     }
   }
 
-  /// 👤 Set user ID
-  void setUserId(String id) {
-    _userId = id;
+  void onChangedCurrency(String? value) {
+    if (value != null && currency != value) {
+      currency = value;
+      _validateForm();
+      notifyListeners();
+    }
   }
 
-  /// 💰 Create new expense
-  Future<void> createExpense() async {
-    if (_isLoading) return;
+  Future<void> createExpense(BuildContext context) async {
+    if (!formKey.currentState!.validate() || isLoading.value) return;
 
-    _isLoading = true;
+    isLoading.value = true;
     notifyListeners();
 
     try {
-      // Use current date if no date was selected
-      final expenseDate = selectedExpiryDate ?? DateTime.now();
-
-      var expense = ExpenseData(
+      final expense = ExpenseData(
         description: descriptionController.text.trim(),
         amount: double.parse(amountController.text.trim()),
         category: category,
-        userId: _userId,
+        storeId: _storeId,
         currency: currency,
         paymentMethod: paymentMethod,
-        date: expenseDate,
+        notes: notesController.text.trim().isNotEmpty
+            ? notesController.text.trim()
+            : null,
+        date: selectedDate,
       );
 
       final createdExpense = await expenseRepository.createExpense(expense);
       if (createdExpense != null) {
         _expenses.add(createdExpense);
-        // Clear form after successful creation
         _resetForm();
+        showCustomToast('Expense created successfully!');
+        // Navigate to CelebrationWidget with slide transition
+        navigationService.navigateToWidget(
+          CelebrationWidget(
+            title: 'Back to Dashboard',
+            onTap: () {
+              navigationService
+                  .navigateTo(dashboardRoute); // Navigate to dashboard
+            },
+            child: const Text(
+              'Expense Created Successfully!',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          transitionBuilder: (context, animation, secondaryAnimation, child) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            );
+          },
+        );
+      } else {
+        showCustomToast('Failed to create expense.');
       }
-
-      // Show success message if needed
-      await showSuccessPopup();
-
-    } catch (err) {
-      print("Error creating expense: $err");
-      // Show error message if needed
+    } catch (e) {
+      print('Error creating expense: $e');
+      showCustomToast('Error creating expense: $e');
     } finally {
-      _isLoading = false;
+      isLoading.value = false;
       notifyListeners();
     }
   }
 
-  // Reset form after successful submission
-  void _resetForm() {
-    amountController.clear();
-    descriptionController.clear();
-    category = "";
-    currency = "";
-    paymentMethod = "";
-    selectedExpiryDate = null;
-    _validateForm();
-  }
-
-  /// 📊 Fetch all expenses
   Future<void> fetchExpenses() async {
-    if (_isLoading) return;
+    if (isLoading.value) return;
 
-    _isLoading = true;
+    isLoading.value = true;
     notifyListeners();
 
     try {
-      _expenses = await expenseRepository.getAllExpenses() ?? [];
-    } catch (err) {
-      print("Error fetching expenses: $err");
+      final expenses = await expenseRepository.getAllExpenses(_storeId);
+      _expenses = expenses ?? [];
+    } catch (e) {
+      print('Error fetching expenses: $e');
+      showCustomToast('Error fetching expenses.');
     } finally {
-      _isLoading = false;
+      isLoading.value = false;
       notifyListeners();
     }
   }
 
-  /// 🔍 Fetch single expense
   Future<void> fetchExpenseById(String id) async {
-    if (_isLoading) return;
+    if (isLoading.value) return;
 
-    _isLoading = true;
+    isLoading.value = true;
     notifyListeners();
 
     try {
       _expense = await expenseRepository.getExpenseById(id, _userId);
-    } catch (err) {
-      print("Error fetching expense: $err");
+      if (_expense == null) {
+        showCustomToast('Expense not found.');
+      }
+    } catch (e) {
+      print('Error fetching expense: $e');
+      showCustomToast('Error fetching expense.');
     } finally {
-      _isLoading = false;
+      isLoading.value = false;
       notifyListeners();
     }
   }
 
-  /// ✏️ Update expense
-  Future<void> updateExpense(ExpenseData expense) async {
-    if (_isLoading) return;
+  Future<void> updateExpense(ExpenseData expense, BuildContext context) async {
+    if (isLoading.value) return;
 
-    _isLoading = true;
+    isLoading.value = true;
     notifyListeners();
 
     try {
-      final updatedExpense = await expenseRepository.updateExpense(expense);
+      final updatedExpense =
+          await expenseRepository.updateExpense(expense.copyWith(
+        storeId: _storeId,
+      ));
       if (updatedExpense != null) {
         final index = _expenses.indexWhere((e) => e.id == expense.id);
         if (index != -1) {
           _expenses[index] = updatedExpense;
         }
+        showCustomToast('Expense updated successfully!');
+        Navigator.of(context).pop();
+      } else {
+        showCustomToast('Failed to update expense.');
       }
-    } catch (err) {
-      print("Error updating expense: $err");
+    } catch (e) {
+      print('Error updating expense: $e');
+      showCustomToast('Error updating expense.');
     } finally {
-      _isLoading = false;
+      isLoading.value = false;
       notifyListeners();
     }
   }
 
-  /// ❌ Delete expense
-  Future<void> deleteExpense(String id) async {
-    if (_isLoading) return;
+  Future<void> deleteExpense(String id, BuildContext context) async {
+    if (isLoading.value) return;
 
-    _isLoading = true;
+    isLoading.value = true;
     notifyListeners();
 
     try {
       final deleted = await expenseRepository.deleteExpense(id, _userId);
       if (deleted) {
         _expenses.removeWhere((e) => e.id == id);
+        showCustomToast('Expense deleted successfully!');
+        Navigator.of(context).pop();
+      } else {
+        showCustomToast('Failed to delete expense.');
       }
-    } catch (err) {
-      print("Error deleting expense: $err");
+    } catch (e) {
+      print('Error deleting expense: $e');
+      showCustomToast('Error deleting expense.');
     } finally {
-      _isLoading = false;
+      isLoading.value = false;
       notifyListeners();
     }
   }
 
-  /// 🔄 Get dropdown options
+  void _resetForm() {
+    amountController.clear();
+    descriptionController.clear();
+    notesController.clear();
+    category = '';
+    currency = '';
+    paymentMethod = '';
+    selectedDate = null;
+    isFormValid.value = false;
+  }
+
   List<String> getCategoryListOptions() => categoryList;
   List<String> getPaymentOption() => paymentMethodList;
   List<String> getCurrencyOption() => currencyOption;
 
-  showSuccessPopup() {
-    showModalBottomSheet(
-      backgroundColor: Colors.transparent,
-      context: navigationService.navigatorKey.currentState!.context,
-      isScrollControlled: true,
-      isDismissible: false,
-      builder: (_) => BottomSheetScreen(
-        child: SuccessfulPopUpWidget(
-          title: "Expenses Created successfully!",
-          subTitle: "Your new expenses had been created successfully.",
-          onTap: navigationService.goBack,
-        ),
-      ),
-    ).whenComplete(navigationService.goBack);
+  @override
+  void dispose() {
+    amountController.removeListener(_validateFormDebounced);
+    descriptionController.removeListener(_validateFormDebounced);
+    notesController.removeListener(_validateFormDebounced);
+    amountController.dispose();
+    descriptionController.dispose();
+    notesController.dispose();
+    isFormValid.dispose();
+    super.dispose();
   }
 }

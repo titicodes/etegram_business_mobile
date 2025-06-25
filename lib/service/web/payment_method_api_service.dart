@@ -8,6 +8,7 @@ import '../../constants/app_url.dart';
 import '../../constants/reuseable.dart';
 import '../../core/model/payment_method_response.dart';
 import '../../locator.dart';
+import '../../utils/snack_message.dart';
 import '../local/storage_service.dart';
 import '../local/user_service.dart';
 import 'base_api.dart';
@@ -32,14 +33,25 @@ class PaymentMethodApiService {
       PaymentMethod paymentMethod) async {
     final token = await _getToken();
     if (token == null) throw Exception('No token found');
+
+    if (paymentMethod.store == null || paymentMethod.type == null) {
+      throw Exception(
+          'Store ID or Payment Method Type is missing for creation.');
+    }
+
     final payload = {
       "name": paymentMethod.name,
       "bank": paymentMethod.bank,
       "accountNumber": paymentMethod.accountNumber,
       "accountName": paymentMethod.accountName,
-      "extraInfo": paymentMethod.extraInfo,
+      "type": paymentMethod.type!.toBackendString(),
+      "storeId": paymentMethod.store,
+      "details": paymentMethod.details,
     };
+
     try {
+      print("Sending Payment Method Payload: $payload");
+
       Response response = await connect().post(
         AppUrls.createPaymentMethod,
         data: payload,
@@ -50,17 +62,45 @@ class PaymentMethodApiService {
         ),
       );
 
+      print("Response Status: ${response.statusCode}");
+      print("Response Data: ${response.data}");
 
-      PaymentMethod responseData = PaymentMethod.fromJson(response.data);
-      return responseData;
-    } on DioException catch (e) {
-      print(e.response);
-      if (e.response != null) {
-        print(
-            "❌ Payment Method: Dio error: ${e.response!.statusCode}, ${e.response!.data}");
+      // ✅ Fix: Handle response.data correctly based on its type
+      final Map<String, dynamic> parsedData;
+
+      if (response.data is String) {
+        parsedData = jsonDecode(response.data);
+      } else if (response.data is Map<String, dynamic>) {
+        parsedData = response.data;
       } else {
-        print("❌ getUser: Dio error: ${e.message}");
+        throw Exception(
+            "Unexpected response type: ${response.data.runtimeType}");
       }
+
+      PaymentResponse paymentResponse = PaymentResponse.fromJson(parsedData);
+
+      if (paymentResponse.success == true && paymentResponse.data != null) {
+        print(
+            "✅ Payment method created successfully: ${paymentResponse.data?.name}");
+        return paymentResponse.data;
+      } else {
+        print("❌ Payment method creation failed: ${paymentResponse.message}");
+        return null;
+      }
+    } on DioException catch (e) {
+      print(
+          "❌ Payment Method: Dio error: ${e.response?.statusCode}, ${e.response?.data}");
+      showCustomToast(
+        "Failed to create payment method: ${e.response?.data['message'] ?? e.message}",
+        success: false,
+      );
+      return null;
+    } catch (e) {
+      print("❌ Payment Method: General error: $e");
+      showCustomToast(
+        "An unexpected error occurred while creating payment method: $e",
+        success: false,
+      );
       return null;
     }
   }
@@ -82,10 +122,11 @@ class PaymentMethodApiService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.data);
         if (responseData['success'] == true && responseData['data'] != null) {
-          if (responseData['data'] is List) { // Check if data is a list.
+          if (responseData['data'] is List) {
+            // Check if data is a list.
             final List<dynamic> data = responseData['data'];
             List<PaymentMethod> paymentMethods =
-            data.map((json) => PaymentMethod.fromJson(json)).toList();
+                data.map((json) => PaymentMethod.fromJson(json)).toList();
 
             // Store all payment methods at once
             await storageService.storeItem(
@@ -95,10 +136,11 @@ class PaymentMethodApiService {
             );
 
             return paymentMethods;
-          } else if (responseData['data'] is Map && responseData['data']['data'] is List) {
+          } else if (responseData['data'] is Map &&
+              responseData['data']['data'] is List) {
             final List<dynamic> data = responseData['data']['data'];
             List<PaymentMethod> paymentMethods =
-            data.map((json) => PaymentMethod.fromJson(json)).toList();
+                data.map((json) => PaymentMethod.fromJson(json)).toList();
 
             // Store all payment methods at once
             await storageService.storeItem(
