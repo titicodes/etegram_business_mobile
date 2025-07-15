@@ -72,7 +72,7 @@ class Customer {
 
   final String? deviceToken;
   final int? point;
-  final String? image;
+  final String? imageUrl;
   final bool? isAdmin;
   final int? balance;
   final String? password;
@@ -110,7 +110,7 @@ class Customer {
     this.email,
     this.phoneNumber,
     this.point,
-    this.image,
+    this.imageUrl,
     this.isAdmin,
     this.balance,
     this.emailVerified,
@@ -151,7 +151,7 @@ class Customer {
       phoneNumber: json["phoneNumber"],
       point:
           json["point"] != null ? int.tryParse(json["point"].toString()) : null,
-      image: json["image"],
+      imageUrl: json["imageUrl"],
       isAdmin: json["isAdmin"],
       balance: json["balance"] != null
           ? int.tryParse(json["balance"].toString())
@@ -213,7 +213,7 @@ class Customer {
         "email": email,
         "phoneNumber": phoneNumber,
         "point": point,
-        "image": image,
+        "imageUrl": imageUrl,
         "isAdmin": isAdmin,
         "balance": balance,
         "emailVerified": emailVerified,

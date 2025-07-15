@@ -1,8 +1,11 @@
+
+
 import 'package:etegram_business/module/product/view/product_details_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import '../../../app_widget/app_text.dart';
 import '../../../app_widget/input_fields.dart';
 import '../../../base/base_ui.dart';
 import '../../../constants/assets.dart';
@@ -60,7 +63,7 @@ class SearchProductView extends StatelessWidget {
                                 children: [
                                   SvgPicture.asset(SvgAssets.noRecord, height: 100),
                                   const SizedBox(height: 8),
-                                  const Text(
+                                   AppText(
                                     'No products found',
                                     style: TextStyle(fontSize: 16, color: ColorValues.greyColor),
                                   ),
@@ -109,15 +112,27 @@ class SearchProductView extends StatelessWidget {
                                   ),
                                   trailing: IconButton(
                                     icon: const Icon(Icons.edit, color: Colors.blue),
-                                    onPressed: () => navigationService.navigateTo(
-                                      addProductViewRoute,
-                                      arguments: {
-                                        'isEditing': true,
-                                        'product': product,
-                                        'storeId': locator<CustomerService>().activeStoreId,
-                                        'ownerId': locator<CustomerService>().getOwnerId(),
-                                      },
-                                    ),
+                                    onPressed: () async {
+                                      final ownerId = await locator<CustomerService>().getOwnerId();
+                                      if (ownerId != null) {
+                                        navigationService.navigateTo(
+                                          addProductViewRoute,
+                                          arguments: {
+                                            'isEditing': true,
+                                            'product': product,
+                                            'storeId': locator<CustomerService>().activeStoreId,
+                                            'ownerId': ownerId,
+                                          },
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Failed to retrieve owner ID'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    },
                                   ),
                                   onTap: () => navigationService.navigateToWidget(
                                     ProductDetailsView(product: product),

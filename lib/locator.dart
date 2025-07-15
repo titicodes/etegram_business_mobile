@@ -1,5 +1,4 @@
 import 'package:etegram_business/module/account/viewmodel/change_pin_vm.dart';
-import 'package:etegram_business/module/account/viewmodel/profile_vw.dart';
 import 'package:etegram_business/module/auth/viewmodel/signin_vm.dart';
 import 'package:etegram_business/module/auth/viewmodel/signup_vm.dart';
 import 'package:etegram_business/module/auth/viewmodel/verify_email.dart';
@@ -39,6 +38,7 @@ import 'module/customer/vm/customer_vm.dart';
 import 'module/deliveries/vm/moved_product_vm.dart';
 import 'module/home/vm/main_nav_vm.dart';
 import 'module/onboarding/onboarding_vm.dart';
+import 'module/profile/vm/profle_vm.dart';
 import 'module/sales/vm/new_sales_vm.dart';
 import 'module/sales/vm/sales_record_vm.dart';
 import 'module/stores/vm/stores_vm.dart';

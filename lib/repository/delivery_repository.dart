@@ -42,7 +42,7 @@ class DeliveryRepository {
     return deliveryApiService.updateDeliveryAgent(delivery);
   }
 
-  Future<bool> deleteDeliveryAgent(String id) {
+  Future<bool?> deleteDeliveryAgent(String id) {
     return deliveryApiService.deleteDeliveryAgent(id);
   }
 }

@@ -43,6 +43,8 @@ class AppTextField extends StatefulWidget {
   final TextEditingController? controller;
   final TextInputType? keyboardType;
   final double? boxWidth;
+  final void Function(String)? onSubmitted; // Added
+  final TextInputAction? textInputAction;
 
   const AppTextField({
     super.key,
@@ -51,6 +53,8 @@ class AppTextField extends StatefulWidget {
     this.isPassword = false,
     this.hintText,
     this.hint,
+    this.onSubmitted, // Added
+    this.textInputAction, // Added
     this.onChanged,
     this.controller,
     this.keyboardType = TextInputType.text,
@@ -151,7 +155,7 @@ class _AppTextFieldState extends State<AppTextField> {
             readOnly: widget.readonly,
             enabled: widget.enabled,
             obscureText: widget.isPassword ? !isVisible : false,
-            textInputAction: TextInputAction.next,
+            textInputAction: widget.textInputAction ?? TextInputAction.next,
             controller: widget.controller,
             inputFormatters: widget.inputFormatters,
             decoration: InputDecoration(

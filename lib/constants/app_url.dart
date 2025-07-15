@@ -1,6 +1,6 @@
 abstract class AppUrls {
-  static const baseUrl = 'https://storefrontapp.etegramgroup.com/api/';
- // static const baseUrl = 'https://b438-2c0f-f5c0-428-9c60-5c0-b8e8-af96-bb70.ngrok-free.app/api/';
+ static const baseUrl = 'https://storefrontapp.etegramgroup.com/api/';
+ //static const baseUrl = 'https://34197e2530be.ngrok-free.app/api/';
   static const registerUrl = 'auth/register';
   static const verifyEmailUrl = "auth/verify-email";
   static const loginUrl = 'auth/login';
@@ -21,4 +21,5 @@ abstract class AppUrls {
   static const createCustomerUrl = 'customers';
   static const getExpenseUrl = "expenses";
   static const createDeliveryUrl = "deliveries";
+  static const String resendOtpUrl = "otp/resend";
 }

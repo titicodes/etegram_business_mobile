@@ -7,7 +7,7 @@ class Styles {
 
   static ThemeData themeData() {
     return ThemeData(
-        fontFamily: 'Poppins',
+        fontFamily: 'NotoSans',
         primaryColor: ColorValues.primaryColor,
         useMaterial3: false,
         primaryColorDark: ColorValues.primaryDarkColor,

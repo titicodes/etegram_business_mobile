@@ -146,6 +146,27 @@ class VerifyEmailViewModel extends BaseViewModel {
     }
   }
 
+  Future<void> resendOTP() async {
+    startLoader();
+    try {
+      String email = appCache.userData.email ?? "";
+      var response = await authRepository.resendOTP(email: email);
+      stopLoader();
+      if (response?.success == true) {
+        showCustomToast("OTP resent successfully", success: true);
+        startTimer(); // Restart the timer
+        pinCodeController.clear(); // Clear the input field
+      } else {
+        showCustomToast("Failed to resend OTP");
+      }
+      if (!_isDisposed) notifyListeners();
+    } catch (e) {
+      stopLoader();
+      showCustomToast("Failed to resend OTP: $e");
+      if (!_isDisposed) notifyListeners();
+    }
+  }
+
   @override
   void onModelReady() {
     email = appCache.userData.email ?? "";

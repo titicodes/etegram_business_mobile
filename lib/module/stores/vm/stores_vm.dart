@@ -1,15 +1,18 @@
-// Modified StoresViewModel
-import 'dart:convert';
 
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:etegram_business/base/base_vm.dart';
+import 'package:etegram_business/constants/reuseable.dart';
+import 'package:etegram_business/core/model/customer_response.dart';
+import 'package:etegram_business/core/model/store_model.dart';
+import 'package:etegram_business/routes/routes.dart';
+import 'package:etegram_business/utils/snack_message.dart';
 
-import '../../../base/base_vm.dart';
-import '../../../constants/reuseable.dart';
 import '../../../core/model/auth_response.dart';
-import '../../../core/model/store_model.dart';
-import '../../../routes/routes.dart';
-import '../../../utils/snack_message.dart';
+import '../../../locator.dart';
+import '../../../repository/auth_repository.dart';
 
 class StoresViewModel extends BaseViewModel {
   String selectedStoreCategory = "";
@@ -53,12 +56,26 @@ class StoresViewModel extends BaseViewModel {
   bool isEditing = false;
   Store? selectedStore;
 
-  void onInit() async {
+  // void onInit() async {
+  //   storeNameController.addListener(validateForm);
+  //   await loadStatesAndLGAs();
+  //   await fetchStores();
+  //   final authResponse = await locator<AuthRepository>().getUser();
+  //   customer = authResponse?.data?.user ??
+  //       await locator<AuthRepository>().getLocalServiceDetail();
+  //   if (customer != null) {
+  //     updateBusinessName();
+  //   }
+  //   notifyListeners();
+  // }
+
+  Future<void> onInit() async {
     storeNameController.addListener(validateForm);
     await loadStatesAndLGAs();
     await fetchStores();
-    customer = await authRepository.getUser() ??
-        await authRepository.getLocalServiceDetail();
+    final authResponse = await locator<AuthRepository>().getUser();
+    customer = authResponse?.data?.user ??
+        await locator<AuthRepository>().getLocalServiceDetail();
     if (customer != null) {
       updateBusinessName();
     }
@@ -71,7 +88,7 @@ class StoresViewModel extends BaseViewModel {
       List<dynamic> jsonData = json.decode(jsonString);
       statesAndLGAs = jsonData.cast<Map<String, dynamic>>();
 
-      statesList = ["Select State"]; // Ensure default option is included
+      statesList = ["Select State"];
       statesList.addAll(
           statesAndLGAs.map((state) => state['state'].toString()).toList());
       notifyListeners();
@@ -128,15 +145,15 @@ class StoresViewModel extends BaseViewModel {
     wardValue = 'Select Area';
 
     var selectedState = statesAndLGAs.firstWhere(
-          (state) => state['state'] == value,
+      (state) => state['state'] == value,
       orElse: () => {},
     );
 
     lgaList = ['Select Local Government'];
     lgaList.addAll(selectedState.isNotEmpty
         ? selectedState['lgas']
-        .map<String>((lga) => lga['lga'].toString())
-        .toList()
+            .map<String>((lga) => lga['lga'].toString())
+            .toList()
         : []);
 
     wardList = [];
@@ -149,13 +166,13 @@ class StoresViewModel extends BaseViewModel {
     wardValue = 'Select Area';
 
     var selectedState = statesAndLGAs.firstWhere(
-          (state) => state['state'] == stateValue,
+      (state) => state['state'] == stateValue,
       orElse: () => {},
     );
 
     var selectedLGA = selectedState.isNotEmpty
         ? selectedState['lgas']
-        .firstWhere((lga) => lga['lga'] == value, orElse: () => {})
+            .firstWhere((lga) => lga['lga'] == value, orElse: () => {})
         : {};
 
     wardList = ['Select Ward'];
@@ -218,33 +235,33 @@ class StoresViewModel extends BaseViewModel {
         owner: ownerId,
       );
 
-      Store? savedStore; // Declare it here
+      Store? savedStore;
       if (isEditing) {
-        savedStore = await storeRepository.updateStore(store, selectedStore!.id!);
-        print("Updated Store Result: $savedStore"); // Add this print
+        savedStore =
+            await storeRepository.updateStore(store, selectedStore!.id!);
+        print("Updated Store Result: $savedStore");
       } else {
         savedStore = await storeRepository.createStore(store);
-        print("Created Store Result: $savedStore"); // Add this print
+        print("Created Store Result: $savedStore");
       }
 
-      // Check the value of savedStore immediately
       if (savedStore != null) {
-        print("savedStore is NOT null. Proceeding to navigation."); // Crucial print
+        print("savedStore is NOT null. Proceeding to navigation.");
         showCustomToast(
             isEditing
                 ? "Store updated successfully!"
                 : "Store created successfully!",
             success: true);
         navigationService.navigateToAndRemoveUntil(addPaymentMethodRoute);
-        print("Navigation attempted for route: $addPaymentMethodRoute"); // Your existing print
+        print("Navigation attempted for route: $addPaymentMethodRoute");
       } else {
-        print("savedStore IS null. Navigation skipped."); // Crucial print
+        print("savedStore IS null. Navigation skipped.");
         showCustomToast(
             isEditing ? "Failed to update store." : "Failed to create store.",
             success: false);
       }
     } catch (e) {
-      print("Error in saveStore: $e"); // Ensure this catches unexpected errors
+      print("Error in saveStore: $e");
       showCustomToast("An error occurred: $e", success: false);
     } finally {
       stopLoader();
@@ -253,15 +270,31 @@ class StoresViewModel extends BaseViewModel {
   }
 
   Future<List<Store>> fetchStores() async {
-    startLoader();
+    isLoading.value = true;
     try {
       allStores = await storeRepository.getStoresByOwner();
-      return allStores!;
+      print("Fetched ${allStores?.length} stores");
+      notifyListeners();
+      return allStores ?? [];
     } catch (e) {
       showCustomToast("Error fetching stores: $e", success: false);
       return [];
     } finally {
-      stopLoader();
+      isLoading.value = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteStore(String storeId) async {
+    isLoading.value = true;
+    try {
+      await storeRepository.deleteStore(storeId); // Add to StoreRepository
+      allStores = allStores?.where((store) => store.id != storeId).toList();
+      showCustomToast("Store deleted successfully", success: true);
+    } catch (e) {
+      showCustomToast("Error deleting store: $e", success: false);
+    } finally {
+      isLoading.value = false;
       notifyListeners();
     }
   }

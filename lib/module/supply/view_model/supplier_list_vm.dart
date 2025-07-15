@@ -198,7 +198,7 @@ class SupplierListViewModel extends BaseViewModel {
       name: data.name ?? "Unknown Product",
       size: "N/A",
       expiryDate: null,
-      price: data.price?.toInt(),
+      price: data.price?.toDouble(),
     );
   }
 }

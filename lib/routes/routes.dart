@@ -28,8 +28,11 @@ const String addProductScannerRoute = '/add-product-scanner';
 const String scanToCheckoutRoute = '/scan-to-checkout';
 const String reviewScreenRoute = '/review-screen';
 const String paymentScreenRoute = '/payment-screen';
-
+const String salesListRoute = "/sales-list";
 const String customersListRoute = '/customers-list';
 const String newCustomersRoute = '/new-customer';
 const String birthdaysRoute = '/birthdays';
+const String subscriptionRoute = "subscription-route";
+const String owningRecordsRoute = "owning-record-screen";
+const String howItWorksRoute = '/how-it-works';
 

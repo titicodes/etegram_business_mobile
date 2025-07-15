@@ -31,7 +31,7 @@ class StoreRepository {
 
   Future<List<Store>> getStoresByOwner() async {
     try {
-      var response = await storeApiService.getStoresByOwner();
+      final response = await storeApiService.getStoresByOwner();
       if (response != null) {
         await storageService.storeItem(
           key: DbTable.storeTableName,
@@ -41,7 +41,24 @@ class StoreRepository {
       }
       return [];
     } catch (e) {
+      print("StoreRepository: Failed to fetch stores: $e");
+      // Fallback to cached stores if available
+      final cachedData = await storageService.readItem(key: DbTable.storeTableName);
+      if (cachedData != null) {
+        final List<dynamic> jsonList = jsonDecode(cachedData);
+        return jsonList.map((json) => Store.fromJson(json)).toList();
+      }
       throw "Failed to fetch stores: $e";
+    }
+  }
+
+  Future<void> deleteStore(String storeId) async {
+    try {
+      await storeApiService.deleteStore(storeId);
+      await storageService.deleteItem(key: DbTable.storeTableName);
+      await customerService.fetchStores();
+    } catch (e) {
+      throw "Failed to delete store: $e";
     }
   }
 

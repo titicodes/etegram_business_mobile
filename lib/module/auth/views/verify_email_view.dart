@@ -102,6 +102,31 @@ class VerifyEmailView extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // RichText(
+                    //   text: TextSpan(
+                    //     children: [
+                    //       TextSpan(
+                    //           text: StringValues.didntReceive,
+                    //           style: subStyle.copyWith(fontSize: 15)),
+                    //       model.timer?.isActive == true
+                    //           ? TextSpan(
+                    //               text:
+                    //                   "Wait ${model.formatTime(model.secondsRemaining)}",
+                    //               style: normalTextStyle.copyWith(fontSize: 15),
+                    //             )
+                    //           : TextSpan(
+                    //               text: "Resend OTP",
+                    //               style: subUnderlineGreenStyle.copyWith(
+                    //                   fontSize: 15,
+                    //                   color: ColorValues.primaryColor),
+                    //               recognizer: TapGestureRecognizer()
+                    //                 ..onTap = model.verifyOTP,
+                    //             ),
+                    //     ],
+                    //   ),
+                    //   textAlign: TextAlign.center,
+                    // ),
+                    // In VerifyEmailView
                     RichText(
                       text: TextSpan(
                         children: [
@@ -110,18 +135,17 @@ class VerifyEmailView extends StatelessWidget {
                               style: subStyle.copyWith(fontSize: 15)),
                           model.timer?.isActive == true
                               ? TextSpan(
-                                  text:
-                                      "Wait ${model.formatTime(model.secondsRemaining)}",
-                                  style: normalTextStyle.copyWith(fontSize: 15),
-                                )
+                            text: "Wait ${model.formatTime(model.secondsRemaining)}",
+                            style: normalTextStyle.copyWith(fontSize: 15),
+                          )
                               : TextSpan(
-                                  text: "Resend OTP",
-                                  style: subUnderlineGreenStyle.copyWith(
-                                      fontSize: 15,
-                                      color: ColorValues.primaryColor),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = model.verifyOTP,
-                                ),
+                            text: "Resend OTP",
+                            style: subUnderlineGreenStyle.copyWith(
+                                fontSize: 15,
+                                color: ColorValues.primaryColor),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = model.resendOTP, // Change to resendOTP
+                          ),
                         ],
                       ),
                       textAlign: TextAlign.center,

@@ -14,6 +14,8 @@ import 'package:flutter/material.dart';
 import '../../customer/views/birth_day_view.dart';
 import '../../customer/views/customer_list_view.dart';
 import '../../customer/views/new_customer.dart';
+import '../../sales/view/sales_list.dart';
+import '../../sales/view/sales_record.dart';
 import '../views/home_view.dart';
 
 class NavDrawer extends StatefulWidget {
@@ -178,6 +180,38 @@ class _NavDrawerState extends State<NavDrawer> {
                     onTap: () {
                       navigationService.goBack();
                       _navigateWithAnimation(const ListOfSuppliers());
+                    },
+                  ),
+                ],
+              ),
+              ExpansionTile(
+                leading: const Icon(Icons.join_full),
+                title: AppText('Sales', style: normalTextStyle12),
+                onExpansionChanged: (expanded) =>
+                    setState(() => _isDeliveryExpanded = expanded),
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.arrow_back),
+                    title: AppText('Sales Records', style: normalTextStyle12),
+                    onTap: () {
+                      navigationService.goBack();
+                      _navigateWithAnimation(const SalesRecordScreen());
+                    },
+                  ),
+                  // ListTile(
+                  //   leading: const Icon(Icons.refresh),
+                  //   title: AppText('Delivery Agents', style: normalTextStyle12),
+                  //   onTap: () {
+                  //     navigationService.goBack();
+                  //     _navigateWithAnimation(const DeliveryAgent());
+                  //   },
+                  // ),
+                  ListTile(
+                    leading: const Icon(Icons.baby_changing_station),
+                    title: AppText('Sales List', style: normalTextStyle12),
+                    onTap: () {
+                      navigationService.goBack();
+                      _navigateWithAnimation(const SalesList());
                     },
                   ),
                 ],

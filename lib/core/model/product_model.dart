@@ -17,94 +17,108 @@ class AddProductResponse {
 class Product {
   final String? id;
   final String? name;
-  final String? imageUrl;
   final String? code;
   final String? category;
-  final String? categoryId;
-  final int? price;
-  final int? costPrice;
+  final double? price;
+  final double? costPrice;
   final int? quantity;
-  final String? size;
-  final String? expiryDate;
-  final String? brands;
-  final String? store;
-  final String? owner;
-  final int? stock;
   final int? minQuantity;
+  final String? expiryDate;
   final String? description;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  final String? size;
+  final String? brands;
+  final String? storeId; // <-- This field is important for the payload
+  final String? owner; // <-- This field is also important for the payload
+  final String? imageUrl;
 
   Product({
     this.id,
     this.name,
-    this.imageUrl = "PR",
     this.code,
     this.category,
-    this.categoryId,
     this.price,
     this.costPrice,
     this.quantity,
-    this.size,
-    this.expiryDate,
-    this.brands,
-    this.store,
-    this.owner,
-    this.stock,
     this.minQuantity,
+    this.expiryDate,
     this.description,
-    this.createdAt,
-    this.updatedAt,
+    this.size,
+    this.brands,
+    this.storeId, // Make sure this is passed when creating Product object
+    this.owner, // Make sure this is passed when creating Product object
+    this.imageUrl,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['_id']?.toString(),
-      name: json['name'],
-      code: json['code'],
-      category: json['category'],
-      categoryId: json['categoryId'] is Map
-          ? json['categoryId']['_id']?.toString()
-          : json['categoryId']?.toString(),
-      price: json['price']?.toInt(),
-      costPrice: json['costPrice']?.toInt(),
-      quantity: json['quantity']?.toInt(),
-      size: json['size'],
-      expiryDate: json['expiryDate'],
-      brands:
-          json['brands'] is List ? json['brands'].join(', ') : json['brands'],
-      store: json['store']?.toString(),
+      name: json['name']?.toString(),
+      code: json['code']?.toString(),
+      category: json['category']?.toString(),
+      price: _parseDouble(json['price']),
+      costPrice: _parseDouble(json['costPrice']),
+      quantity: _parseInt(json['quantity']),
+      minQuantity: _parseInt(json['minQuantity']),
+      expiryDate: json['expiryDate']?.toString(),
+      description: json['description']?.toString(),
+      size: json['size']?.toString(),
+      brands: json['brands']?.toString(),
+      storeId: json['storeId']?.toString(),
       owner: json['owner']?.toString(),
-      stock: json['stock']?.toInt(),
-      minQuantity: json['minQuantity']?.toInt(),
-      description: json['description'],
-      createdAt:
-          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-      updatedAt:
-          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
+      imageUrl: json['imageUrl']?.toString(),
     );
+  }
+
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    if (value is double) return value.toInt();
+    return null;
   }
 
   Map<String, dynamic> toJson() {
     return {
-      '_id': id,
-      'name': name,
-      'code': code,
-      'category': category,
-      'categoryId': categoryId,
-      'price': price,
-      'costPrice': costPrice,
-      'quantity': quantity,
-      'size': size,
-      'expiryDate': expiryDate,
-      'brands': brands,
-      'store': store,
-      'owner': owner,
-      'stock': stock,
-      'minQuantity': minQuantity,
-      'description': description,
-      'createdAt': createdAt?.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
+      if (id != null) '_id': id,
+      if (name != null) 'name': name,
+      if (code != null) 'code': code,
+      if (category != null) 'category': category,
+      if (price != null) 'price': price,
+      if (costPrice != null) 'costPrice': costPrice,
+      if (quantity != null) 'quantity': quantity,
+      if (minQuantity != null) 'minQuantity': minQuantity,
+      if (expiryDate != null) 'expiryDate': expiryDate,
+      if (description != null) 'description': description,
+      if (size != null) 'size': size,
+      if (brands != null) 'brands': brands,
+      if (storeId != null) 'storeId': storeId,
+      if (owner != null) 'owner': owner,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+    };
+  }
+
+  Map<String, dynamic> toCreateJson() {
+    return {
+      'name': name ?? '',
+      'category': category ?? 'Uncategorized',
+      'price': price ?? 1.0,
+      'costPrice': costPrice ?? 0.0,
+      'quantity': quantity ?? 1,
+      'minQuantity': minQuantity ?? 1,
+      'storeId': storeId ?? '',
+      if (expiryDate != null) 'expiryDate': expiryDate,
+      if (description != null) 'description': description,
+      if (size != null) 'size': size,
+      if (brands != null) 'brands': brands,
+      if (imageUrl != null) 'imageUrl': imageUrl,
     };
   }
 }

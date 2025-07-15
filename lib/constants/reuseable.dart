@@ -26,6 +26,7 @@ class DbTable {
   static const String storeTableName = "storesTable";
   static const String supplierTableName = "supplyTable";
   static const String activeStoreId = "activeStoreId";
+  static const String subscriptionTableName = 'subscription';
 }
 
 class Sized16Container extends StatelessWidget {

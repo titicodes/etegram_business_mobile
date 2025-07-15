@@ -1,4 +1,3 @@
-// auth_repository.dart
 import 'dart:convert';
 import 'package:etegram_business/core/model/auth_response.dart';
 import 'package:etegram_business/service/local/user_service.dart';
@@ -8,6 +7,7 @@ import '../locator.dart';
 import '../service/local/cache.dart';
 import '../service/local/storage_service.dart';
 import '../service/web/auth_api.dart';
+import '../utils/snack_message.dart';
 
 class AuthRepository {
   final AppCache appCache = locator<AppCache>();
@@ -24,13 +24,18 @@ class AuthRepository {
     }
   }
 
-  Future<AuthResponse?> verifyEmail({required String email, required int code}) async {
+  Future<AuthResponse?> verifyEmail(
+      {required String email, required int code}) async {
     try {
       return await auth.emailVerifier(email: email, code: code);
     } catch (e) {
       print("Error verifying email: $e");
       return null;
     }
+  }
+
+  Future<AuthResponse?> resendOTP({required String email}) async {
+    return auth.resendOTP(email: email);
   }
 
   Future<AuthResponse?> login({required Customer customer}) async {
@@ -70,11 +75,11 @@ class AuthRepository {
     }
   }
 
-  Future<Customer?> getUser() async {
+  Future<AuthResponse?> getUser() async {
     try {
       var response = await auth.getUser();
-      if (response?.id != null) {
-        await customerService.storeUser(response);
+      if (response?.data?.user?.id != null) {
+        await customerService.storeUser(response!.data!.user);
       }
       return response;
     } catch (e) {
@@ -85,7 +90,8 @@ class AuthRepository {
 
   Future<Customer?> getLocalServiceDetail() async {
     try {
-      String? storedData = await storageService.readItem(key: DbTable.customerTableName);
+      String? storedData =
+          await storageService.readItem(key: DbTable.customerTableName);
       print("STORED USER DATA: $storedData");
       if (storedData == null || storedData.isEmpty) return null;
       var jsonData = jsonDecode(storedData);
@@ -102,10 +108,25 @@ class AuthRepository {
     required String oldPin,
   }) async {
     try {
-      return await auth.changePin(userId: userId, newPin: newPin, oldPin: oldPin);
+      return await auth.changePin(
+          userId: userId, newPin: newPin, oldPin: oldPin);
     } catch (e) {
       print("Error changing PIN: $e");
       return false;
+    }
+  }
+
+  Future<Customer?> uploadProfileImage(String userId, String filePath, {required String fileName}) async {
+    try {
+      final user = await auth.uploadProfileImage(userId, filePath);
+      if (user != null) {
+        print('Stored user profile image: ${user.imageUrl}');
+      }
+      return user;
+    } catch (e) {
+      print('Error uploading profile image: $e');
+      showCustomToast('Failed to upload profile image.');
+      return null;
     }
   }
 }

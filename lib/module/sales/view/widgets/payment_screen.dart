@@ -38,6 +38,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: ColorValues.backgroundColor,
       appBar: CustomAppBar(
         title: 'Payment',
         onBackPressed: navigationService.goBack,
@@ -100,7 +101,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Widget _buildPaymentOption(String method) {
     return Card(
-      elevation: 4,
+      elevation: 0,
       margin: 8.0.padV,
       child: RadioListTile<String>(
         title: AppText(

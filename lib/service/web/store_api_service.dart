@@ -6,6 +6,7 @@ import 'package:get_storage/get_storage.dart';
 import '../../constants/app_url.dart';
 import '../../constants/reuseable.dart'; // Make sure DbTable is here
 import '../../core/model/store_model.dart'; // Make sure Store model is here
+import '../../utils/snack_message.dart';
 import 'base_api.dart'; // Assuming `connect()` comes from here
 
 class StoreApiService {
@@ -55,6 +56,53 @@ class StoreApiService {
     }
   }
 
+  // Future<List<Store>?> getStoresByOwner() async {
+  //   try {
+  //     final box = GetStorage();
+  //     String? token = box.read(DbTable.tokenTableName);
+  //     if (token == null) {
+  //       print("StoreApiService: No token found");
+  //       showCustomToast("Authentication token missing. Please log in again.");
+  //       return [];
+  //     }
+  //
+  //     final response = await connect().get(
+  //       'stores', // Correct endpoint: /stores
+  //       options: Options(headers: {'Authorization': 'Bearer $token'}),
+  //     );
+  //
+  //     print("Stores Response (from getStoresByOwner): ${response.data}");
+  //
+  //     if (response.statusCode == 200) {
+  //       if (response.data is List<dynamic>) {
+  //         // Backend returns a direct array of stores
+  //         final List<dynamic> dataList = response.data;
+  //         final stores = dataList
+  //             .map((e) => Store.fromJson(e as Map<String, dynamic>))
+  //             .toList();
+  //         return stores;
+  //       } else {
+  //         print(
+  //             "Unexpected response format for getStoresByOwner: ${response.data.runtimeType}");
+  //         showCustomToast("Unexpected response format from server.");
+  //         return [];
+  //       }
+  //     }
+  //     print("Failed to fetch stores: Status ${response.statusCode}");
+  //     showCustomToast("Failed to fetch stores: ${response.statusMessage}");
+  //     return [];
+  //   } on DioException catch (e) {
+  //     print("Dio Error fetching stores: ${e.response?.data ?? e.message}");
+  //     showCustomToast(
+  //         "Error fetching stores: ${e.response?.data['message'] ?? e.message}");
+  //     return [];
+  //   } catch (e) {
+  //     print("Unexpected Error fetching stores: $e");
+  //     showCustomToast("Unexpected error fetching stores: $e");
+  //     return [];
+  //   }
+  // }
+
   Future<List<Store>?> getStoresByOwner() async {
     try {
       final box = GetStorage();
@@ -92,6 +140,29 @@ class StoreApiService {
     } catch (e) {
       print("Unexpected Error fetching stores: $e");
       throw "Unexpected Error fetching stores: $e";
+    }
+  }
+
+  Future<void> deleteStore(String storeId) async {
+    try {
+      final box = GetStorage();
+      String? token = box.read(DbTable.tokenTableName);
+      if (token == null) {
+        throw "No authentication token found";
+      }
+
+      final response = await connect().delete(
+        'stores/$storeId',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode != 200) {
+        throw "Failed to delete store: ${response.statusMessage}";
+      }
+    } on DioException catch (e) {
+      throw "Error deleting store: ${e.response?.data['message'] ?? e.message}";
+    } catch (e) {
+      throw "Unexpected error deleting store: $e";
     }
   }
 

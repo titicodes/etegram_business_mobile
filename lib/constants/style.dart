@@ -6,14 +6,14 @@ import 'dimens.dart';
 
 TextStyle normalTextStyle = TextStyle(
   fontSize: AppFontSizes.bodyNormalSize14,
-  fontFamily: 'Poppins',
+  fontFamily: 'NotoSans',
   color: ColorValues.appTextColor,
   fontWeight: FontWeight.normal,
 );
 
 TextStyle normalTextStyle12 = TextStyle(
   fontSize: AppFontSizes.bodyNormalSize14,
-  fontFamily: 'Poppins',
+  fontFamily: 'NotoSans',
   color: ColorValues.primaryColor,
   fontWeight: FontWeight.normal,
 );
@@ -21,35 +21,35 @@ TextStyle normalTextStyle12 = TextStyle(
 TextStyle hintStyle = TextStyle(
   color: ColorValues.hintTextColor,
   fontSize: AppFontSizes.bodyNormalSize14,
-  fontFamily: 'Poppins',
+  fontFamily: 'NotoSans',
   fontWeight: FontWeight.w400,
 );
 
 TextStyle subStyle = TextStyle(
   color: ColorValues.appTextColor,
   fontSize: AppFontSizes.bodySmallSize12,
-  fontFamily: 'Poppins',
+  fontFamily: 'NotoSans',
   fontWeight: FontWeight.w400,
 );
 
 TextStyle subUnderlineGreenStyle = TextStyle(
   color: ColorValues.primaryColor,
   fontSize: AppFontSizes.bodySmallSize12,
-  fontFamily: 'Poppins',
+  fontFamily: 'NotoSans',
   decoration: TextDecoration.underline,
   fontWeight: FontWeight.w400,
 );
 
 TextStyle bodyTextStyle = TextStyle(
   fontSize: AppFontSizes.bodyNormalSize14,
-  fontFamily: 'Poppins',
+  fontFamily: 'NotoSans',
   color: ColorValues.appTextColor,
   fontWeight: FontWeight.normal,
 );
 
 TextStyle subBodyTextStyle = TextStyle(
   fontSize: AppFontSizes.titleNormalSize15,
-  fontFamily: 'Poppins',
+  fontFamily: 'NotoSans',
   color: ColorValues.appTextColor,
   fontWeight: FontWeight.normal,
 );
@@ -57,12 +57,12 @@ TextStyle subBodyTextStyle = TextStyle(
 TextStyle bodyTextStyle2 = TextStyle(
   color: ColorValues.appTextColor,
   fontSize: AppFontSizes.titleNormalSize15,
-  fontFamily: 'Poppins',
+  fontFamily: 'NotoSans',
   fontWeight: FontWeight.w500,
 );
 
 TextStyle headerTextStyle = TextStyle(
-  fontFamily: 'Poppins',
+  fontFamily: 'NotoSans',
   fontSize: 18.sp,
   color: ColorValues.appTextColor,
   fontWeight: FontWeight.bold,

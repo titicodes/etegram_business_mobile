@@ -1,119 +1,215 @@
-// import 'package:etegram_business/base/base_vm.dart';
-// import 'package:etegram_business/core/model/get_search_response.dart';
-// import 'package:etegram_business/repository/product_repository.dart';
-// import 'package:mobile_scanner/mobile_scanner.dart';
-// import '../../../app_widget/barcode_scanner_view.dart';
-// import '../../../constants/assets.dart';
-// import '../../../core/model/cart_item.dart';
-// import '../../../core/model/get_scan_response.dart';
-// import '../../../core/model/product_model.dart';
-// import 'package:flutter/material.dart';
-//
-// import '../../../locator.dart';
-// import '../../../service/local/user_service.dart';
-// import '../../../utils/snack_message.dart';
-// import '../../product/view/add_product.dart';
-//
-// class SaleViewModel extends BaseViewModel {
-//   ProductData? selectedProduct;
-//   GetScanResponse? addProductResponse;
-//   SearchProductResponse? searchProductResponse;
-//   List<ProductData> search = [];
-//   List<Cart> cartItems = [];
-//   List<Cart> cart = [];
-//   double totalAmount = 0.0;
-//
-//   double discount = 0.0;
-//   double tax = 0.0;
-//   String paymentMethod = 'Cash';
-//   int quantity = 1;
-//   double costPrice = 0.0;
-//   double unitPrice = 0.0;
-//   int minQuantity = 1;
-//   final _customerService = locator<CustomerService>();
-//
-//   /// ✅ Update quantity values dynamically
-//   void updateQuantity(int change) {
-//     quantity = (quantity + change).clamp(1, 9999);
-//     notifyListeners();
-//   }
-//
-//   void updateCostPrice(int change) {
-//     costPrice = (costPrice + change).clamp(0, 999999);
-//     notifyListeners();
-//   }
-//
-//   void updateUnitPrice(int change) {
-//     unitPrice = (unitPrice + change).clamp(0, 999999);
-//     notifyListeners();
-//   }
-//
-//   void updateMinQuantity(int change) {
-//     minQuantity = (minQuantity + change).clamp(1, quantity);
-//     notifyListeners();
-//   }
-//
-//   void updateDiscount(double value) {
-//     discount = value;
-//     notifyListeners();
-//   }
-//
-//   void updateTax(double value) {
-//     tax = value;
-//     notifyListeners();
-//   }
-//
-//   void updatePaymentMethod(String method) {
-//     paymentMethod = method;
-//     notifyListeners();
-//   }
-//
-//   /// 📦 Scan and add product
-//   Future<void> scanAndAddProduct(int code) async {
-//     try {
-//       startLoader();
-//       final ownerId = await _customerService.getOwnerId();
-//       final storeId = await _customerService.getStoreId();
-//
-//       if (ownerId == null || storeId == null) {
-//         showCustomToast('Missing owner or store ID.');
-//         return;
-//       }
-//       GetScanResponse? response =
-//           await salesRepository.getScanProduct(code: code, ownerId: ownerId, storeId: storeId);
-//
-//       if (response?.success == true && response?.data?.product != null) {
-//         ScanProduct product = response!.data!.product!;
-//
-//         // Check if product is already in cart
-//         int index = cart.indexWhere((item) => item.code == product.code);
-//         if (index != -1) {
-//           cart[index].quantity += 1;
-//           cart[index].subtotal = cart[index].quantity * cart[index].price;
-//         } else {
-//           cart.add(Cart(
-//             id: product.id!,
-//             name: product.name!,
-//             price: product.price!,
-//             code: product.code!,
-//             quantity: 1,
-//             subtotal: product.price!,
-//           ));
-//         }
-//
-//         _calculateTotal();
-//         notifyListeners();
-//       }
-//     } catch (e) {
-//       print("Error in scanAndAddProduct: $e");
-//     } finally {
-//       stopLoader();
-//     }
-//   }
-//
-//   /// 🔄 Calculate total amount
-//   void _calculateTotal() {
-//     totalAmount = cart.fold(0.0, (sum, item) => sum + item.subtotal);
-//   }
-//
-//  }
+import 'package:etegram_business/base/base_vm.dart';
+import 'package:etegram_business/locator.dart';
+import 'package:etegram_business/repository/sales_repository.dart';
+import 'package:etegram_business/service/local/user_service.dart';
+import 'package:etegram_business/utils/snack_message.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_toggle_tab/flutter_toggle_tab.dart';
+
+import '../../../core/model/sales_records.dart';
+
+class SalesRecordViewModel extends BaseViewModel {
+  final SalesRepository salesRepository = locator<SalesRepository>();
+  final CustomerService customerService = locator<CustomerService>();
+
+  final ValueNotifier<int> tebIndex = ValueNotifier(0);
+  final List<DataTab> recordTaps = [
+    DataTab(title: 'Owing'),
+    DataTab(title: 'Owed'),
+  ];
+
+  final List<String> timeOfSale = [
+    'Today',
+    'This Week',
+    'This Month',
+    'All Time'
+  ];
+  final List<String> paymentMethod = ['Cash', 'Card', 'Credit'];
+  final List<String> customer = ['All Customers', 'Customer A', 'Customer B'];
+  final List<String> staff = ['All Staff', 'Staff A', 'Staff B'];
+  final List<String> filterBySelection = ['Date', 'Amount', 'Product'];
+  final List<String> filterOwingRecord = ['All', 'Supplier A', 'Supplier B'];
+
+  final ValueNotifier<List<SalesRecord>> salesHistory = ValueNotifier([]);
+  final ValueNotifier<List<SalesRecord>> owingRecords = ValueNotifier([]);
+  final ValueNotifier<List<SalesRecord>> owedRecords = ValueNotifier([]);
+  final ValueNotifier<double> totalOwing = ValueNotifier(0.0);
+  final ValueNotifier<double> totalOwed = ValueNotifier(0.0);
+  final ValueNotifier<int> totalSuppliers = ValueNotifier(0);
+  final ValueNotifier<int> totalCustomers = ValueNotifier(0);
+
+  String? selectedTimeOfSale;
+  String? selectedPaymentMethod;
+  String? selectedCustomer;
+  String? selectedStaff;
+  String? selectedFilterBy;
+  String? selectedSupplier;
+
+  void init() async {
+    final storeId = await customerService.getActiveStoreId();
+    if (storeId == null) {
+      showCustomToast('No active store selected.');
+      return;
+    }
+    await fetchSalesData(storeId);
+  }
+
+  Future<void> fetchSalesData(String storeId) async {
+    startLoader();
+    try {
+      final history = await salesRepository.getSalesHistory(storeId: storeId);
+      final owing = await salesRepository.getOwingRecords(storeId: storeId);
+      final owed = await salesRepository.getOwedRecords(storeId: storeId);
+
+      salesHistory.value = history;
+      owingRecords.value = owing;
+      owedRecords.value = owed;
+
+      totalOwing.value =
+          owing.fold(0.0, (sum, record) => sum + record.totalPriceWithTax);
+      totalOwed.value =
+          owed.fold(0.0, (sum, record) => sum + record.totalPriceWithTax);
+      totalSuppliers.value = owing.map((r) => r.supplierId).toSet().length;
+      totalCustomers.value = owed.map((r) => r.customerId).toSet().length;
+
+      print(
+          'Fetched: ${history.length} sales, ${owing.length} owing, ${owed.length} owed records');
+    } catch (e) {
+      print('Error fetching sales data: $e');
+      showCustomToast('Failed to fetch sales data.');
+    } finally {
+      stopLoader();
+      notifyListeners();
+    }
+  }
+
+  void onchangeSelectTimeOfSales(String? value) {
+    selectedTimeOfSale = value;
+    notifyListeners();
+    _filterSalesData();
+  }
+
+  void onchangeSelectPaymentMethod(String? value) {
+    selectedPaymentMethod = value;
+    notifyListeners();
+    _filterSalesData();
+  }
+
+  void onchangeSelectedCustomer(String? value) {
+    selectedCustomer = value;
+    notifyListeners();
+    _filterSalesData();
+  }
+
+  void onchangeSelectStaff(String? value) {
+    selectedStaff = value;
+    notifyListeners();
+    _filterSalesData();
+  }
+
+  void onchangeSelectFilteredBy(String? value) {
+    selectedFilterBy = value;
+    notifyListeners();
+    _filterSalesData();
+  }
+
+  void onQueryChanged(String? value) {
+    selectedSupplier = value;
+    notifyListeners();
+    _filterSalesData();
+  }
+
+  void _filterSalesData() async {
+    final storeId = await customerService.getActiveStoreId();
+    if (storeId == null) return;
+
+    startLoader();
+    try {
+      List<SalesRecord> filteredHistory = salesHistory.value;
+      List<SalesRecord> filteredOwing = owingRecords.value;
+      List<SalesRecord> filteredOwed = owedRecords.value;
+
+      if (selectedTimeOfSale != null && selectedTimeOfSale != 'All Time') {
+        final now = DateTime.now();
+        DateTime startDate;
+        switch (selectedTimeOfSale) {
+          case 'Today':
+            startDate = DateTime(now.year, now.month, now.day);
+            break;
+          case 'This Week':
+            startDate = now.subtract(Duration(days: now.weekday - 1));
+            break;
+          case 'This Month':
+            startDate = DateTime(now.year, now.month, 1);
+            break;
+          default:
+            startDate = DateTime(1970);
+        }
+        filteredHistory = filteredHistory
+            .where((r) => r.createdAt.isAfter(startDate))
+            .toList();
+        filteredOwing =
+            filteredOwing.where((r) => r.createdAt.isAfter(startDate)).toList();
+        filteredOwed =
+            filteredOwed.where((r) => r.createdAt.isAfter(startDate)).toList();
+      }
+
+      if (selectedPaymentMethod != null && selectedPaymentMethod != 'All') {
+        final method = selectedPaymentMethod == 'Credit'
+            ? 'CREDIT'
+            : selectedPaymentMethod!.toUpperCase();
+        filteredHistory =
+            filteredHistory.where((r) => r.paymentMethod == method).toList();
+        filteredOwing =
+            filteredOwing.where((r) => r.paymentMethod == method).toList();
+        filteredOwed =
+            filteredOwed.where((r) => r.paymentMethod == method).toList();
+      }
+
+      if (selectedCustomer != null && selectedCustomer != 'All Customers') {
+        filteredOwed = filteredOwed
+            .where((r) => r.customerId == selectedCustomer)
+            .toList();
+      }
+
+      if (selectedSupplier != null && selectedSupplier != 'All') {
+        filteredOwing = filteredOwing
+            .where((r) => r.supplierId == selectedSupplier)
+            .toList();
+      }
+
+      salesHistory.value = filteredHistory;
+      owingRecords.value = filteredOwing;
+      owedRecords.value = filteredOwed;
+
+      totalOwing.value = filteredOwing.fold(
+          0.0, (sum, record) => sum + record.totalPriceWithTax);
+      totalOwed.value = filteredOwed.fold(
+          0.0, (sum, record) => sum + record.totalPriceWithTax);
+      totalSuppliers.value =
+          filteredOwing.map((r) => r.supplierId).toSet().length;
+      totalCustomers.value =
+          filteredOwed.map((r) => r.customerId).toSet().length;
+
+      notifyListeners();
+    } catch (e) {
+      print('Error filtering sales data: $e');
+      showCustomToast('Failed to filter sales data.');
+    } finally {
+      stopLoader();
+    }
+  }
+
+  @override
+  void dispose() {
+    tebIndex.dispose();
+    salesHistory.dispose();
+    owingRecords.dispose();
+    owedRecords.dispose();
+    totalOwing.dispose();
+    totalOwed.dispose();
+    totalSuppliers.dispose();
+    totalCustomers.dispose();
+    super.dispose();
+  }
+}

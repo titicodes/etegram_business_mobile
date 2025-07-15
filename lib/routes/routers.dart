@@ -3,12 +3,15 @@ import 'package:etegram_business/module/auth/views/signup_view.dart';
 import 'package:etegram_business/module/auth/views/verify_email_view.dart';
 import 'package:etegram_business/module/auth/views/widgets/payment_method_view.dart';
 import 'package:etegram_business/module/home/views/home_view.dart';
+import 'package:etegram_business/module/home/views/how_it_works_view.dart';
 import 'package:etegram_business/module/home/views/main_nav.dart';
 import 'package:etegram_business/module/product/view/add_product.dart';
 import 'package:etegram_business/module/product/view/product_view.dart';
 import 'package:etegram_business/module/product/view/product_list_view.dart';
 import 'package:etegram_business/module/product/view/product_details_view.dart';
 import 'package:etegram_business/module/profile/view/profile_view.dart';
+import 'package:etegram_business/module/sales/view/owning_records.dart';
+import 'package:etegram_business/module/sales/view/sales_list.dart';
 import 'package:etegram_business/module/splash/splash_view.dart';
 import 'package:etegram_business/module/stores/views/new_stores.dart';
 import 'package:etegram_business/module/supply/view/new_supplier.dart';
@@ -28,6 +31,7 @@ import '../module/customer/views/customer_list_view.dart';
 import '../module/customer/views/new_customer.dart';
 import '../module/sales/view/widgets/payment_screen.dart';
 import '../module/sales/vm/review_screen.dart';
+import '../module/subscription/view/subscription_view.dart';
 
 class Routers {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -64,6 +68,8 @@ class Routers {
         return MaterialPageRoute(builder: (_) => AddPaymentMethodView());
       case forgetPasswordRoute:
         return MaterialPageRoute(builder: (_) => ForgetPasswordView());
+      case subscriptionRoute:
+        return MaterialPageRoute(builder: (_) => const SubscriptionView());
       case createStoreRoute:
         return MaterialPageRoute(builder: (_) => NewStores());
       case addProductViewRoute:
@@ -109,10 +115,17 @@ class Routers {
       case newCustomersRoute:
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
-          builder: (_) => NewCustomers(customer: args?['customer'] as CustomerData?),
+          builder: (_) =>
+              NewCustomers(customer: args?['customer'] as CustomerData?),
         );
       case birthdaysRoute:
         return MaterialPageRoute(builder: (_) => BirthdaysView());
+      case salesListRoute:
+        return MaterialPageRoute(builder: (_) => SalesList());
+      case owningRecordsRoute:
+        return MaterialPageRoute(builder: (_) => OwningRecords());
+      case howItWorksRoute:
+        return MaterialPageRoute(builder: (_) => HowItWorksView());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

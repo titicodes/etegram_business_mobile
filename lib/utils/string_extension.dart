@@ -4,15 +4,38 @@ import 'package:etegram_business/utils/validator.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart' show launchUrl;
 
-
 const ext = 0;
 final formatCurrency =
-NumberFormat.simpleCurrency(locale: Platform.localeName, name: 'NGN');
+    NumberFormat.simpleCurrency(locale: 'en_NG', name: 'NGN');
 
-//Formats the amount and returns a formatted amount
 String formatPrice(String amount) {
-  return formatCurrency.format(num.parse(amount)).toString();
+  try {
+    return formatCurrency.format(num.parse(amount)).toString();
+  } catch (e) {
+    return 'NGN $amount'; // Fallback to avoid box symbol
+  }
 }
+
+String manualFormat(String amount) {
+  try {
+    final number = num.parse(amount);
+    final formatted = NumberFormat('#,##0.00', 'en_NG').format(number);
+    return '\u20A6 $formatted';
+  } catch (e) {
+    return ' $amount'; // Fallback to NGN
+  }
+}
+
+// String manualFormat(String amount) {
+//   try {
+//     final number = num.parse(amount);
+//     final formatted = NumberFormat('#,##0.00', 'en_NG').format(number);
+//     return '\u20A6 $formatted';
+//   } catch (e) {
+//     return 'NGN $amount'; // Fallback to NGN
+//   }
+// }
+
 
 extension StringCasingExtension on String {
   String? camelCase() => toBeginningOfSentenceCase(this);
@@ -41,7 +64,8 @@ extension ImagePath on String {
 String decodeErrorMessage(Map map) {
   String? errorMessage = "";
   map.forEach((key, value) {
-    errorMessage = "${errorMessage!}- ${map[key].toString().replaceAll("]", "").replaceAll("[", "")}\n";
+    errorMessage =
+        "${errorMessage!}- ${map[key].toString().replaceAll("]", "").replaceAll("[", "")}\n";
   });
   return errorMessage!;
 }
@@ -90,8 +114,7 @@ String formatPhoneNumber(String phoneNumber) {
 
 String? Function(String?)? emailValidator = (String? val) {
   String validate = val!.replaceAll(RegExp(r"\s+"), "");
-  if (validate.isEmpty ||
-      !RegExp(emailRegex).hasMatch(validate)) {
+  if (validate.isEmpty || !RegExp(emailRegex).hasMatch(validate)) {
     return 'Enter valid email';
   }
   return null; // Return null for valid input
@@ -99,17 +122,17 @@ String? Function(String?)? emailValidator = (String? val) {
 
 String? Function(String?)? passwordValidator = (String? val) {
   RegExp regEx = RegExp(r"(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])\w+");
-  if(val!.length<6){
+  if (val!.length < 6) {
     return "Enter a password of more than 6 characters";
-  }else if(regEx.hasMatch(val)==false){
+  } else if (regEx.hasMatch(val) == false) {
     return "Your Password must have a capital letter small letter and number";
   }
   return null;
 };
 
 String? Function(String?)? emptyValidator = (String? val) {
-  String value = val??"";
-  if(value.trim().isEmpty){
+  String value = val ?? "";
+  if (value.trim().isEmpty) {
     return "value cannot be empty";
   }
   return null;
@@ -136,14 +159,13 @@ String? validatePhoneNumber(String? value) {
 }
 
 String? fullNameValidator(String? value) {
-  if(value==null){
+  if (value == null) {
     return "Full name cannot be empty";
-  }else if(validateFullName(value)){
+  } else if (validateFullName(value)) {
     return "Full Name not Valid";
   }
   return null;
 }
-
 
 List<String> convertDynamicListToStringList(List<dynamic> dynamicList) {
   List<String> stringList = [];
@@ -173,9 +195,11 @@ String formatErrorMessageList(List<String> errorMessages) {
     formattedString.write("• "); // Add a bullet point
 
     if (i == errorMessages.length - 1) {
-      formattedString.write(errorMessage); // Add the error message without a new line
+      formattedString
+          .write(errorMessage); // Add the error message without a new line
     } else {
-      formattedString.writeln(errorMessage); // Add the error message with a new line
+      formattedString
+          .writeln(errorMessage); // Add the error message with a new line
     }
   }
 

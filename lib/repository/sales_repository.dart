@@ -3,6 +3,8 @@ import 'package:etegram_business/core/model/get_scan_response.dart';
 import 'package:etegram_business/locator.dart';
 import 'package:etegram_business/service/web/sales_api_service.dart';
 
+import '../core/model/sales_records.dart';
+
 class SalesRepository {
   final SalesApiService _salesApiService = locator<SalesApiService>();
 
@@ -97,5 +99,22 @@ class SalesRepository {
         data: null,
       );
     }
+  }
+
+  Future<List<SalesRecord>> getSalesHistory(
+      {required String storeId, String? productId}) async {
+    return _salesApiService.getSalesHistory(
+        storeId: storeId, productId: productId);
+  }
+
+  Future<List<SalesRecord>> getOwingRecords(
+      {required String storeId, String? supplierId}) async {
+    return _salesApiService.getOwingRecords(
+        storeId: storeId, supplierId: supplierId);
+  }
+
+  Future<List<SalesRecord>> getOwedRecords(
+      {required String storeId, String? customerId}) async{
+    return _salesApiService.getOwedRecords(storeId: storeId, customerId: customerId);
   }
 }

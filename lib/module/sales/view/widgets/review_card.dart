@@ -2,7 +2,7 @@ import 'package:etegram_business/app_widget/app_text.dart';
 import 'package:etegram_business/constants/style.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // ✅ Import intl
+import 'package:intl/intl.dart';
 
 class ReviewCard extends StatelessWidget {
   const ReviewCard({
@@ -22,8 +22,7 @@ class ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nairaFormat =
-        NumberFormat.currency(locale: 'en_NG', symbol: '₦'); // ✅ Formatter
+    final nairaFormat = NumberFormat.currency(locale: 'en_NG', symbol: '₦');
 
     return Container(
       width: width(context),

@@ -37,7 +37,7 @@ class ProductView extends StatelessWidget {
         appBar: CustomAppBar(
           title: 'Products',
           onBackPressed: () {
-            navigationService.goBack();
+            navigationService.navigateTo(dashboardRoute);
           },
           showMenuIcon: true,
           onMenuPressed: () {
