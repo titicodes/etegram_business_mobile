@@ -1,5 +1,3 @@
-
-
 import 'package:dio/dio.dart';
 import 'package:etegram_business/base/base_vm.dart';
 import 'package:etegram_business/core/model/get_scan_response.dart';
