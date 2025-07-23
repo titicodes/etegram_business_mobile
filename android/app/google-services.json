@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "446629770923",
+    "project_id": "etegram-sales-app",
+    "storage_bucket": "etegram-sales-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:446629770923:android:216a2d8c8fd2ee1d2469ee",
+        "android_client_info": {
+          "package_name": "com.etegramsales.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC92dgaQ95Wx0hysZ1MLHTQuIo_VuXxH_A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

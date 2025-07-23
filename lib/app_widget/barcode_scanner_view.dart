@@ -1,226 +1,3 @@
-//
-// import 'package:etegram_business/app_widget/safe_mobile_scanner_view.dart';
-// import 'package:flutter/material.dart';
-// import 'package:mobile_scanner/mobile_scanner.dart';
-// import 'package:lottie/lottie.dart';
-// import 'package:etegram_business/locator.dart';
-// import 'package:etegram_business/module/product/view/add_product.dart';
-// import 'package:etegram_business/module/sales/view/scan_to_checkout.dart';
-// import 'package:etegram_business/module/sales/vm/new_sales_vm.dart';
-// import 'package:etegram_business/service/local/user_service.dart';
-// import 'package:etegram_business/utils/snack_message.dart';
-// import 'package:etegram_business/constants/colors.dart';
-// import 'package:etegram_business/routes/routes.dart';
-// import 'package:etegram_business/app_widget/scanner_control_bar.dart';
-// import 'package:etegram_business/utils/widget_extension.dart';
-// import '../../../constants/reuseable.dart';
-//
-// class CheckoutScannerView extends StatefulWidget {
-//   const CheckoutScannerView({super.key});
-//
-//   @override
-//   State<CheckoutScannerView> createState() => _CheckoutScannerViewState();
-// }
-//
-// class _CheckoutScannerViewState extends State<CheckoutScannerView> {
-//   final Set<String> _scannedBarcodes = {};
-//   final CustomerService _customerService = locator<CustomerService>();
-//   bool _isProcessing = false;
-//
-//   void _onBarcodeDetected(BarcodeCapture capture) async {
-//     if (_isProcessing || capture.barcodes.isEmpty) return;
-//
-//     final barcodeValue = capture.barcodes.first.rawValue;
-//     if (barcodeValue == null ||
-//         barcodeValue.isEmpty ||
-//         _scannedBarcodes.contains(barcodeValue)) return;
-//
-//     _scannedBarcodes.add(barcodeValue);
-//     setState(() => _isProcessing = true);
-//
-//     try {
-//       await _handleScan(barcodeValue);
-//     } catch (e, stackTrace) {
-//       print('Barcode processing error: $e\n$stackTrace');
-//       showCustomToast('Error processing barcode: $e');
-//     } finally {
-//       if (mounted) {
-//         _scannedBarcodes.remove(barcodeValue);
-//         setState(() => _isProcessing = false);
-//       }
-//     }
-//   }
-//
-//   Future<void> _handleScan(String barcode) async {
-//     final model = locator<SaleViewModel>();
-//     final activeStoreId = await _customerService.getActiveStoreId();
-//     if (activeStoreId == null) {
-//       showCustomToast('No active store selected.');
-//       return;
-//     }
-//
-//     print('Handling scan for barcode: $barcode, storeId: $activeStoreId');
-//     final exists = await model.checkIfProductExists(barcode, context,
-//         activeStoreId: activeStoreId);
-//     if (exists) {
-//       if (!mounted) return;
-//       await showDialog(
-//         context: context,
-//         barrierDismissible: false,
-//         builder: (context) => Dialog(
-//           backgroundColor: Colors.transparent,
-//           child: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [
-//               Lottie.asset(
-//                 'assets/animations/success.json',
-//                 height: 100,
-//                 repeat: false,
-//               ),
-//               10.0.sbH,
-//               const Text(
-//                 'Product Scanned!',
-//                 style: TextStyle(color: Colors.white, fontSize: 18),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ).timeout(const Duration(seconds: 1),
-//           onTimeout: () => Navigator.pop(context));
-//       if (!mounted) return;
-//       navigationService.navigateToWidget(
-//         const ScanToCheckoutView(),
-//         transitionBuilder: (context, animation, secondaryAnimation, child) {
-//           return SlideTransition(
-//             position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
-//                 .animate(animation),
-//             child: child,
-//           );
-//         },
-//       );
-//     } else {
-//       await _showProductNotFoundDialog(barcode);
-//     }
-//   }
-//
-//   Future<void> _showProductNotFoundDialog(String barcode) async {
-//     final ownerId = await _customerService.getOwnerId();
-//     final storeId = await _customerService.getActiveStoreId();
-//     if (!mounted) return;
-//
-//     await showDialog(
-//       context: context,
-//       builder: (context) => AlertDialog(
-//         title: const Text('Product Not Found'),
-//         content: Text(
-//             'Product with barcode "$barcode" not found in store. Would you like to add it?'),
-//         actions: [
-//           TextButton(
-//             onPressed: () {
-//               Navigator.pop(context);
-//             },
-//             child: const Text('Scan Another'),
-//           ),
-//           TextButton(
-//             onPressed: () {
-//               Navigator.pop(context);
-//               if (ownerId != null && storeId != null) {
-//                 navigationService.navigateToWidget(
-//                   AddProductView(
-//                     scannedCode: barcode,
-//                     isEditing: false,
-//                     ownerId: ownerId,
-//                     storeId: storeId,
-//                   ),
-//                   transitionBuilder:
-//                       (context, animation, secondaryAnimation, child) {
-//                     return SlideTransition(
-//                       position: Tween<Offset>(
-//                               begin: const Offset(1, 0), end: Offset.zero)
-//                           .animate(animation),
-//                       child: child,
-//                     );
-//                   },
-//                 );
-//               } else {
-//                 showCustomToast('Missing owner or store ID.');
-//               }
-//             },
-//             child: const Text('Add Product'),
-//           ),
-//           TextButton(
-//             onPressed: () {
-//               Navigator.pop(context);
-//               navigationService.navigateTo(mainNavViewRoute);
-//             },
-//             child: const Text('Go to Home'),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final model = locator<SaleViewModel>();
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Scan Products'),
-//         actions: [
-//           IconButton(
-//             icon: Icon(
-//               Icons.shopping_cart,
-//               color: model.cartItems.isEmpty
-//                   ? Colors.grey
-//                   : ColorValues.primaryColor,
-//             ),
-//             onPressed: model.cartItems.isEmpty
-//                 ? null
-//                 : () => navigationService.navigateToWidget(
-//                       const ScanToCheckoutView(),
-//                       transitionBuilder:
-//                           (context, animation, secondaryAnimation, child) {
-//                         return SlideTransition(
-//                           position: Tween<Offset>(
-//                                   begin: const Offset(1, 0), end: Offset.zero)
-//                               .animate(animation),
-//                           child: child,
-//                         );
-//                       },
-//                     ),
-//           ),
-//         ],
-//       ),
-//       body: Stack(
-//         children: [
-//           SafeMobileScannerView(
-//             onDetect: _onBarcodeDetected,
-//             overlayBuilder: (MobileScannerController controller) => Column(
-//               children: [
-//                 const Spacer(),
-//                 ScannerControlBar(
-//                   scannerController: controller,
-//                 ),
-//               ],
-//             ),
-//           ),
-//           if (_isProcessing)
-//             Container(
-//               color: Colors.black54,
-//               child: Center(
-//                 child: Lottie.asset(
-//                   'assets/animations/scan.json',
-//                   width: 150,
-//                 ),
-//               ),
-//             ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-
 import 'package:etegram_business/app_widget/safe_mobile_scanner_view.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -346,12 +123,15 @@ class _CheckoutScannerViewState extends State<CheckoutScannerView> {
                   TextButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      _scannedBarcodes.clear(); // Clear scanned barcodes for new session
+                      _scannedBarcodes
+                          .clear(); // Clear scanned barcodes for new session
                       navigationService.navigateToWidget(
                         const ScanToCheckoutView(),
-                        transitionBuilder: (context, animation, secondaryAnimation, child) {
+                        transitionBuilder:
+                            (context, animation, secondaryAnimation, child) {
                           return SlideTransition(
-                            position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+                            position: Tween<Offset>(
+                                    begin: const Offset(1, 0), end: Offset.zero)
                                 .animate(animation),
                             child: child,
                           );
@@ -386,7 +166,8 @@ class _CheckoutScannerViewState extends State<CheckoutScannerView> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Product Not Found'),
-        content: Text('Product with barcode "$barcode" not found in store. Would you like to add it?'),
+        content: Text(
+            'Product with barcode "$barcode" not found in store. Would you like to add it?'),
         actions: [
           TextButton(
             onPressed: () {
@@ -409,9 +190,11 @@ class _CheckoutScannerViewState extends State<CheckoutScannerView> {
                     ownerId: ownerId,
                     storeId: storeId,
                   ),
-                  transitionBuilder: (context, animation, secondaryAnimation, child) {
+                  transitionBuilder:
+                      (context, animation, secondaryAnimation, child) {
                     return SlideTransition(
-                      position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+                      position: Tween<Offset>(
+                              begin: const Offset(1, 0), end: Offset.zero)
                           .animate(animation),
                       child: child,
                     );
@@ -445,23 +228,28 @@ class _CheckoutScannerViewState extends State<CheckoutScannerView> {
           IconButton(
             icon: Icon(
               Icons.shopping_cart,
-              color: model.cartItems.isEmpty ? Colors.grey : ColorValues.primaryColor,
+              color: model.cartItems.isEmpty
+                  ? Colors.grey
+                  : ColorValues.primaryColor,
             ),
             onPressed: model.cartItems.isEmpty
                 ? null
                 : () {
-              _scannedBarcodes.clear(); // Clear scanned barcodes for new session
-              navigationService.navigateToWidget(
-                const ScanToCheckoutView(),
-                transitionBuilder: (context, animation, secondaryAnimation, child) {
-                  return SlideTransition(
-                    position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
-                        .animate(animation),
-                    child: child,
-                  );
-                },
-              );
-            },
+                    _scannedBarcodes
+                        .clear(); // Clear scanned barcodes for new session
+                    navigationService.navigateToWidget(
+                      const ScanToCheckoutView(),
+                      transitionBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        return SlideTransition(
+                          position: Tween<Offset>(
+                                  begin: const Offset(1, 0), end: Offset.zero)
+                              .animate(animation),
+                          child: child,
+                        );
+                      },
+                    );
+                  },
           ),
         ],
       ),

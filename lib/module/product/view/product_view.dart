@@ -94,7 +94,7 @@ class ProductView extends StatelessWidget {
                 30.0.sbH,
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(3, (index) {
+                  children: List.generate(2, (index) {
                     return GestureDetector(
                       onTap: () async {
                         final customerService = locator<CustomerService>();

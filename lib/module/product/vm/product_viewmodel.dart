@@ -1516,19 +1516,17 @@ class ProductViewModel extends BaseViewModel {
   final List<Color> containerColor = [
     const Color(0xffFFF7E6),
     const Color(0xffF0F0FF),
-    const Color(0xffFEEAFA),
+   //const Color(0xffFEEAFA),
   ];
 
   final List<String> productOperations = [
     "Add Product",
     "Product List",
-    "Move Products",
   ];
 
   final List<String> images = [
     SvgAssets.addProduct,
     SvgAssets.records,
-    SvgAssets.newSupplier,
   ];
 
   void changeContainer() {

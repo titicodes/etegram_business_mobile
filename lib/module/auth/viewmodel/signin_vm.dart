@@ -1,3 +1,5 @@
+//
+//
 // import 'package:dio/dio.dart';
 // import 'package:flutter/material.dart';
 // import '../../../base/base_vm.dart';
@@ -16,8 +18,10 @@
 //   final passwordController = TextEditingController();
 //   bool showPassword = false;
 //   final isFormValid = ValueNotifier<bool>(false);
+//   final ValueNotifier<bool> isLoading = ValueNotifier<bool>(false); // Added isLoading
 //   bool _isChecked = false; // Commented out as unused in SigninView
 //   bool get isChecked => _isChecked;
+//
 //   void onCheckedChanged(bool value) {
 //     _isChecked = value;
 //     notifyListeners();
@@ -39,57 +43,9 @@
 //     notifyListeners();
 //   }
 //
-//   // Future<void> submit() async {
-//   //   if (!formKey.currentState!.validate() || !isFormValid.value) {
-//   //     showCustomToast("Please fill all required fields");
-//   //     return;
-//   //   }
-//   //
-//   //   startLoader();
-//   //   try {
-//   //     var userData = Customer(
-//   //       email: emailController.text.trim(),
-//   //       password: passwordController.text.trim(),
-//   //     );
-//   //
-//   //     final response = await authRepository.login(customer: userData);
-//   //
-//   //     if (response?.success == true) {
-//   //       await customerService.storeToken(response);
-//   //       appCache.registerResponse = response ?? AuthResponse();
-//   //
-//   //       if (response?.data?.user?.emailVerified == false) {
-//   //         navigationService.navigateTo(verifyEmailView);
-//   //         showCustomToast("Please verify your email");
-//   //         return;
-//   //       }
-//   //
-//   //       // Setup check
-//   //       await customerService.checkUserSetup();
-//   //
-//   //       // 🔍 Add store check here if no navigation occurred
-//   //       if (customerService.stores.isEmpty) {
-//   //         print(
-//   //             "LoginViewModel: No stores found. Navigating to createStoreRoute.");
-//   //         navigationService.navigateToAndRemoveUntil(createStoreRoute);
-//   //         return;
-//   //       }
-//   //
-//   //       // checkUserSetup will already handle dashboard or addPaymentMethod navigation
-//   //     } else {
-//   //       showCustomToast(response?.message ?? "Login failed");
-//   //     }
-//   //   } catch (e) {
-//   //     showCustomToast("Login failed: $e");
-//   //   } finally {
-//   //     stopLoader();
-//   //     notifyListeners();
-//   //   }
-//   // }
-//
 //   Future<void> submit(BuildContext context) async {
 //     if (!formKey.currentState!.validate() || !isFormValid.value) {
-//       showCustomToast("Please fill all required fields", context: context);
+//       showCustomToasts("Please fill all required fields", success: false);
 //       return;
 //     }
 //
@@ -110,7 +66,7 @@
 //
 //         if (response?.data?.user?.emailVerified == false) {
 //           navigationService.navigateTo(verifyEmailView);
-//           showCustomToast("Please verify your email", context: context);
+//           showCustomToasts("Please verify your email", success: false);
 //           return;
 //         }
 //
@@ -125,7 +81,7 @@
 //
 //         // checkUserSetup handles dashboard or addPaymentMethod navigation
 //       } else {
-//         showCustomToast(response?.message ?? "Login failed", context: context);
+//         showCustomToasts(response?.message ?? "Login failed", success: false);
 //       }
 //     } on DioException catch (e) {
 //       String errorMessage = "An error occurred during login";
@@ -146,9 +102,9 @@
 //       } else {
 //         errorMessage = "Network error, please check your connection";
 //       }
-//       showCustomToast(errorMessage, context: context);
+//       showCustomToasts(errorMessage, success: false);
 //     } catch (e) {
-//       showCustomToast("Unexpected error: ${e.toString()}", context: context);
+//       showCustomToasts("Unexpected error: ${e.toString()}", success: false);
 //     } finally {
 //       isLoading.value = false;
 //       notifyListeners();
@@ -170,6 +126,7 @@
 //     emailController.dispose();
 //     passwordController.dispose();
 //     isFormValid.dispose();
+//     isLoading.dispose(); // Dispose isLoading
 //     super.dispose();
 //   }
 // }
@@ -192,16 +149,11 @@ class LoginViewModel extends BaseViewModel {
   final passwordController = TextEditingController();
   bool showPassword = false;
   final isFormValid = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> isLoading = ValueNotifier<bool>(false); // Added isLoading
-  bool _isChecked = false; // Commented out as unused in SigninView
+  final ValueNotifier<bool> isLoading = ValueNotifier<bool>(false);
+  bool _isChecked = false;
   bool get isChecked => _isChecked;
 
-  void onCheckedChanged(bool value) {
-    _isChecked = value;
-    notifyListeners();
-  }
-
-  void init() {
+  void onInit() {
     emailController.addListener(validateForm);
     passwordController.addListener(validateForm);
   }
@@ -217,9 +169,17 @@ class LoginViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  Future<void> submit(BuildContext context) async {
+  void onCheckedChanged(bool value) {
+    _isChecked = value;
+    notifyListeners();
+  }
+
+  Future<void> submit() async {
     if (!formKey.currentState!.validate() || !isFormValid.value) {
-      showCustomToasts("Please fill all required fields", success: false);
+      print("Form validation failed");
+      showCustomToast("Please fill all required fields");
+      isLoading.value = false;
+      notifyListeners();
       return;
     }
 
@@ -232,53 +192,56 @@ class LoginViewModel extends BaseViewModel {
         password: passwordController.text.trim(),
       );
 
+      print("Attempting login with: ${userData.email}");
       final response = await authRepository.login(customer: userData);
+      print("Login response: ${response.toJson()}");
 
-      if (response?.success == true) {
+      if (response.success == true) {
         await customerService.storeToken(response);
-        appCache.registerResponse = response ?? AuthResponse();
+        appCache.registerResponse = response;
 
-        if (response?.data?.user?.emailVerified == false) {
+        if (response.data?.user?.emailVerified == false) {
+          print("Email not verified, navigating to verifyEmailView");
           navigationService.navigateTo(verifyEmailView);
-          showCustomToasts("Please verify your email", success: false);
+          showCustomToast("Please verify your email");
           return;
         }
 
-        // Setup check
         await customerService.checkUserSetup();
 
         if (customerService.stores.isEmpty) {
-          print("LoginViewModel: No stores found. Navigating to createStoreRoute.");
+          print("No stores found, navigating to createStoreRoute");
           navigationService.navigateToAndRemoveUntil(createStoreRoute);
           return;
         }
 
-        // checkUserSetup handles dashboard or addPaymentMethod navigation
+        print("Login successful, navigating to dashboardRoute");
+        navigationService.navigateToAndRemoveUntil(dashboardRoute);
+        showCustomToast("Login successful", success: true);
       } else {
-        showCustomToasts(response?.message ?? "Login failed", success: false);
+        print("Login failed: Response success is false");
+        showCustomToast("Login failed: Invalid response");
       }
     } on DioException catch (e) {
+      print("Caught DioException in LoginViewModel: ${e.message}");
       String errorMessage = "An error occurred during login";
-      if (e.response != null) {
+      if (e.response != null && e.response!.data is Map) {
         final statusCode = e.response!.statusCode;
-        final data = e.response!.data;
-
-        if (statusCode == 401) {
-          errorMessage = "Incorrect email or password";
-        } else if (statusCode == 400) {
-          errorMessage = data['message'] ?? "Invalid input data";
-        } else if (statusCode == 403 && data['message']?.toLowerCase().contains('email not verified') == true) {
-          errorMessage = "Please verify your email before logging in";
+        final data = e.response!.data as Map;
+        print("Login Dio Error: $data");
+        errorMessage = data['message'] ?? "Server error: $statusCode";
+        if (statusCode == 401 || data['message']?.toLowerCase().contains('email not verified') == true) {
+          print("Email not verified or unauthorized, navigating to verifyEmailView");
           navigationService.navigateTo(verifyEmailView);
-        } else {
-          errorMessage = data['message'] ?? "Server error, please try again later";
         }
       } else {
         errorMessage = "Network error, please check your connection";
       }
-      showCustomToasts(errorMessage, success: false);
+      print("Calling showCustomToast with: $errorMessage");
+      showCustomToast(errorMessage);
     } catch (e) {
-      showCustomToasts("Unexpected error: ${e.toString()}", success: false);
+      print("Unexpected error in LoginViewModel: $e");
+      showCustomToast("Unexpected error during login");
     } finally {
       isLoading.value = false;
       notifyListeners();
@@ -300,7 +263,7 @@ class LoginViewModel extends BaseViewModel {
     emailController.dispose();
     passwordController.dispose();
     isFormValid.dispose();
-    isLoading.dispose(); // Dispose isLoading
+    isLoading.dispose();
     super.dispose();
   }
 }

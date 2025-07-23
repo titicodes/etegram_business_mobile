@@ -1,4 +1,6 @@
+import 'package:etegram_business/module/account/viewmodel/change_password_vm.dart';
 import 'package:etegram_business/module/account/viewmodel/change_pin_vm.dart';
+import 'package:etegram_business/module/account/viewmodel/notification_vm.dart';
 import 'package:etegram_business/module/auth/viewmodel/signin_vm.dart';
 import 'package:etegram_business/module/auth/viewmodel/signup_vm.dart';
 import 'package:etegram_business/module/auth/viewmodel/verify_email.dart';
@@ -25,6 +27,7 @@ import 'package:etegram_business/service/web/auth_api.dart';
 import 'package:etegram_business/service/web/customer_api_service.dart';
 import 'package:etegram_business/service/web/delivery_api_service.dart';
 import 'package:etegram_business/service/web/expenses_api_service.dart';
+import 'package:etegram_business/service/web/notification_api_service.dart';
 import 'package:etegram_business/service/web/payment_method_api_service.dart';
 import 'package:etegram_business/service/web/product_api.dart';
 import 'package:etegram_business/service/web/sales_api_service.dart';
@@ -80,6 +83,8 @@ void registerServices() {
   locator.registerLazySingleton<DeliveryRepository>(() => DeliveryRepository());
   locator.registerLazySingleton<DeliveryApiService>(() => DeliveryApiService());
   locator.registerLazySingleton<SaleViewModel>(() => SaleViewModel());
+  locator.registerLazySingleton<NotificationService>(() => NotificationService());
+  locator.registerLazySingleton<ChangePasswordViewModel>(()=>ChangePasswordViewModel());
 }
 
 void registerViewModels() {
@@ -106,4 +111,5 @@ void registerViewModels() {
   locator.registerFactory<ForgetPasswordViewModel>(
       () => ForgetPasswordViewModel());
   locator.registerFactory<SplashScreenViewModel>(() => SplashScreenViewModel());
+  locator.registerFactory<NotificationViewModel>(() => NotificationViewModel());
 }

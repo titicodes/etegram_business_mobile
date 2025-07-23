@@ -1,234 +1,3 @@
-// import 'dart:convert';
-// import 'dart:io';
-// import 'package:dio/dio.dart';
-// import 'package:etegram_business/core/model/subscription_model.dart';
-// import 'package:etegram_business/constants/app_url.dart';
-// import 'package:etegram_business/base/base_vm.dart';
-// import 'package:etegram_business/utils/snack_message.dart';
-// import 'package:flutter/material.dart';
-// import 'package:get_storage/get_storage.dart';
-// import 'package:image_picker/image_picker.dart';
-// import 'package:etegram_business/locator.dart';
-// import '../../../constants/reuseable.dart';
-// import '../../../service/local/user_service.dart';
-// import '../../../service/web/base_api.dart';
-// import '../../account/model/chat_message.dart';
-//
-// class ProfileViewModel extends BaseViewModel {
-//   final CustomerService _customerService = locator<CustomerService>();
-//   bool isEmailSelected = false;
-//   bool isPushNotificationSelected = false;
-//   String? errorMessage;
-//   String messageContent = ''; // Store message input
-//
-//   // Profile editing fields
-//   bool isEdit = false;
-//   var firstNameController = TextEditingController();
-//   var lastNameController = TextEditingController();
-//   var userNameController = TextEditingController();
-//   var emailNameController = TextEditingController();
-//   String? selectedImage;
-//   File? selectedImageFile;
-//   bool showEdit = false;
-//
-//   ProfileViewModel() {
-//     _loadInitialState();
-//   }
-//
-//   void _loadInitialState() {
-//     final box = GetStorage();
-//     isPushNotificationSelected = box.read('pushNotificationsEnabled') ?? false;
-//     isEmailSelected = box.read('emailNotificationsEnabled') ?? false;
-//     // Initialize profile fields
-//     firstNameController.text = _customerService.customer?.firstName ?? '';
-//     lastNameController.text = _customerService.customer?.lastName ?? '';
-//     userNameController.text = _customerService.customer?.firstName ?? '';
-//     emailNameController.text = _customerService.customer?.email ?? '';
-//     notifyListeners();
-//   }
-//
-//   void toggleEmailSwitch(bool value) {
-//     isEmailSelected = value;
-//     GetStorage().write('emailNotificationsEnabled', value);
-//     notifyListeners();
-//   }
-//
-//   void togglePushedNotificationSwitch(bool value) {
-//     isPushNotificationSelected = value;
-//     GetStorage().write('pushNotificationsEnabled', value);
-//     notifyListeners();
-//   }
-//
-//   Future<void> fetchSubscriptionStatus() async {
-//     try {
-//       startLoader();
-//       await _customerService.fetchSubscriptionStatus();
-//       errorMessage = null;
-//     } catch (e) {
-//       errorMessage = 'Failed to fetch subscription status';
-//       showCustomToast(errorMessage!, success: false);
-//     } finally {
-//       stopLoader();
-//     }
-//   }
-//
-//   Future<void> subscribeToPremium(String type) async {
-//     try {
-//       startLoader();
-//       await _customerService.subscribeToPremium(type);
-//       errorMessage = null;
-//     } catch (e) {
-//       errorMessage = 'Failed to subscribe to premium';
-//       showCustomToast(errorMessage!, success: false);
-//     } finally {
-//       stopLoader();
-//     }
-//   }
-//
-//   Future<void> cancelSubscription() async {
-//     try {
-//       startLoader();
-//       await _customerService.cancelSubscription();
-//       errorMessage = null;
-//     } catch (e) {
-//       errorMessage = 'Failed to cancel subscription';
-//       showCustomToast(errorMessage!, success: false);
-//     } finally {
-//       stopLoader();
-//     }
-//   }
-//
-//   bool isPremiumFeatureAccessible() {
-//     // During internal testing, allow access to all features
-//     print(
-//         "ProfileViewModel: Allowing premium feature access for internal testing");
-//     return true;
-//   }
-//
-//   Future<List<ChatMessage>> getMessages() async {
-//     final box = GetStorage();
-//     try {
-//       String? accessToken = box.read(DbTable.tokenTableName);
-//       String? userId = _customerService.customer?.id;
-//       if (accessToken == null || userId == null) {
-//         print("getMessages: No access token or user ID");
-//         final storedJson = box.read('notifications');
-//         if (storedJson == null) return [];
-//         final decoded = jsonDecode(storedJson);
-//         return decoded is List
-//             ? decoded.map<ChatMessage>((e) => ChatMessage.fromJson(e)).toList()
-//             : [];
-//       }
-//       final response = await connect().get(
-//         '${AppUrls.baseUrl}messages',
-//         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
-//       );
-//       print(
-//           "getMessages: Response status: ${response.statusCode}, data: ${response.data}");
-//       if (response.statusCode == 200) {
-//         final responseData = response.data;
-//         if (responseData is Map<String, dynamic> &&
-//             responseData['data'] is List) {
-//           final messages = (responseData['data'] as List)
-//               .map((json) => ChatMessage.fromJson(json))
-//               .toList()
-//             ..sort((a, b) => (a.createdAt ?? DateTime(0))
-//                 .compareTo(b.createdAt ?? DateTime(0)));
-//           await box.write('notifications',
-//               jsonEncode(messages.map((m) => m.toJson()).toList()));
-//           errorMessage = null;
-//           return messages;
-//         } else {
-//           print("getMessages: Unexpected response format: $responseData");
-//           errorMessage = 'Unexpected response format';
-//           return [];
-//         }
-//       }
-//       errorMessage = 'Failed to fetch messages: ${response.statusCode}';
-//       showCustomToast(errorMessage!, success: false);
-//       return [];
-//     } catch (e) {
-//       print("Error fetching messages: $e");
-//       errorMessage = 'Failed to fetch messages: $e';
-//       showCustomToast(errorMessage!, success: false);
-//       final storedJson = box.read('notifications');
-//       if (storedJson == null) return [];
-//       final decoded = jsonDecode(storedJson);
-//       return decoded is List
-//           ? decoded.map<ChatMessage>((e) => ChatMessage.fromJson(e)).toList()
-//           : [];
-//     }
-//   }
-//
-//   Future<void> sendMessage(String content) async {
-//     try {
-//       startLoader();
-//       final box = GetStorage();
-//       String? accessToken = box.read(DbTable.tokenTableName);
-//       String? userId = _customerService.customer?.id;
-//       if (accessToken == null || userId == null) {
-//         errorMessage = 'Please log in to send messages';
-//         showCustomToast(errorMessage!, success: false);
-//         return;
-//       }
-//       final response = await connect().post(
-//         '${AppUrls.baseUrl}messages',
-//         data: {'content': content, 'type': 'sender', 'userId': userId},
-//         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
-//       );
-//       print(
-//           "sendMessage: Response status: ${response.statusCode}, data: ${response.data}");
-//       if (response.statusCode == 200) {
-//         final message = ChatMessage.fromJson(response.data);
-//         final notifications = box.read('notifications') != null
-//             ? List<Map<String, dynamic>>.from(
-//                 jsonDecode(box.read('notifications')))
-//             : [];
-//         notifications.add(message.toJson());
-//         await box.write('notifications', jsonEncode(notifications));
-//         errorMessage = null;
-//         showCustomToast('Message sent successfully', success: true);
-//         messageContent = '';
-//         notifyListeners();
-//       } else {
-//         errorMessage = 'Failed to send message: ${response.statusCode}';
-//         showCustomToast(errorMessage!, success: false);
-//       }
-//     } catch (e) {
-//       print("Error sending message: $e");
-//       errorMessage = 'Failed to send message: $e';
-//       showCustomToast(errorMessage!, success: false);
-//     } finally {
-//       stopLoader();
-//     }
-//   }
-//
-//   void pickImage() {
-//     showEdit = !showEdit;
-//     notifyListeners();
-//   }
-//
-//   Future<void> selectImage({ImageSource source = ImageSource.camera}) async {
-//     pickImage();
-//     final ImagePicker picker = ImagePicker();
-//     final image = await picker.pickImage(source: source);
-//     if (image == null) {
-//       selectedImage = null;
-//       selectedImageFile = null;
-//     } else {
-//       var files = File(image.path);
-//       selectedImageFile = files;
-//       selectedImage = image.path;
-//     }
-//     notifyListeners();
-//   }
-//
-//   void changeEdit() {
-//     isEdit = !isEdit;
-//     notifyListeners();
-//   }
-// }
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
@@ -246,9 +15,11 @@ import '../../../service/local/user_service.dart';
 import '../../../service/web/base_api.dart';
 import '../../account/model/chat_message.dart';
 import '../../../utils/image_utils.dart';
+import '../../../service/web/notification_api_service.dart';
 
 class ProfileViewModel extends BaseViewModel {
   final CustomerService _customerService = locator<CustomerService>();
+  final NotificationService _notificationService = locator<NotificationService>();
   bool isEmailSelected = false;
   bool isPushNotificationSelected = false;
   String? errorMessage;
@@ -262,10 +33,10 @@ class ProfileViewModel extends BaseViewModel {
   var emailNameController = TextEditingController();
 
   ProfileViewModel() {
-    _loadInitialState();
+    _init();
   }
 
-  void _loadInitialState() {
+  Future<void> _init() async {
     final box = GetStorage();
     isPushNotificationSelected = box.read('pushNotificationsEnabled') ?? false;
     isEmailSelected = box.read('emailNotificationsEnabled') ?? false;
@@ -277,7 +48,19 @@ class ProfileViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  loadInitialState() => _loadInitialState();
+  Future<void> init() async {
+    startLoader();
+    try {
+      await _customerService.getStoreUser();
+      await _init();
+    } catch (e) {
+      errorMessage = 'Failed to initialize profile: $e';
+      print('ProfileViewModel: $errorMessage');
+      showCustomToast(errorMessage!, success: false);
+    } finally {
+      stopLoader();
+    }
+  }
 
   void toggleEmailSwitch(bool value) {
     isEmailSelected = value;
@@ -285,10 +68,18 @@ class ProfileViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void togglePushedNotificationSwitch(bool value) {
-    isPushNotificationSelected = value;
-    GetStorage().write('pushNotificationsEnabled', value);
-    notifyListeners();
+  Future<void> togglePushNotification(bool value) async {
+    try {
+      await _notificationService.togglePushNotification(value);
+      isPushNotificationSelected = value;
+      GetStorage().write('pushNotificationsEnabled', value);
+      print('ProfileViewModel: Push notifications ${value ? 'enabled' : 'disabled'}');
+      notifyListeners();
+    } catch (e) {
+      errorMessage = 'Failed to toggle push notifications: $e';
+      print('ProfileViewModel: $errorMessage');
+      showCustomToast(errorMessage!, success: false);
+    }
   }
 
   Future<void> fetchSubscriptionStatus() async {
@@ -341,8 +132,8 @@ class ProfileViewModel extends BaseViewModel {
       String? accessToken = box.read(DbTable.tokenTableName);
       String? userId = _customerService.customer?.id;
       if (accessToken == null || userId == null) {
-        print("getMessages: No access token or user ID");
-        final storedJson = box.read('notifications');
+        print("ProfileViewModel: No access token or user ID");
+        final storedJson = box.read('chat_messages');
         if (storedJson == null) return [];
         final decoded = jsonDecode(storedJson);
         return decoded is List
@@ -350,22 +141,22 @@ class ProfileViewModel extends BaseViewModel {
             : [];
       }
       final response = await connect().get(
-        '${AppUrls.baseUrl}/messages',
+        'messages',
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
-      print("getMessages: Response status: ${response.statusCode}, data: ${response.data}");
+      print("ProfileViewModel: getMessages Response status: ${response.statusCode}, data: ${response.data}");
       if (response.statusCode == 200) {
         final responseData = response.data;
         if (responseData is Map<String, dynamic> && responseData['data'] is List) {
           final messages = (responseData['data'] as List)
               .map((json) => ChatMessage.fromJson(json))
               .toList()
-            ..sort((a, b) => (a.createdAt ?? DateTime(0)).compareTo(b.createdAt ?? DateTime(0)));
-          await box.write('notifications', jsonEncode(messages.map((m) => m.toJson()).toList()));
+            ..sort((a, b) => (a.createdAt ?? DateTime.now()).compareTo(b.createdAt ?? DateTime.now()));
+          await box.write('chat_messages', jsonEncode(messages.map((m) => m.toJson()).toList()));
           errorMessage = null;
           return messages;
         } else {
-          print("getMessages: Unexpected response format: $responseData");
+          print("ProfileViewModel: Unexpected response format: $responseData");
           errorMessage = 'Unexpected response format';
           return [];
         }
@@ -374,10 +165,10 @@ class ProfileViewModel extends BaseViewModel {
       showCustomToast(errorMessage!, success: false);
       return [];
     } catch (e) {
-      print("Error fetching messages: $e");
+      print("ProfileViewModel: Error fetching messages: $e");
       errorMessage = 'Failed to fetch messages: $e';
       showCustomToast(errorMessage!, success: false);
-      final storedJson = box.read('notifications');
+      final storedJson = box.read('chat_messages');
       if (storedJson == null) return [];
       final decoded = jsonDecode(storedJson);
       return decoded is List
@@ -398,18 +189,18 @@ class ProfileViewModel extends BaseViewModel {
         return;
       }
       final response = await connect().post(
-        '${AppUrls.baseUrl}/messages',
-        data: {'content': content, 'type': 'sender', 'userId': userId},
+        'messages',
+        data: {'messageContent': content, 'messageType': 'sender', 'userId': userId},
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
-      print("sendMessage: Response status: ${response.statusCode}, data: ${response.data}");
-      if (response.statusCode == 200) {
-        final message = ChatMessage.fromJson(response.data);
-        final notifications = box.read('notifications') != null
-            ? List<Map<String, dynamic>>.from(jsonDecode(box.read('notifications')))
+      print("ProfileViewModel: sendMessage Response status: ${response.statusCode}, data: ${response.data}");
+      if (response.statusCode == 201) {
+        final message = ChatMessage.fromJson(response.data['data']);
+        final messages = box.read('chat_messages') != null
+            ? List<Map<String, dynamic>>.from(jsonDecode(box.read('chat_messages')))
             : [];
-        notifications.add(message.toJson());
-        await box.write('notifications', jsonEncode(notifications));
+        messages.add(message.toJson());
+        await box.write('chat_messages', jsonEncode(messages));
         errorMessage = null;
         showCustomToast('Message sent successfully', success: true);
         messageContent = '';
@@ -419,8 +210,42 @@ class ProfileViewModel extends BaseViewModel {
         showCustomToast(errorMessage!, success: false);
       }
     } catch (e) {
-      print("Error sending message: $e");
+      print("ProfileViewModel: Error sending message: $e");
       errorMessage = 'Failed to send message: $e';
+      showCustomToast(errorMessage!, success: false);
+    } finally {
+      stopLoader();
+    }
+  }
+
+  Future<void> clearChatHistory() async {
+    try {
+      startLoader();
+      final box = GetStorage();
+      String? accessToken = box.read(DbTable.tokenTableName);
+      String? userId = _customerService.customer?.id;
+      if (accessToken == null || userId == null) {
+        errorMessage = 'Please log in to clear chat history';
+        showCustomToast(errorMessage!, success: false);
+        return;
+      }
+      final response = await connect().delete(
+        'chat/messages',
+        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
+      );
+      print("ProfileViewModel: clearChatHistory Response status: ${response.statusCode}, data: ${response.data}");
+      if (response.statusCode == 200) {
+        await box.remove('chat_messages');
+        errorMessage = null;
+        showCustomToast('Chat history cleared successfully', success: true);
+        notifyListeners();
+      } else {
+        errorMessage = 'Failed to clear chat history: ${response.statusCode}';
+        showCustomToast(errorMessage!, success: false);
+      }
+    } catch (e) {
+      print("ProfileViewModel: Error clearing chat history: $e");
+      errorMessage = 'Failed to clear chat history: $e';
       showCustomToast(errorMessage!, success: false);
     } finally {
       stopLoader();
@@ -457,11 +282,12 @@ class ProfileViewModel extends BaseViewModel {
         await _customerService.storeUser(updatedCustomer);
         profileImageUrl.value = updatedCustomer.imageUrl;
         showCustomToast('Profile image uploaded successfully!');
+        notifyListeners();
       } else {
         showCustomToast('Failed to upload profile image. Please try again.', success: false);
       }
     } catch (e) {
-      print("Error uploading profile image: $e");
+      print("ProfileViewModel: Error uploading profile image: $e");
       showCustomToast('Error uploading profile image: $e', success: false);
     } finally {
       stopLoader();

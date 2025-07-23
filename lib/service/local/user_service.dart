@@ -1,3 +1,4 @@
+//
 // import 'dart:convert';
 // import 'package:dio/dio.dart';
 // import 'package:etegram_business/core/model/subscription_model.dart';
@@ -46,16 +47,18 @@
 //       final authResponse = await locator<AuthRepository>().getUser();
 //       if (authResponse?.success == true && authResponse?.data?.user != null) {
 //         await storeUser(authResponse!.data!.user);
-//         await storeToken(authResponse);
+//         isUserLoggedIn = true;
 //       } else {
 //         _customer = null;
 //         _subscription = null;
+//         isUserLoggedIn = false;
 //         print('CustomerService: No valid user data in authResponse');
 //       }
 //     } catch (e) {
 //       print('CustomerService: Error loading user: $e');
 //       _customer = null;
 //       _subscription = null;
+//       isUserLoggedIn = false;
 //     }
 //   }
 //
@@ -90,6 +93,7 @@
 //     }
 //
 //     loginResponse = response;
+//     isUserLoggedIn = _customer != null;
 //
 //     await fetchStores();
 //     await fetchSubscriptionStatus();
@@ -105,6 +109,7 @@
 //     } catch (e) {
 //       print("Error fetching stores: $e");
 //       stores = [];
+//       activeStoreId = null;
 //     }
 //   }
 //
@@ -272,10 +277,12 @@
 //       await storageService.storeItem(
 //           key: DbTable.customerTableName, value: userJson);
 //       _customer = response;
+//       isUserLoggedIn = true;
 //       print("CustomerService: Stored user: ${response.email}");
 //       print("CustomerService: Stored user JSON: $userJson");
 //     } catch (e) {
 //       print("CustomerService: Error storing user: $e");
+//       isUserLoggedIn = false;
 //     }
 //   }
 //
@@ -320,7 +327,7 @@
 //     await storageService.deleteItem(key: DbTable.activeStoreId);
 //     await storageService.deleteItem(key: DbTable.subscriptionTableName);
 //     isUserLoggedIn = false;
-//     _customer = Customer();
+//     _customer = null;
 //     _subscription = null;
 //     stores = [];
 //     activeStoreId = null;
@@ -331,19 +338,16 @@
 //   Future<void> checkUserSetup() async {
 //     print("CustomerService.checkUserSetup called for navigation.");
 //
-//     if (_customer == null) {
-//       print(
-//           "CustomerService: _customer is null. Attempting to load from storage/API.");
-//       _customer = await getStoreUser();
-//       if (_customer == null) {
-//         print(
-//             "CustomerService: Failed to load customer. Redirecting to login.");
-//         navigationService.navigateToAndRemoveUntil(loginScreenRoute);
-//         return;
-//       }
-//     }
-//
 //     try {
+//       if (_customer == null) {
+//         _customer = await getStoreUser();
+//         if (_customer == null) {
+//           print("CustomerService: No user found. Navigating to login.");
+//           navigationService.navigateToAndRemoveUntil(loginScreenRoute);
+//           return;
+//         }
+//       }
+//
 //       final List<Store>? userStores = await storeApiService.getStoresByOwner();
 //       print("CustomerService: Fetched ${userStores?.length ?? 0} stores.");
 //
@@ -359,7 +363,7 @@
 //         print("CustomerService: Active store set to ${userStores.first.id}");
 //       } else {
 //         print(
-//             "CustomerService: First store in list has a null ID. Cannot set active store.");
+//             "CustomerService: First store has null ID. Navigating to createStoreRoute.");
 //         showCustomToast(
 //             "Error: Store ID is missing. Please create a new store.",
 //             success: false);
@@ -372,13 +376,12 @@
 //
 //       if (!hasPayments) {
 //         print(
-//             "CustomerService: User has stores but no payment methods. Navigating to addPaymentMethodRoute.");
+//             "CustomerService: User has no payment methods. Navigating to addPaymentMethodRoute.");
 //         navigationService.navigateToAndRemoveUntil(addPaymentMethodRoute);
 //         return;
 //       }
 //
 //       await fetchSubscriptionStatus();
-//       // During internal testing, allow access to dashboard even without an active subscription
 //       print(
 //           "CustomerService: Subscription status: ${_subscription?.status}, isActive: ${_subscription?.isActive}");
 //       print(
@@ -404,7 +407,6 @@
 //         _customer!.email != null &&
 //         _customer!.id != null) {
 //       print("CustomerService: Returning cached _customer: ${_customer!.email}");
-//       print("CustomerService: Cached user data: ${_customer!.toJson()}");
 //       return _customer;
 //     }
 //
@@ -423,7 +425,6 @@
 //         await storeUser(authResponse.data!.user);
 //         print(
 //             "CustomerService: Fetched and stored user from API: ${_customer?.email}");
-//         print("CustomerService: User data: ${_customer?.toJson()}");
 //         return _customer;
 //       } catch (e) {
 //         print("CustomerService: Error fetching user from API: $e");
@@ -439,13 +440,12 @@
 //           return await getStoreUser();
 //         }
 //         _customer = userResponse;
+//         isUserLoggedIn = true;
 //         print(
 //             "CustomerService: Loaded customer from storage: ${_customer?.email}");
-//         print("CustomerService: User data: ${_customer?.toJson()}");
-//         return userResponse;
+//         return _customer;
 //       } catch (e) {
 //         print("CustomerService: Error parsing user data from storage: $e");
-//         print("CustomerService: Corrupted data: $data");
 //         await storageService.deleteItem(key: DbTable.customerTableName);
 //         return await getStoreUser();
 //       }
@@ -485,7 +485,6 @@
 //
 //       if (response.statusCode == 200) {
 //         final responseData = response.data;
-//
 //         if (responseData is Map<String, dynamic> &&
 //             responseData.containsKey('data') &&
 //             responseData['data'] is List) {
@@ -496,7 +495,6 @@
 //         } else {
 //           print(
 //               "hasPaymentMethods: Response does not contain a 'data' list or 'data' is not a List.");
-//           print("hasPaymentMethods: Full response data: $responseData");
 //           return false;
 //         }
 //       }
@@ -505,15 +503,9 @@
 //       return false;
 //     } on DioException catch (e) {
 //       print("Error checking payment methods (DioException): ${e.message}");
-//       if (e.response != null && e.response!.data is Map<String, dynamic>) {
-//         print("Error response data: ${e.response!.data}");
-//         showCustomToast(
-//             "Failed to check payment methods: ${e.response!.data['message'] ?? 'Unknown error'}",
-//             success: false);
-//       } else {
-//         showCustomToast("Failed to check payment methods: ${e.message}",
-//             success: false);
-//       }
+//       showCustomToast(
+//           "Failed to check payment methods: ${e.response?.data['message'] ?? e.message}",
+//           success: false);
 //       return false;
 //     } catch (e) {
 //       print("Error checking payment methods (General): $e");
@@ -531,6 +523,7 @@ import 'package:etegram_business/core/model/subscription_model.dart';
 import 'package:etegram_business/service/local/storage_service.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
 import '../../constants/app_url.dart';
 import '../../constants/reuseable.dart';
 import '../../core/model/auth_response.dart';
@@ -548,6 +541,7 @@ import 'cache.dart';
 
 class CustomerService {
   CustomerData customerResponse = CustomerData();
+  final GetStorage _box = GetStorage();
   final StorageService storageService = locator<StorageService>();
   final AppCache cache = locator<AppCache>();
   final StoreApiService storeApiService = locator<StoreApiService>();
@@ -650,7 +644,7 @@ class CustomerService {
       }
 
       Response response = await connect().get(
-        '${AppUrls.baseUrl}subscriptions',
+        'subscriptions',
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
 
@@ -684,7 +678,7 @@ class CustomerService {
       }
 
       Response response = await connect().patch(
-        '${AppUrls.baseUrl}subscriptions/premium/$type',
+        'subscriptions/premium/$type',
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
 
@@ -720,7 +714,7 @@ class CustomerService {
       }
 
       Response response = await connect().delete(
-        '${AppUrls.baseUrl}subscriptions',
+        'subscriptions',
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
 
@@ -745,27 +739,33 @@ class CustomerService {
 
   Future<void> updateFcmToken(String fcmToken) async {
     try {
-      final box = GetStorage();
-      String? accessToken = box.read(DbTable.tokenTableName);
-      if (accessToken == null || _customer?.id == null) {
-        print(
-            "CustomerService: No access token or user ID for FCM token update.");
-        return;
+      final userId = await getOwnerId();
+      final accessToken = _box.read(DbTable.tokenTableName);
+      if (userId == null || accessToken == null) {
+        print('CustomerService: Missing userId or accessToken');
+        throw Exception('Missing userId or accessToken');
       }
 
-      await connect().patch(
-        '${AppUrls.baseUrl}users/fcm-token',
+      final response = await connect().post(
+        'user/$userId/fcm-token',
         data: {'fcmToken': fcmToken},
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
-      print("CustomerService: FCM token updated successfully");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('CustomerService: FCM token updated successfully');
+      } else {
+        print('CustomerService: Failed to update FCM token, status: ${response.statusCode}');
+        throw Exception('Failed to update FCM token');
+      }
     } catch (e) {
-      print("CustomerService: Error updating FCM token: $e");
+      print('CustomerService: Error updating FCM token: $e');
+      showCustomToast('Failed to update FCM token: $e', success: false);
+      rethrow;
     }
   }
 
   bool isPremiumFeatureAccessible() {
-    // During internal testing, allow access to all features regardless of subscription status
     print(
         "CustomerService: Allowing premium feature access for internal testing");
     return true;
@@ -839,7 +839,9 @@ class CustomerService {
       bool logoutSuccess =
           await locator<AuthenticationApiService>().logout(token);
       if (!logoutSuccess) {
-        showCustomToast("Logout failed. Please try again.", success: false);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          showCustomToast("Logout failed. Please try again.", success: false);
+        });
         return;
       }
     }
@@ -857,8 +859,10 @@ class CustomerService {
     _subscription = null;
     stores = [];
     activeStoreId = null;
-    navigationService.navigateToAndRemoveUntil(loginScreenRoute);
-    showCustomToast("Session Has Ended, Log In to proceed", success: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      navigationService.navigateToAndRemoveUntil(loginScreenRoute);
+      showCustomToast("Session Has Ended, Log In to proceed", success: true);
+    });
   }
 
   Future<void> checkUserSetup() async {
@@ -897,21 +901,10 @@ class CustomerService {
         return;
       }
 
-      final bool hasPayments = await hasPaymentMethods();
-      print("CustomerService: User has payment methods: $hasPayments");
-
-      if (!hasPayments) {
-        print(
-            "CustomerService: User has no payment methods. Navigating to addPaymentMethodRoute.");
-        navigationService.navigateToAndRemoveUntil(addPaymentMethodRoute);
-        return;
-      }
-
       await fetchSubscriptionStatus();
       print(
           "CustomerService: Subscription status: ${_subscription?.status}, isActive: ${_subscription?.isActive}");
-      print(
-          "CustomerService: Navigating to dashboardRoute for internal testing.");
+      print("CustomerService: Navigating to dashboardRoute.");
       navigationService.navigateToAndRemoveUntil(dashboardRoute);
     } on DioException catch (e) {
       print(

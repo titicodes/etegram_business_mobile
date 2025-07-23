@@ -1,4 +1,4 @@
-package com.etegram.etegram_business
+package com.etegramsales.app
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -13,8 +13,8 @@ import 'package:flutter/services.dart';
 
 import '../viewmodel/change_pin_vm.dart';
 
-class ChangePasswordView extends StatelessWidget {
-  const ChangePasswordView({super.key});
+class ChangePinView extends StatelessWidget {
+  const ChangePinView({super.key});
 
   @override
   Widget build(BuildContext context) {

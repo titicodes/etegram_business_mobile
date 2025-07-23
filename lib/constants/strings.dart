@@ -17,7 +17,8 @@ abstract class StringValues {
   static const changePassword = "Change password";
   static const contactName = "Contact name";
   static const createAccount = "Create Account!";
-  static const createDeliverAgent = "Create A delivery Agent Account to get started";
+  static const createDeliverAgent =
+      "Create A delivery Agent Account to get started";
   static const createPassword = "Create password";
   static const createNewPassword = "Create New Password";
   static const city = "City";
@@ -75,14 +76,13 @@ abstract class StringValues {
   static const notifications = "Notification Settings";
   static const privacyPolicy = "Privacy Policy";
   static const pushNotification = "Push Notification";
-  static const onBoarding1 =
-      "Gorem ipsum dolor sit amet, consectetur adipiscing elit ipsum dolor.";
-  static const onBoarding2 =
-      "Gorem ipsum dolor sit amet, consectetur adipiscing elit ipsum dolor.";
-  static const onBoarding3 =
-      "Gorem ipsum dolor sit amet, consectetur adipiscing elit ipsum dolor.";
-  static const onBoarding4 =
-      "Gorem ipsum dolor sit amet, consectetur adipiscing elit ipsum dolor.";
+// Onboarding messages
+  static const String onBoarding1 =
+      "Welcome to Etegram Business!\nGrow your business effortlessly with tools designed for success.";
+  static const String onBoarding2 =
+      "Set up your store in minutes.\nManage products, track sales, and connect with customers easily.";
+  static const String onBoarding3 =
+      "Start your journey today!\nSign up or log in to unlock your business potential.";
   static const oldPassword = "Old Password";
   static const onlyTakesMinute = "It takes only a minutes to create an account";
   static const or = "Or";

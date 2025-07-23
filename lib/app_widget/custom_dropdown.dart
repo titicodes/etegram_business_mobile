@@ -111,7 +111,7 @@ class CustomDropDown extends StatelessWidget {
   InputDecoration get decoration => InputDecoration(
     hintText: hintText != null ? "  $hintText" : "", // Safer null check
     hintStyle:
-    hintStyle ?? titleSmall.copyWith(fontWeight: FontWeight.w500),
+    hintStyle ?? normalTextStyle.copyWith(fontWeight: FontWeight.w500),
     prefixIcon: prefix,
     prefixIconConstraints: prefixConstraints,
     suffixIcon: suffix,

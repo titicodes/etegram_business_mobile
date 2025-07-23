@@ -134,14 +134,14 @@ class _NavDrawerState extends State<NavDrawer> {
                       _navigateWithAnimation(const NewStores());
                     },
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.refresh),
-                    title: AppText('List of Stores/Warehouses', style: normalTextStyle12),
-                    onTap: () {
-                      navigationService.goBack();
-                      _navigateWithAnimation(const SizedBox());
-                    },
-                  ),
+                  // ListTile(
+                  //   leading: const Icon(Icons.refresh),
+                  //   title: AppText('List of Stores/Warehouses', style: normalTextStyle12),
+                  //   onTap: () {
+                  //     navigationService.goBack();
+                  //     _navigateWithAnimation(const SizedBox());
+                  //   },
+                  // ),
                   ListTile(
                     leading: const Icon(Icons.refresh),
                     title: AppText('My Staffs', style: normalTextStyle12),

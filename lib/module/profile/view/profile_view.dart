@@ -191,7 +191,7 @@ class ProfileView extends StatelessWidget {
     );
 
     return BaseView<ProfileViewModel>(
-      onModelReady: (model) => model.loadInitialState(),
+      onModelReady: (model) => model.init(),
       builder: (_, model, child) => Scaffold(
         appBar: CustomAppBar(
           title: "Profile",
@@ -300,7 +300,7 @@ class ProfileView extends StatelessWidget {
                   showBorder: false,
                   trailing: Switch(
                     value: model.isPushNotificationSelected,
-                    onChanged: model.togglePushedNotificationSwitch,
+                    onChanged: model.togglePushNotification,
                     activeColor: ColorValues.primaryColor,
                   ),
                   title: Text(

@@ -252,7 +252,7 @@ class StoresViewModel extends BaseViewModel {
                 ? "Store updated successfully!"
                 : "Store created successfully!",
             success: true);
-        navigationService.navigateToAndRemoveUntil(addPaymentMethodRoute);
+        navigationService.navigateToAndRemoveUntil(mainNavViewRoute);
         print("Navigation attempted for route: $addPaymentMethodRoute");
       } else {
         print("savedStore IS null. Navigation skipped.");

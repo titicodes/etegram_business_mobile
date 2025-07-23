@@ -5,6 +5,7 @@ import 'package:etegram_business/constants/assets.dart';
 import 'package:etegram_business/constants/colors.dart';
 import 'package:etegram_business/constants/reuseable.dart';
 import 'package:etegram_business/constants/style.dart';
+import 'package:etegram_business/module/account/views/change_password_view.dart';
 import 'package:etegram_business/module/account/views/change_pin_view.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';
