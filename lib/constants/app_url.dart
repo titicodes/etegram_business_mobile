@@ -1,6 +1,6 @@
 abstract class AppUrls {
   static const baseUrl = 'https://storefrontapp.etegramgroup.com/api/';
- // static const baseUrl = 'https://b1bb7ba57522.ngrok-free.app/api/';
+ //static const baseUrl = 'https://9d325fb0987f.ngrok-free.app/api/';
   static const registerUrl = 'auth/register';
   static const verifyEmailUrl = "auth/verify-email";
   static const loginUrl = 'auth/login';

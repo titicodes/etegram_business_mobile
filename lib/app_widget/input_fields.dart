@@ -14,7 +14,7 @@ class AppTextField extends StatefulWidget {
   final String? Function(String?)? validator;
   final String? hint;
   final String? labelText;
-  final bool readonly;
+  final bool readOnly;
   final bool borderless;
   final bool isPassword;
   final Widget? suffixIcon;
@@ -31,7 +31,8 @@ class AppTextField extends StatefulWidget {
   final bool? overrideIconColor;
   final VoidCallback? onTap;
   final InputBorder? enabledBorder;
-  final int? maxLength;
+  final int? maxLines;
+  final int? maxLength; // Added to correctly handle max characters
   final int maxHeight;
   final bool? haveText;
   final TextCapitalization? textCapitalization;
@@ -43,18 +44,18 @@ class AppTextField extends StatefulWidget {
   final TextEditingController? controller;
   final TextInputType? keyboardType;
   final double? boxWidth;
-  final void Function(String)? onSubmitted; // Added
+  final void Function(String)? onSubmitted;
   final TextInputAction? textInputAction;
 
   const AppTextField({
     super.key,
-    this.readonly = false,
+    this.readOnly = false,
     this.borderless = false,
     this.isPassword = false,
     this.hintText,
     this.hint,
-    this.onSubmitted, // Added
-    this.textInputAction, // Added
+    this.onSubmitted,
+    this.textInputAction,
     this.onChanged,
     this.controller,
     this.keyboardType = TextInputType.text,
@@ -66,7 +67,8 @@ class AppTextField extends StatefulWidget {
     this.suffixIcon,
     this.textSize,
     this.haveText,
-    this.maxLength,
+    this.maxLines,
+    this.maxLength, // Added
     this.labelText,
     this.label,
     this.contentPadding,
@@ -120,48 +122,38 @@ class _AppTextFieldState extends State<AppTextField> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          widget.hintText != null
-              ? Column(
-                  children: [
-                    AppText(
-                      widget.hintText ?? "",
-                      size: widget.textSize ?? 13.5,
-                      color: widget.hintColor ?? ColorValues.primaryColor,
-                      // isBold: true,
-                      align: TextAlign.start,
-                    ),
-                    10.0.sbH,
-                  ],
-                )
-              : 0.0.sbH,
+          if (widget.hintText != null) ...[
+            AppText(
+              widget.hintText ?? "",
+              size: widget.textSize ?? 13.5,
+              color: widget.hintColor ?? ColorValues.primaryColor,
+              align: TextAlign.start,
+            ),
+            10.0.sbH,
+          ],
           TextFormField(
             textAlign: TextAlign.start,
             validator: widget.validator,
             autofillHints: widget.autofillHints,
             onEditingComplete: widget.onEditingComplete,
             onFieldSubmitted: widget.onFieldSubmitted,
-            textCapitalization: widget.textCapitalization == null
-                ? TextCapitalization.none
-                : widget.textCapitalization!,
-            maxLines: widget.maxHeight,
+            textCapitalization:
+                widget.textCapitalization ?? TextCapitalization.none,
+            maxLines: widget.maxLines ?? widget.maxHeight,
             focusNode: _focusNode,
-            maxLength: widget.maxLength,
-            onChanged: (val) {
-              if (widget.onChanged != null) {
-                widget.onChanged!(val);
-              }
-            },
+            maxLength: widget.maxLength, // Use maxLength instead of maxLines
+            onChanged: widget.onChanged,
             onTap: widget.onTap,
-            readOnly: widget.readonly,
+            readOnly: widget.readOnly,
             enabled: widget.enabled,
             obscureText: widget.isPassword ? !isVisible : false,
             textInputAction: widget.textInputAction ?? TextInputAction.next,
             controller: widget.controller,
             inputFormatters: widget.inputFormatters,
             decoration: InputDecoration(
-              filled: true, // Add this line to enable filled decoration
+              filled: true,
               errorMaxLines: 3,
-              counter: 0.0.sbH,
+              counterText: '', // Hide character counter unless needed
               hintText: widget.hint,
               enabled: widget.enabled ?? true,
               fillColor: widget.fillColor ?? Colors.transparent,
@@ -187,13 +179,11 @@ class _AppTextFieldState extends State<AppTextField> {
                               isVisible = !isVisible;
                             });
                           },
-                          icon: widget.suffixIcon ??
-                              Icon(
-                                isVisible ? Iconsax.eye_slash : Iconsax.eye,
-                                size: 20,
-                              ))
-                      : widget.suffixIcon),
-
+                          icon: Icon(
+                            isVisible ? Iconsax.eye_slash : Iconsax.eye,
+                            size: 20,
+                          ))
+                      : null),
               label: widget.label,
               labelText: widget.labelText,
               labelStyle: bodyTextStyle,

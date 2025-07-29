@@ -283,7 +283,7 @@ class NewCustomers extends StatelessWidget {
                       AppTextField(
                         hint: 'Extra Details (Optional)',
                         controller: model.extraDetailsController,
-                        maxLength: 3,
+                        maxLines: 3,
                         prefix: Icon(Icons.note_add),
                         onChanged: (_) => model.validateForm(),
                       ),

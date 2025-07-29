@@ -51,7 +51,7 @@ class ChangePinView extends StatelessWidget {
                     hint: StringValues.oldPassword,
                     isPassword: true,
                     controller: logic.pinCodeController,
-                    maxLength: 4,
+                    maxLines: 4,
                     onChanged: logic.onChange,
                     keyboardType: TextInputType.number,
                     inputFormatters: [
@@ -72,7 +72,7 @@ class ChangePinView extends StatelessWidget {
                     hint: StringValues.newPassword,
                     isPassword: true,
                     controller: logic.newPinController,
-                    maxLength: 4,
+                    maxLines: 4,
                     onChanged: logic.onChange,
                     keyboardType: TextInputType.number,
                     inputFormatters: [
@@ -92,7 +92,7 @@ class ChangePinView extends StatelessWidget {
                     hint: StringValues.confirmPassword,
                     isPassword: true,
                     controller: logic.confirmNewPinController,
-                    maxLength: 4,
+                    maxLines: 4,
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       LengthLimitingTextInputFormatter(4),

@@ -2,6 +2,7 @@ abstract class AssetValues{
   static const appLogo = "assets/images/app_logo.png";
   static const noRecord = "assets/images/no_record/png";
   static const splashImage = "assets/images/splash_screen.jpg";
+  static const scannerOnPhone = 'assets/images/phone_scanner.png';
 }
 
 abstract class SvgAssets{

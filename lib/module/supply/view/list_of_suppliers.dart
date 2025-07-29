@@ -70,7 +70,7 @@ class ListOfSuppliers extends StatelessWidget {
                     10.0.sbH,
                     AppTextField(
                       hint: StringValues.tapToSeeSupplier,
-                      readonly: true,
+                      readOnly: true,
                       onTap: () {
                         Navigator.push(
                           context,

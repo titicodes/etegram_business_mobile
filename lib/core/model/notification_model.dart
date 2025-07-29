@@ -20,21 +20,25 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    final id = json['_id']?.toString() ?? '';
+    if (id.isEmpty) {
+      print('NotificationModel: Missing or invalid _id in JSON: $json');
+    }
     return NotificationModel(
-      id: json['id'] ?? '',
-      user: json['user'] ?? '',
-      title: json['title'] ?? '',
-      body: json['body'] ?? '',
-      type: json['type'] ?? '',
+      id: id,
+      user: json['user']?.toString() ?? '',
+      title: json['title']?.toString() ?? 'No Title',
+      body: json['body']?.toString() ?? 'No Body',
+      type: json['type']?.toString() ?? 'UNKNOWN',
       data: Map<String, dynamic>.from(json['data'] ?? {}),
-      isRead: json['isRead'] ?? false,
-      createdAt: DateTime.parse(json['createdAt']),
+      isRead: json['isRead'] as bool? ?? false,
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      '_id': id,
       'user': user,
       'title': title,
       'body': body,

@@ -1,10 +1,9 @@
-
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import '../../constants/app_url.dart';
 import '../../constants/reuseable.dart';
 import '../../core/model/product_model.dart';
@@ -13,6 +12,7 @@ import '../../locator.dart';
 import '../../utils/snack_message.dart';
 import '../local/user_service.dart';
 import 'base_api.dart';
+import 'package:mime_type/mime_type.dart';
 
 class ProductApiService {
   final CustomerService customerService = locator<CustomerService>();
@@ -99,127 +99,14 @@ class ProductApiService {
     }
   }
 
-  // Future<AddProductResponse?> scanAndAddProduct({
-  //   required Product data,
-  //   required String scannedCode,
-  //   required String storeId, // This is for the URL path
-  //   required String
-  //       ownerId, // This should also be part of the 'data' Product object
-  //   File? imageFile,
-  // }) async {
-  //   try {
-  //     final token = await _getToken(); // Assume _getToken() is defined
-  //     if (token == null) {
-  //       // showCustomToast("Authentication token missing. Please log in again.");
-  //       return null;
-  //     }
-  //
-  //     if (data.name == null || data.name!.isEmpty) {
-  //       throw Exception('Product name cannot be empty.');
-  //     }
-  //     // Backend error: "price must not be less than 0" (implies 0 is allowed, > 0 is stricter)
-  //     // Adjust based on exact backend rule. If 0 is allowed, use `data.price! < 0`
-  //     if (data.price == null || data.price! <= 0) {
-  //       // Assuming price must be positive
-  //       throw Exception('Price must be greater than 0.');
-  //     }
-  //     if (data.costPrice == null || data.costPrice! < 0) {
-  //       // Cost price can be 0 or positive
-  //       throw Exception('Cost price cannot be negative.');
-  //     }
-  //     // Backend error: "quantity must not be less than 0" (implies 0 is allowed, but product must have at least 1)
-  //     if (data.quantity == null || data.quantity! < 1) {
-  //       // Quantity must be at least 1 for a new product
-  //       throw Exception('Quantity must be at least 1.');
-  //     }
-  //     // The main fix: Ensure data.store is not empty
-  //     if (data.storeId == null || data.storeId!.isEmpty) {
-  //       throw Exception(
-  //           'Store ID in product data cannot be empty. Please ensure a store is selected.');
-  //     }
-  //     // You also pass storeId as a parameter, ensure it matches data.store or verify its usage if different
-  //     if (storeId.isEmpty) {
-  //       // This is the storeId for the URL
-  //       throw Exception('Store ID for API URL cannot be empty.');
-  //     }
-  //     if (ownerId.isEmpty) {
-  //       // Owner ID for security/authorization if not already token-based
-  //       throw Exception('Owner ID cannot be empty.');
-  //     }
-  //
-  //     // Build the FormData payload
-  //     final payload = FormData.fromMap(data.toCreateJson());
-  //
-  //     payload.fields.add(MapEntry('code', scannedCode));
-  //
-  //     if (imageFile != null) {
-  //       payload.files.add(MapEntry(
-  //         'file', // This key should match what your backend expects for the image file
-  //         await MultipartFile.fromFile(
-  //           imageFile.path,
-  //           filename:
-  //               'product_image_${scannedCode}_${DateTime.now().millisecondsSinceEpoch}.jpg',
-  //           contentType: MediaType('image', 'jpeg'),
-  //         ),
-  //       ));
-  //     }
-  //
-  //     print('Request URL: products/scan/$storeId');
-  //     print('--- Request FormData Fields ---');
-  //     for (var field in payload.fields) {
-  //       print('${field.key}: ${field.value}');
-  //     }
-  //     print('--- Request FormData Files ---');
-  //     for (var file in payload.files) {
-  //       print(
-  //           '${file.key}: ${file.value.filename} (${file.value.contentType})');
-  //     }
-  //     print('-------------------------------');
-  //
-  //     final response = await connect().post(
-  //       'products/scan/$storeId',
-  //       data: payload,
-  //       options: Options(headers: {'Authorization': 'Bearer $token'}),
-  //     );
-  //
-  //     print('ScanAndAdd Response: ${response.data}');
-  //     if (response.statusCode == 201) {
-  //       return AddProductResponse.fromJson(response.data);
-  //     }
-  //     return null;
-  //   } on DioException catch (e) {
-  //     print('DioError adding product: ${e.response?.data}');
-  //     print('Error Status: ${e.response?.statusCode}');
-  //
-  //     final dynamic backendMessage = e.response?.data['message'];
-  //     String? displayMessage = 'Failed to add product.';
-  //
-  //     if (backendMessage is String) {
-  //       displayMessage = backendMessage;
-  //     } else if (backendMessage is List) {
-  //       displayMessage = (backendMessage)
-  //           .join('\n'); // Join multiple error messages with newline
-  //     } else if (e.response?.data['error'] != null) {
-  //       displayMessage = e.response?.data['error'].toString();
-  //     }
-  //     // showCustomToast(displayMessage, success: false);
-  //     return AddProductResponse(
-  //       success: false,
-  //       message: displayMessage,
-  //     );
-  //   } catch (e) {
-  //     print('Error adding product: $e');
-  //     // showCustomToast('An unexpected error occurred: $e');
-  //     return null;
-  //   }
-  // }
-
+  /// Corrected function: Sends product data and image in one multipart/form-data request.
   Future<AddProductResponse?> scanAndAddProduct({
     required Product data,
     required String scannedCode,
     required String storeId,
-    File? imageFile,
     required String ownerId,
+    File? imageFile,
+    String? imageUrl,
   }) async {
     try {
       final token = await _getToken();
@@ -228,7 +115,7 @@ class ProductApiService {
         return null;
       }
 
-      // Validate inputs
+      // Basic input validation (more robust validation should also be on the backend)
       if (data.name == null || data.name!.isEmpty) {
         throw Exception('Product name cannot be empty.');
       }
@@ -245,15 +132,23 @@ class ProductApiService {
         throw Exception('Minimum quantity must be at least 1.');
       }
       if (data.storeId == null || data.storeId!.isEmpty) {
-        throw Exception('Store ID cannot be empty.');
+        throw Exception('Store ID in product data cannot be empty.');
+      }
+      if (storeId.isEmpty) {
+        // This is the storeId for the URL path
+        throw Exception('Store ID for API URL cannot be empty.');
+      }
+      // Consider if ownerId is truly needed as a body field if it's derived from token.
+      if (ownerId.isEmpty) {
+        throw Exception('Owner ID cannot be empty.');
       }
 
-      // Build JSON payload (preferred for consistency)
-      final payload = {
+      // Build the FormData payload for multipart/form-data
+      final FormData formData = FormData.fromMap({
         'name': data.name,
         'code': scannedCode,
         'category': data.category ?? 'Uncategorized',
-        'price': data.price, // Send as number
+        'price': data.price,
         'costPrice': data.costPrice,
         'quantity': data.quantity,
         'minQuantity': data.minQuantity,
@@ -262,70 +157,55 @@ class ProductApiService {
         if (data.description != null) 'description': data.description,
         if (data.size != null) 'size': data.size,
         if (data.brands != null) 'brands': data.brands,
-        if (data.imageUrl != null) 'imageUrl': data.imageUrl,
-      };
+      });
 
-      Options options = Options(
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+      // Add image file if provided
+      if (imageFile != null) {
+        String fileName = imageFile.path.split('/').last;
+        //String? mime = mimeType(fileName);
+        final mime = lookupMimeType(fileName);
+        formData.files.add(MapEntry(
+          'image', // <-- Make this consistent with 'image' for product update/add
+          await MultipartFile.fromFile(
+            imageFile.path,
+            filename: fileName,
+            contentType: mime != null
+                ? MediaType.parse(mime)
+                : null, // Dynamically set content type
+          ),
+        ));
+      } else if (imageUrl != null && imageUrl.isNotEmpty) {
+        formData.fields.add(MapEntry('imageUrl', imageUrl));
+      }
+
+      print('Request URL: products/scan/$storeId');
+      print('Request Method: POST (Multipart)');
+      print('--- FormData Payload ---');
+      for (var field in formData.fields) {
+        print('Field: ${field.key} = ${field.value}');
+      }
+      for (var file in formData.files) {
+        print('File: ${file.key} = ${file.value.filename}');
+      }
+      print('--------------------------');
+
+      final response = await connect().post(
+        'products/scan/$storeId',
+        data: formData, // Send FormData
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type':
+                'multipart/form-data', // IMPORTANT: Set content type
+          },
+        ),
       );
 
-      // Handle image separately if provided
-      if (imageFile != null) {
-        // First, add product without image
-        print('Request URL: products/scan/$storeId');
-        print('Request Payload (JSON): ${jsonEncode(payload)}');
-
-        final response = await connect().post(
-          'products/scan/$storeId',
-          data: payload,
-          options: options,
-        );
-
-        if (response.statusCode != 201) {
-          throw DioException(
-            response: response,
-            requestOptions: RequestOptions(path: 'products/scan/$storeId'),
-          );
-        }
-
-        final addedProduct = AddProductResponse.fromJson(response.data);
-        if (addedProduct.success && addedProduct.data != null) {
-          // Upload image separately
-          final imageResponse = await uploadProductImage(
-            addedProduct.data!.id!,
-            storeId,
-            imageFile.path,
-          );
-          if (imageResponse != null) {
-            return AddProductResponse(
-              success: true,
-              data: imageResponse,
-              message: 'Product added with image successfully',
-            );
-          }
-          return addedProduct; // Return product even if image upload fails
-        }
-        return null;
-      } else {
-        // Add product without image
-        print('Request URL: products/scan/$storeId');
-        print('Request Payload (JSON): ${jsonEncode(payload)}');
-
-        final response = await connect().post(
-          'products/scan/$storeId',
-          data: payload,
-          options: options,
-        );
-
-        print('ScanAndAdd Response: ${response.data}');
-        if (response.statusCode == 201) {
-          return AddProductResponse.fromJson(response.data);
-        }
-        return null;
+      print('ScanAndAdd Response: ${response.data}');
+      if (response.statusCode == 201) {
+        return AddProductResponse.fromJson(response.data);
       }
+      return null;
     } on DioException catch (e) {
       print('DioError adding product: ${e.response?.data}');
       print('Error Status: ${e.response?.statusCode}');
@@ -340,7 +220,8 @@ class ProductApiService {
       } else if (e.response?.data['error'] != null) {
         displayMessage = e.response?.data['error'].toString();
       }
-      showCustomToast(displayMessage??'Invalid display', success: false);
+      showCustomToast(displayMessage ?? 'An unknown error occurred.',
+          success: false);
       return AddProductResponse(
         success: false,
         message: displayMessage,
@@ -352,46 +233,92 @@ class ProductApiService {
     }
   }
 
-  Future<Product?> updateProduct(
-      String id, Product data, String storeId) async {
-    try {
-      final token = await _getToken();
-      if (token == null) return null;
+// In ProductApiService.dart
 
-      final payload = {
+  Future<Product?> updateProduct(String id, Product data, String storeId,
+      {File? imageFile, String? imageUrl}) async {
+    try {
+      String priceString =
+          data.price != null ? data.price!.toStringAsFixed(2) : '0.00';
+      String costPriceString =
+          data.costPrice != null ? data.costPrice!.toStringAsFixed(2) : '0.00';
+      String quantityString =
+          data.quantity != null ? data.quantity!.toString() : '0';
+
+      Map<String, dynamic> fields = {
         'name': data.name,
         'code': data.code,
         'category': data.category,
-        'price': data.price,
-        'costPrice': data.costPrice,
-        'quantity': data.quantity,
+        'price': priceString,
+        'costPrice': costPriceString,
+        'quantity': quantityString,
+        'minQuantity': data.minQuantity?.toString() ?? '1',
         'expiryDate': data.expiryDate,
-        'brands': data.brands,
         'description': data.description,
-        'imageUrl': data.imageUrl,
+        'size': data.size,
+        'brands': data.brands,
       };
 
-      print('Updating product with payload: $payload');
+      if (imageFile == null) {
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          fields['imageUrl'] = imageUrl;
+        } else if (imageUrl == null) {
+          // You might send a specific signal to clear the image, e.g., 'CLEAR_IMAGE'
+          // fields['imageUrl'] = '__CLEAR_IMAGE__';
+        }
+      }
+
+      FormData formData = FormData.fromMap(fields);
+
+      if (imageFile != null) {
+        String fileName = imageFile.path.split('/').last;
+        // String? mime = mimeType(fileName); // Use mimeType package to lookup
+        final mime = lookupMimeType(fileName);
+        formData.files.add(MapEntry(
+          "image", // Keep this consistent
+          await MultipartFile.fromFile(
+            imageFile.path,
+            filename: fileName, // Use the actual file name from the path
+            contentType: mime != null
+                ? MediaType.parse(mime)
+                : null, // Dynamically set content type
+          ),
+        ));
+      }
+
+      print('ProductApiService - Update URL: products/$id/$storeId');
+      print(
+          'ProductApiService - Update FormData (text fields): ${formData.fields}');
+      if (formData.files.isNotEmpty) {
+        print('ProductApiService - Update FormData Files:');
+        for (var fileEntry in formData.files) {
+          print(
+              '  Key: ${fileEntry.key}, Filename: ${fileEntry.value.filename}, ContentType: ${fileEntry.value.contentType}');
+        }
+      }
+
       final response = await connect().patch(
         'products/$id/$storeId',
-        data: payload,
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        data: formData,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
       );
 
       if (response.statusCode == 200) {
-        print('Update Product Response: ${response.data}');
         return Product.fromJson(response.data['data']);
       }
       return null;
     } on DioException catch (e) {
-      print('DioError updating product: ${e.response?.data}');
-      showCustomToast(
-          e.response?.data['message'] ?? 'Failed to update product.');
-      return null;
+      print('Dio Error updating product in ProductApiService: ${e.message}');
+      print('Response status code: ${e.response?.statusCode}');
+      print('Response data: ${e.response?.data}');
+      return null; // Let the ViewModel handle the toast
     } catch (e) {
-      print('Error updating product: $e');
-      showCustomToast('Failed to update product: $e');
-      return null;
+      print('Unexpected error updating product in ProductApiService: $e');
+      return null; // Let the ViewModel handle the toast
     }
   }
 
@@ -598,27 +525,35 @@ class ProductApiService {
   }) async {
     try {
       final token = await _getToken();
-      if (token == null) return null;
-
+      if (token == null) {
+        print('No authentication token found');
+        showCustomToast('Authentication token missing.');
+        return null;
+      }
       final query = {
         'page': page.toString(),
         'limit': limit.toString(),
       };
-
+      print('Sending request to products/$productId/history/$storeId with query: $query');
       final response = await connect().get(
         'products/$productId/history/$storeId',
         queryParameters: query,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-
+      print('API response status: ${response.statusCode}');
+      print('API response data: ${response.data}');
       if (response.statusCode == 200) {
-        print('Product History Response: ${response.data}');
-        return response.data['data'];
+        if (response.data['success'] == true && response.data['data'] != null) {
+          return response.data['data'];
+        }
+        print('Invalid response structure: success=${response.data['success']}, data=${response.data['data']}');
+        return null;
       }
+      print('Non-200 status code: ${response.statusCode}');
       return null;
-    } catch (e) {
-      print('Error fetching product history: $e');
-      showCustomToast('Failed to fetch product history.');
+    } catch (e, stackTrace) {
+      print('Error fetching product history: $e\nStack trace: $stackTrace');
+      showCustomToast('Failed to fetch product history: $e');
       return null;
     }
   }
@@ -629,15 +564,20 @@ class ProductApiService {
       if (token == null) throw Exception('No authentication token found.');
 
       final response = await connect().get(
-        'products/total-stock/$storeId',
+        'products/total-stock/$storeId', // This endpoint returns {totalQuantity, totalValue}
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
       if (response.statusCode == 200) {
-        print('Total Stock Response: ${response.data}');
+        print('Total Stock (Total-Stock endpoint) Response: ${response.data}');
         return response.data['data'];
       }
       throw Exception('Failed to fetch total stock.');
+    } on DioException catch (e) {
+      print('DioError fetching total stock: ${e.response?.data}');
+      showCustomToast(
+          e.response?.data['message'] ?? 'Failed to fetch total stock.');
+      rethrow; // Re-throw so the calling ViewModel/Repo can catch it
     } catch (e) {
       print('Error fetching total stock: $e');
       showCustomToast('Failed to fetch total stock.');
@@ -693,10 +633,17 @@ class ProductApiService {
       final token = await _getToken();
       if (token == null) return null;
 
+      String fileName = filePath.split('/').last;
+      // String? mime = mimeType(fileName);
+      final mime = lookupMimeType(fileName);
+
       FormData formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(filePath,
-            filename:
-                'product_image_${productId}_${DateTime.now().millisecondsSinceEpoch}.jpg'),
+        'file': await MultipartFile.fromFile(
+          filePath,
+          filename: fileName, // Use original filename or a derived one
+          contentType:
+              mime != null ? MediaType.parse(mime) : null, // Set dynamically
+        ),
       });
 
       final response = await connect().post(

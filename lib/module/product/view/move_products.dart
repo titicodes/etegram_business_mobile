@@ -380,7 +380,7 @@ class MoveProducts extends StatelessWidget {
                         AppTextField(
                           controller: controller.notesController,
                           hint: 'Notes (Optional)',
-                          maxLength: 3,
+                          maxLines: 3,
                           textInputAction: TextInputAction.done,
                           onSubmitted: (_) => FocusScope.of(context).unfocus(),
                         ),

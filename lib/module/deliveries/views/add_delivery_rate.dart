@@ -196,7 +196,7 @@ class AddDeliveryRate extends StatelessWidget {
                       AppTextField(
                         controller: model.extraDetailsController,
                         hint: 'Extra Details (Optional)',
-                        maxLength: 3,
+                        maxLines: 3,
                       ),
                       40.0.sbH,
                       ValueListenableBuilder<bool>(

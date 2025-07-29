@@ -149,7 +149,6 @@ class LoginViewModel extends BaseViewModel {
   final passwordController = TextEditingController();
   bool showPassword = false;
   final isFormValid = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> isLoading = ValueNotifier<bool>(false);
   bool _isChecked = false;
   bool get isChecked => _isChecked;
 
@@ -178,13 +177,10 @@ class LoginViewModel extends BaseViewModel {
     if (!formKey.currentState!.validate() || !isFormValid.value) {
       print("Form validation failed");
       showCustomToast("Please fill all required fields");
-      isLoading.value = false;
-      notifyListeners();
       return;
     }
 
-    isLoading.value = true;
-    notifyListeners();
+    startLoader(message: "Logging in..."); // Use BaseViewModel's startLoader
 
     try {
       var userData = Customer(
@@ -230,8 +226,11 @@ class LoginViewModel extends BaseViewModel {
         final data = e.response!.data as Map;
         print("Login Dio Error: $data");
         errorMessage = data['message'] ?? "Server error: $statusCode";
-        if (statusCode == 401 || data['message']?.toLowerCase().contains('email not verified') == true) {
-          print("Email not verified or unauthorized, navigating to verifyEmailView");
+        if (statusCode == 401 ||
+            data['message']?.toLowerCase().contains('email not verified') ==
+                true) {
+          print(
+              "Email not verified or unauthorized, navigating to verifyEmailView");
           navigationService.navigateTo(verifyEmailView);
         }
       } else {
@@ -243,8 +242,7 @@ class LoginViewModel extends BaseViewModel {
       print("Unexpected error in LoginViewModel: $e");
       showCustomToast("Unexpected error during login");
     } finally {
-      isLoading.value = false;
-      notifyListeners();
+      stopLoader(); // Use BaseViewModel's stopLoader
     }
   }
 
@@ -263,7 +261,6 @@ class LoginViewModel extends BaseViewModel {
     emailController.dispose();
     passwordController.dispose();
     isFormValid.dispose();
-    isLoading.dispose();
     super.dispose();
   }
 }

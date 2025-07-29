@@ -1,4 +1,3 @@
-
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -71,22 +70,24 @@ class ProductDetailsView extends StatelessWidget {
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: product.imageUrl != null && _isValidUrl(product.imageUrl!)
-                      ? Image.network(
-                    product.imageUrl!,
-                    height: 150,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.image_not_supported,
-                      size: 150,
-                      color: ColorValues.greyColor,
-                    ),
-                  )
-                      : const Icon(
-                    Icons.image_not_supported,
-                    size: 150,
-                    color: ColorValues.greyColor,
-                  ),
+                  child:
+                      product.imageUrl != null && _isValidUrl(product.imageUrl!)
+                          ? Image.network(
+                              product.imageUrl!,
+                              height: 150,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(
+                                Icons.image_not_supported,
+                                size: 150,
+                                color: ColorValues.greyColor,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.image_not_supported,
+                              size: 150,
+                              color: ColorValues.greyColor,
+                            ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -144,11 +145,11 @@ class ProductDetailsView extends StatelessWidget {
                           'Expiry Date',
                           product.expiryDate != null
                               ? DateFormat('dd MMM yyyy')
-                              .format(DateTime.parse(product.expiryDate!))
+                                  .format(DateTime.parse(product.expiryDate!))
                               : 'No Expiry Date',
                           color: product.expiryDate != null &&
-                              _isExpiringSoon(
-                                  DateTime.parse(product.expiryDate!))
+                                  _isExpiringSoon(
+                                      DateTime.parse(product.expiryDate!))
                               ? Colors.red
                               : Colors.black87,
                         ),
@@ -157,7 +158,8 @@ class ProductDetailsView extends StatelessWidget {
                       if (product.brands != null && product.brands!.isNotEmpty)
                         _buildDetailRow(
                           'Brands',
-                          product.brands != null && product.brands!.trim().isNotEmpty
+                          product.brands != null &&
+                                  product.brands!.trim().isNotEmpty
                               ? product.brands!
                               : 'No Brand',
                         ),
@@ -177,7 +179,8 @@ class ProductDetailsView extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               ValueListenableBuilder<bool>(
-                valueListenable: model.isLoading, // Use BaseViewModel's isLoading
+                valueListenable:
+                    model.isLoading, // Use BaseViewModel's isLoading
                 builder: (context, isLoading, _) {
                   return AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
@@ -186,12 +189,12 @@ class ProductDetailsView extends StatelessWidget {
                         : ValueListenableBuilder<List<ProductHistory>>(
                       valueListenable: model.productHistory,
                       builder: (context, history, _) {
+                        print('ProductDetailsView: Rendering with history: $history');
                         if (history.isEmpty) {
                           return Center(
                             child: Column(
                               children: [
-                                SvgPicture.asset(SvgAssets.noRecord,
-                                    height: 100),
+                                SvgPicture.asset(SvgAssets.noRecord, height: 100),
                                 const SizedBox(height: 8),
                                 const Text(
                                   'No history available',
@@ -210,64 +213,60 @@ class ProductDetailsView extends StatelessWidget {
                           itemCount: history.length,
                           itemBuilder: (context, index) {
                             final entry = history[index];
+                            print('Rendering history entry $index: ${entry.toJson()}');
                             return Card(
-                              margin: const EdgeInsets.symmetric(
-                                  vertical: 4.0),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8)),
+                              margin: const EdgeInsets.symmetric(vertical: 4.0),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               child: ListTile(
-                                contentPadding:
-                                const EdgeInsets.all(12.0),
+                                contentPadding: const EdgeInsets.all(12.0),
                                 leading: Icon(
-                                  entry.action == 'CREATED'
-                                      ? Icons.add_circle
-                                      : Icons.update,
-                                  color: entry.quantity <= 5
-                                      ? Colors.red
-                                      : ColorValues.primaryColor,
+                                  entry.action == 'CREATED' ? Icons.add_circle : Icons.update,
+                                  color: entry.quantity! <= 5 ? Colors.red : ColorValues.primaryColor,
                                 ),
                                 title: Text(
                                   '${entry.action}: ${entry.quantity} units',
-                                  style: normalTextStyle12.copyWith(
-                                      fontWeight: FontWeight.w600),
+                                  style: normalTextStyle12.copyWith(fontWeight: FontWeight.w600),
                                 ),
                                 subtitle: Column(
-                                  crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'Stock: ${entry.quantity}',
-                                      style: normalTextStyle12.copyWith(
-                                        color: entry.quantity <= 5
-                                            ? Colors.red
-                                            : Colors.black87,
+                                    if (entry.stock != null)
+                                      Text(
+                                        'Stock: ${entry.stock}',
+                                        style: normalTextStyle12.copyWith(
+                                          color: entry.stock! <= 5 ? Colors.red : Colors.black87,
+                                        ),
                                       ),
-                                    ),
-                                    Text(
-                                      'Price: ${NumberFormat.currency(symbol: '₦', decimalDigits: 2).format(entry.price)}',
-                                      style: normalTextStyle12,
-                                    ),
+                                    if (entry.price != null)
+                                      Text(
+                                        'Price: ${NumberFormat.currency(symbol: '₦', decimalDigits: 2).format(entry.price)}',
+                                        style: normalTextStyle12,
+                                      ),
                                     Text(
                                       'Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(entry.timestamp)}',
                                       style: normalTextStyle12,
                                     ),
-                                    if (entry.stock <= 5)
+                                    if (entry.notes != null)
+                                      Text(
+                                        'Notes: ${entry.notes}',
+                                        style: normalTextStyle12,
+                                      ),
+                                    if (entry.stock != null && entry.stock! <= 5)
                                       Text(
                                         'Action: Restock recommended',
                                         style: normalTextStyle12.copyWith(
-                                            color: Colors.red,
-                                            fontStyle: FontStyle.italic),
+                                          color: Colors.red,
+                                          fontStyle: FontStyle.italic,
+                                        ),
                                       ),
                                   ],
                                 ),
                                 trailing: entry.action == 'UPDATED'
                                     ? IconButton(
-                                  icon:
-                                  const Icon(Icons.info_outline),
+                                  icon: const Icon(Icons.info_outline),
                                   onPressed: () {
                                     showCustomToast(
-                                      'Stock: ${entry.stock}, Price: ₦${entry.price}',
-                                      // durationSeconds: 5,
+                                      'Stock: ${entry.stock ?? 'N/A'}, Price: ₦${entry.price ?? 'N/A'}',
                                     );
                                   },
                                 )
@@ -277,7 +276,7 @@ class ProductDetailsView extends StatelessWidget {
                           },
                         );
                       },
-                    ),
+                    )
                   );
                 },
               ),
@@ -337,7 +336,8 @@ class ShimmerHistoryList extends StatelessWidget {
           highlightColor: Colors.grey[100]!,
           child: Card(
             margin: const EdgeInsets.symmetric(vertical: 4.0),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             child: ListTile(
               contentPadding: const EdgeInsets.all(12.0),
               leading: Container(

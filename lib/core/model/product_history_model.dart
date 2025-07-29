@@ -1,49 +1,60 @@
-// import 'package:etegram_business/core/model/product_model.dart';
+//
+//
+// import 'package:flutter/material.dart';
 //
 // class ProductHistory {
 //   final String? id;
-//   final String type; // e.g., 'restock', 'adjustment'
+//   final String productId;
+//   final String action;
 //   final int quantity;
+//   final int stock;
+//   final double price;
+//   final DateTime timestamp;
+//   final String? type;
 //   final String? notes;
-//   final String? productId;
-//   final String? storeId;
-//   final String? userId;
-//   final DateTime? createdAt;
+//   final String? deliveryAgentId;
 //
 //   ProductHistory({
 //     this.id,
-//     required this.type,
+//     required this.productId,
+//     required this.action,
 //     required this.quantity,
+//     required this.stock,
+//     required this.price,
+//     required this.timestamp,
+//     this.type,
 //     this.notes,
-//     this.productId,
-//     this.storeId,
-//     this.userId,
-//     this.createdAt,
+//     this.deliveryAgentId,
 //   });
 //
 //   factory ProductHistory.fromJson(Map<String, dynamic> json) {
 //     return ProductHistory(
-//       id: json['_id']?.toString(),
-//       type: json['type'] ?? '',
-//       quantity: json['quantity']?.toInt() ?? 0,
+//       id: json['_id'],
+//       productId: json['productId']?.toString() ?? '',
+//       action: json['action'] ?? '',
+//       quantity: (json['quantity'] as num?)?.toInt() ?? 0,
+//       stock: (json['stock'] as num?)?.toInt() ?? 0,
+//       price: (json['price'] as num?)?.toDouble() ?? 0.0,
+//       timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
+//           DateTime.now(),
+//       type: json['type'],
+//       deliveryAgentId: json['deliveryAgentId'],
 //       notes: json['notes'],
-//       productId: json['product']?.toString(),
-//       storeId: json['store']?.toString(),
-//       userId: json['userId']?.toString(),
-//       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
 //     );
 //   }
 //
 //   Map<String, dynamic> toJson() {
 //     return {
 //       '_id': id,
-//       'type': type,
+//       'productId': productId,
+//       'action': action,
 //       'quantity': quantity,
+//       'stock': stock,
+//       'price': price,
+//       'timestamp': timestamp.toIso8601String(),
+//       'type': type,
 //       'notes': notes,
-//       'product': productId,
-//       'store': storeId,
-//       'userId': userId,
-//       'createdAt': createdAt?.toIso8601String(),
+//       'deliveryAgentId': deliveryAgentId,
 //     };
 //   }
 // }
@@ -52,11 +63,11 @@ import 'package:flutter/material.dart';
 
 class ProductHistory {
   final String? id;
-  final String productId;
-  final String action;
-  final int quantity;
-  final int stock;
-  final double price;
+  final String? productId;
+  final String? action;
+  final int? quantity;
+  final int? stock;
+  final double? price;
   final DateTime timestamp;
   final String? type;
   final String? notes;
@@ -64,11 +75,11 @@ class ProductHistory {
 
   ProductHistory({
     this.id,
-    required this.productId,
+    this.productId,
     required this.action,
     required this.quantity,
-    required this.stock,
-    required this.price,
+    this.stock,
+    this.price,
     required this.timestamp,
     this.type,
     this.notes,
@@ -76,18 +87,18 @@ class ProductHistory {
   });
 
   factory ProductHistory.fromJson(Map<String, dynamic> json) {
+    print('Parsing ProductHistory JSON: $json'); // Debug log
     return ProductHistory(
-      id: json['_id'],
-      productId: json['productId']?.toString() ?? '',
-      action: json['action'] ?? '',
+      id: json['_id']?.toString(),
+      productId: json['product']?.toString() ?? json['productId']?.toString(),
+      action: json['type']?.toString() ?? json['action']?.toString() ?? 'UNKNOWN',
       quantity: (json['quantity'] as num?)?.toInt() ?? 0,
-      stock: (json['stock'] as num?)?.toInt() ?? 0,
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
-          DateTime.now(),
-      type: json['type'],
-      deliveryAgentId: json['deliveryAgentId'],
-      notes: json['notes'],
+      stock: (json['stock'] as num?)?.toInt(),
+      price: (json['price'] as num?)?.toDouble(),
+      timestamp: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      type: json['type']?.toString(),
+      notes: json['notes']?.toString(),
+      deliveryAgentId: json['deliveryAgentId']?.toString(),
     );
   }
 

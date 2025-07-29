@@ -27,8 +27,8 @@ class Product {
   final String? description;
   final String? size;
   final String? brands;
-  final String? storeId; // <-- This field is important for the payload
-  final String? owner; // <-- This field is also important for the payload
+  final String? storeId;
+  final String? owner;
   final String? imageUrl;
 
   Product({
@@ -44,8 +44,8 @@ class Product {
     this.description,
     this.size,
     this.brands,
-    this.storeId, // Make sure this is passed when creating Product object
-    this.owner, // Make sure this is passed when creating Product object
+    this.storeId,
+    this.owner,
     this.imageUrl,
   });
 

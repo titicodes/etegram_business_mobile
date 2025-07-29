@@ -2,21 +2,18 @@ import 'package:etegram_business/core/model/checkout_response.dart';
 import 'package:etegram_business/core/model/get_scan_response.dart';
 import 'package:etegram_business/locator.dart';
 import 'package:etegram_business/service/web/sales_api_service.dart';
-
 import '../core/model/sales_records.dart';
 
 class SalesRepository {
   final SalesApiService _salesApiService = locator<SalesApiService>();
 
-  // FIXED: Improved error handling in getScanProduct
   Future<GetScanResponse?> getScanProduct({
     required String code,
     required String ownerId,
     required String storeId,
   }) async {
     try {
-      // Validate inputs
-      if (code == "0") {
+      if (code.isEmpty || code == "0") {
         return GetScanResponse(
           success: false,
           message: 'Invalid barcode',
@@ -32,19 +29,15 @@ class SalesRepository {
         );
       }
 
-      // Make API call and handle response
       final response = await _salesApiService.getScanProduct(
         code: code,
         ownerId: ownerId,
         storeId: storeId,
       );
 
-      // Return the response (which might be null, success=true, or success=false)
       return response;
     } catch (e) {
       print('Error in SalesRepository.getScanProduct: $e');
-
-      // Return a valid response object with the error message
       return GetScanResponse(
         success: false,
         message: 'Failed to get product: $e',
@@ -53,17 +46,18 @@ class SalesRepository {
     }
   }
 
-  Future<CheckoutResponse?> checkout({
+  Future<GetScanResponse?> checkout({
     required List<Map<String, dynamic>> cartItems,
     double discount = 0.0,
     double tax = 0.0,
     required String paymentMethod,
     required String storeId,
+    String? customerId,
+    String? supplierId,
   }) async {
     try {
-      // Validate inputs
       if (cartItems.isEmpty) {
-        return CheckoutResponse(
+        return GetScanResponse(
           success: false,
           message: 'Cart is empty',
           data: null,
@@ -71,29 +65,34 @@ class SalesRepository {
       }
 
       if (storeId.isEmpty) {
-        return CheckoutResponse(
+        return GetScanResponse(
           success: false,
           message: 'Store ID is missing',
           data: null,
         );
       }
 
-      // Make API call and handle response
+      final sanitizedCartItems = cartItems.map((item) {
+        return {
+          'code': item['code'] as String,
+          'quantity': (item['quantity'] as num).toInt(),
+        };
+      }).toList();
+
       final response = await _salesApiService.checkout(
-        cartItems: cartItems,
+        cartItems: sanitizedCartItems,
         discount: discount,
         tax: tax,
         paymentMethod: paymentMethod,
         storeId: storeId,
+        customerId: customerId,
+        supplierId: supplierId,
       );
 
-      // Return the response (which might be null, success=true, or success=false)
       return response;
-    } catch (e) {
-      print('Error in SalesRepository.checkout: $e');
-
-      // Return a valid response object with the error message
-      return CheckoutResponse(
+    } catch (e, stackTrace) {
+      print('Error in SalesRepository.checkout: $e\n$stackTrace');
+      return GetScanResponse(
         success: false,
         message: 'Failed to process checkout: $e',
         data: null,
@@ -101,20 +100,33 @@ class SalesRepository {
     }
   }
 
-  Future<List<SalesRecord>> getSalesHistory(
-      {required String storeId, String? productId}) async {
+  Future<List<SalesRecord>> getSalesHistory({
+    required String storeId,
+    String? productId,
+  }) async {
     return _salesApiService.getSalesHistory(
-        storeId: storeId, productId: productId);
+      storeId: storeId,
+      productId: productId,
+    );
   }
 
-  Future<List<SalesRecord>> getOwingRecords(
-      {required String storeId, String? supplierId}) async {
+  Future<List<SalesRecord>> getOwingRecords({
+    required String storeId,
+    String? supplierId,
+  }) async {
     return _salesApiService.getOwingRecords(
-        storeId: storeId, supplierId: supplierId);
+      storeId: storeId,
+      supplierId: supplierId,
+    );
   }
 
-  Future<List<SalesRecord>> getOwedRecords(
-      {required String storeId, String? customerId}) async{
-    return _salesApiService.getOwedRecords(storeId: storeId, customerId: customerId);
+  Future<List<SalesRecord>> getOwedRecords({
+    required String storeId,
+    String? customerId,
+  }) async {
+    return _salesApiService.getOwedRecords(
+      storeId: storeId,
+      customerId: customerId,
+    );
   }
 }

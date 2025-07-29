@@ -12,6 +12,7 @@ import '../../service/local/storage_service.dart';
 import '../../utils/snack_message.dart';
 import '../local/user_service.dart';
 import 'base_api.dart';
+import 'package:http_parser/http_parser.dart' show MediaType;
 
 class AuthenticationApiService {
   final StorageService storageService = locator<StorageService>();
@@ -248,37 +249,14 @@ class AuthenticationApiService {
 
       final fileExtension = fileName?.split('.').last.toLowerCase() ??
           filePath.split('.').last.toLowerCase();
-      final supportedFormats = ['jpeg', 'jpg', 'png', 'gif', 'webp', 'bmp'];
-      if (!supportedFormats.contains(fileExtension)) {
+
+// Use mimeTypeFromExtension from 'mime_type' package
+      final mimeType = lookupMimeType(filePath);
+
+      if (mimeType == null || !mimeType.startsWith('image/')) {
         showCustomToast(
-            'Unsupported file format. Please use JPEG, PNG, GIF, WebP, or BMP.',
+            'Unsupported file format. Please use an image file (JPEG, PNG, GIF, WebP, or BMP).',
             success: false);
-        return null;
-      }
-
-      String? contentType;
-      switch (fileExtension) {
-        case 'jpeg':
-        case 'jpg':
-          contentType = 'image/jpeg';
-          break;
-        case 'png':
-          contentType = 'image/png';
-          break;
-        case 'gif':
-          contentType = 'image/gif';
-          break;
-        case 'webp':
-          contentType = 'image/webp';
-          break;
-        case 'bmp':
-          contentType = 'image/bmp';
-          break;
-      }
-
-      final mimeType = contentType ?? lookupMimeType(filePath);
-      if (mimeType == null) {
-        showCustomToast('Unable to determine file type.', success: false);
         return null;
       }
 
@@ -288,16 +266,18 @@ class AuthenticationApiService {
         'file': await MultipartFile.fromFile(
           filePath,
           filename: effectiveFileName,
-          contentType: DioMediaType.parse(mimeType),
+          contentType: MediaType.parse(mimeType), // Correct usage of MediaType
         ),
       });
 
       final url = 'user/$userId/profile-image';
-      print('Request URL: $url');
+      print(
+          'Request URL: ${connect().options.baseUrl}$url'); // Print full URL for clarity
       print(
           'Request Data: FormData, File: $effectiveFileName, Content-Type: $mimeType, File Size: ${await file.length() / 1024} KB');
 
       final response = await connect().post(
+        // Assuming connect() returns a Dio instance
         url,
         data: formData,
         options: Options(
@@ -310,16 +290,21 @@ class AuthenticationApiService {
       print('Response Status: ${response.statusCode}');
       print('Response Data: ${response.data}');
 
-      if (response.statusCode == 200) {
+      // Handle both 200 (OK) and 201 (Created) as successful responses
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData =
             response.data is String ? jsonDecode(response.data) : response.data;
-        responseData['profileImageUrl'] = responseData['imageUrl'];
+        // The backend response clearly shows 'imageUrl'.
+        // Assuming your Customer.fromJson can directly consume 'imageUrl' as 'imageUrl' property.
+        // If your Customer model has a field named `profileImageUrl` that expects `imageUrl` from API:
+        // responseData['profileImageUrl'] = responseData['imageUrl']; // Uncomment if mapping is needed
         return Customer.fromJson(responseData);
       }
       showCustomToast('Unexpected response status: ${response.statusCode}',
           success: false);
       return null;
     } on DioException catch (e) {
+      // Use DioException for error handling
       print('DioError uploading profile image: ${e.response?.data}');
       print('Error Status: ${e.response?.statusCode}');
       print('Error Data: ${e.response?.data}');

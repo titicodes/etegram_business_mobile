@@ -1,5 +1,3 @@
-//
-//
 // import 'package:etegram_business/app_widget/app_text.dart';
 // import 'package:etegram_business/base/base_ui.dart';
 // import 'package:etegram_business/constants/assets.dart';
@@ -10,24 +8,28 @@
 // import 'package:etegram_business/module/home/drawer/nav_drawer.dart';
 // import 'package:etegram_business/module/home/vm/home_vm.dart';
 // import 'package:etegram_business/module/product/view/search_view.dart';
-// import 'package:etegram_business/module/product/vm/product_viewmodel.dart';
+// import 'package:etegram_business/routes/routes.dart';
 // import 'package:etegram_business/utils/widget_extension.dart';
 // import 'package:flutter/material.dart';
 // import 'package:flutter_svg/flutter_svg.dart';
 // import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 // import '../../../constants/colors.dart';
-// import '../../../routes/routes.dart';
+// import '../../../core/model/notification_model.dart';
+// import '../../account/viewmodel/notification_vm.dart';
 //
 // class HomeView extends StatelessWidget {
 //   const HomeView({super.key});
 //
 //   @override
 //   Widget build(BuildContext context) {
-//     var logic = locator<ProductViewModel>();
+//     final homeViewModel = locator<HomeViewModel>();
+//     final notificationViewModel = locator<NotificationViewModel>();
+//
 //     return BaseView<HomeViewModel>(
 //       onModelReady: (model) {
-//         model.context = context; // Set context for dialog
+//         model.context = context;
 //         model.init();
+//         notificationViewModel.init();
 //       },
 //       builder: (_, model, child) => Scaffold(
 //         key: model.scaffoldKey,
@@ -51,15 +53,16 @@
 //                           borderRadius: BorderRadius.circular(100),
 //                           child: CircleAvatar(
 //                             backgroundColor: ColorValues.greyColor,
-//                             backgroundImage: imageUrl != null && imageUrl.isNotEmpty
-//                                 ? NetworkImage(imageUrl)
-//                                 : null,
+//                             backgroundImage:
+//                                 imageUrl != null && imageUrl.isNotEmpty
+//                                     ? NetworkImage(imageUrl)
+//                                     : null,
 //                             child: imageUrl == null || imageUrl.isEmpty
 //                                 ? SvgPicture.asset(
-//                               SvgAssets.avatar,
-//                               height: 30,
-//                               width: 30,
-//                             )
+//                                     SvgAssets.avatar,
+//                                     height: 30,
+//                                     width: 30,
+//                                   )
 //                                 : null,
 //                           ),
 //                         ),
@@ -98,7 +101,9 @@
 //                     ),
 //                     const SizedBox(height: 2.0),
 //                     AppText(
-//                       model.getFullName().isNotEmpty ? model.getFullName() : "Anietimfon Effiong",
+//                       model.getFullName().isNotEmpty
+//                           ? model.getFullName()
+//                           : "Anietimfon Effiong",
 //                       style: normalTextStyle12,
 //                     ),
 //                   ],
@@ -111,13 +116,45 @@
 //               padding: const EdgeInsets.only(right: 8.0),
 //               child: Row(
 //                 children: [
-//                   InkWell(
-//                     onTap: () {},
-//                     child: SvgPicture.asset(
-//                       SvgAssets.notification,
-//                       height: 30,
-//                       width: 30,
-//                     ),
+//                   Stack(
+//                     children: [
+//                       InkWell(
+//                         onTap: () async {
+//                           await navigationService
+//                               .navigateTo(notificationViewRoute);
+//                           await notificationViewModel.fetchNotifications();
+//                         },
+//                         child: SvgPicture.asset(
+//                           SvgAssets.notification,
+//                           height: 30,
+//                           width: 30,
+//                         ),
+//                       ),
+//                       ValueListenableBuilder<int>(
+//                         valueListenable: notificationViewModel.unreadCount,
+//                         builder: (context, unreadCount, _) {
+//                           if (unreadCount == 0) return const SizedBox.shrink();
+//                           return Positioned(
+//                             right: 0,
+//                             top: 0,
+//                             child: Container(
+//                               padding: const EdgeInsets.all(4.0),
+//                               decoration: BoxDecoration(
+//                                 color: ColorValues.primaryColor,
+//                                 shape: BoxShape.circle,
+//                               ),
+//                               child: AppText(
+//                                 unreadCount.toString(),
+//                                 style: normalTextStyle12.copyWith(
+//                                   color: Colors.white,
+//                                   fontSize: 10,
+//                                 ),
+//                               ),
+//                             ),
+//                           );
+//                         },
+//                       ),
+//                     ],
 //                   ),
 //                   const SizedBox(width: 8.0),
 //                   InkWell(
@@ -142,14 +179,19 @@
 //                 const SizedBox(height: 24.0),
 //                 AppText(
 //                   'Supported formats: JPEG, PNG, GIF, WebP, BMP (max 5MB)',
-//                   style: normalTextStyle12.copyWith(fontSize: 10, color: Colors.grey),
+//                   style: normalTextStyle12.copyWith(
+//                     fontSize: 10,
+//                     color: Colors.grey,
+//                   ),
 //                 ),
 //                 const SizedBox(height: 10.0),
 //                 SvgPicture.asset(SvgAssets.adsBanner),
+//
 //                 const SizedBox(height: 30.0),
 //                 InkWell(
 //                   onTap: () {
-//                     navigationService.navigateToWidget(const SearchProductView());
+//                     navigationService
+//                         .navigateToWidget(const SearchProductView());
 //                   },
 //                   child: Container(
 //                     height: 40,
@@ -202,9 +244,14 @@
 //                         ),
 //                       ),
 //                       const SizedBox(height: 6.0),
-//                       AppText(
-//                         StringValues.howToUseApp,
-//                         style: normalTextStyle12,
+//                       InkWell(
+//                         onTap: () {
+//                           navigationService.navigateTo(howItWorksRoute);
+//                         },
+//                         child: AppText(
+//                           StringValues.howToUseApp,
+//                           style: normalTextStyle12,
+//                         ),
 //                       ),
 //                       const SizedBox(height: 20.0),
 //                     ],
@@ -218,7 +265,6 @@
 //     );
 //   }
 // }
-
 
 import 'package:etegram_business/app_widget/app_text.dart';
 import 'package:etegram_business/base/base_ui.dart';
@@ -335,49 +381,57 @@ class HomeView extends StatelessWidget {
           ),
           actions: [
             Padding(
-              padding: const EdgeInsets.only(right: 8.0),
+              padding: const EdgeInsets.only(right: 16.0),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Stack(
-                    children: [
-                      InkWell(
-                        onTap: () async {
-                          await navigationService.navigateTo(notificationViewRoute);
-                          await notificationViewModel.fetchNotifications();
-                        },
-                        child: SvgPicture.asset(
+                  InkWell(
+                    onTap: () async {
+                      await navigationService.navigateTo(notificationViewRoute);
+                      await notificationViewModel.fetchNotifications();
+                    },
+                    child: Stack(
+                      children: [
+                        SvgPicture.asset(
                           SvgAssets.notification,
                           height: 30,
                           width: 30,
                         ),
-                      ),
-                      ValueListenableBuilder<int>(
-                        valueListenable: notificationViewModel.unreadCount,
-                        builder: (context, unreadCount, _) {
-                          if (unreadCount == 0) return const SizedBox.shrink();
-                          return Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4.0),
-                              decoration: BoxDecoration(
-                                color: ColorValues.primaryColor,
-                                shape: BoxShape.circle,
-                              ),
-                              child: AppText(
-                                unreadCount.toString(),
-                                style: normalTextStyle12.copyWith(
-                                  color: Colors.white,
-                                  fontSize: 10,
+                        ValueListenableBuilder<int>(
+                          valueListenable: notificationViewModel.unreadCount,
+                          builder: (context, unreadCount, _) {
+                            if (unreadCount < 0) {
+                              return const SizedBox.shrink();
+                            }
+                            return Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4.0),
+                                decoration: BoxDecoration(
+                                  color: ColorValues.primaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: AppText(
+                                  unreadCount.toString(),
+                                  style: normalTextStyle12.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                  ),
+                                  align: TextAlign.center,
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 8.0),
+                  const SizedBox(width: 16.0),
                   InkWell(
                     onTap: () => model.openDrawer(),
                     child: SvgPicture.asset(

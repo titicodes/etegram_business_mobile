@@ -1,21 +1,29 @@
 // import 'dart:async';
 // import 'dart:convert';
-// import 'package:dio/dio.dart';
-// import 'package:etegram_business/routes/routes.dart';
+// import 'dart:io';
+//
+// import 'package:etegram_business/constants/style.dart';
 // import 'package:flutter/foundation.dart';
 // import 'package:flutter/material.dart';
 // import 'package:flutter_toggle_tab/flutter_toggle_tab.dart';
 // import 'package:http/http.dart' as http;
+//
+// import 'package:etegram_business/core/model/product_model.dart';
+// import 'package:etegram_business/core/model/product_history_model.dart';
+// import 'package:etegram_business/locator.dart';
+// import 'package:etegram_business/utils/snack_message.dart';
 // import 'package:intl/intl.dart';
-// import 'package:etegram_business/app_widget/celebration_widget.dart';
+//
+// import '../../../app_widget/celebration_widget.dart';
 // import '../../../base/base_vm.dart';
 // import '../../../constants/assets.dart';
 // import '../../../constants/colors.dart';
-// import '../../../core/model/product_history_model.dart';
-// import '../../../core/model/product_model.dart';
-// import '../../../utils/snack_message.dart';
+// import '../../../routes/routes.dart';
+// import '../../../service/local/user_service.dart';
 //
 // class ProductViewModel extends BaseViewModel {
+//   final CustomerService customerService = locator<CustomerService>();
+//
 //   int currentIndex = 0;
 //
 //   // Form key
@@ -37,14 +45,17 @@
 //   final searchController = TextEditingController();
 //   final ValueNotifier<bool> isFetchingExternalData = ValueNotifier<bool>(false);
 //   final errorMessage = ValueNotifier<String?>(null);
-//   List<ProductHistory> productHistory = [];
-//   int totalHistoryItems = 0;
 //
 //   ProductViewModel() {
 //     priceController.addListener(updateTotals);
 //     quantityController.addListener(updateTotals);
 //     costPriceController.addListener(updateTotals);
 //     minQuantityController.addListener(updateTotals);
+//     priceController.text = '1.00';
+//     costPriceController.text = '0.00';
+//     quantityController.text = '1';
+//     minQuantityController.text = '1';
+//     updateTotals();
 //   }
 //
 //   bool _isValidObjectId(String? id) {
@@ -60,8 +71,10 @@
 //   final _expiringProducts = ValueNotifier<List<Product>>([]);
 //   ValueListenable<List<Product>> get lowStockProducts => _lowStockProducts;
 //   final _lowStockProducts = ValueNotifier<List<Product>>([]);
-//   // ValueListenable<List<ProductHistory>> get productHistory => _productHistory;
+//   ValueListenable<List<ProductHistory>> get productHistory => _productHistory;
 //   final _productHistory = ValueNotifier<List<ProductHistory>>([]);
+//   ValueListenable<bool> get isLoadingProductHistory => _isLoadingProductHistory;
+//   final _isLoadingProductHistory = ValueNotifier<bool>(false);
 //
 //   // Inventory summary
 //   ValueListenable<double> get totalCost => _totalCost;
@@ -73,6 +86,7 @@
 //
 //   // UI state
 //   String? productImageUrl;
+//
 //   ValueListenable<bool> get isLoadingExpiring => _isLoadingExpiring;
 //   final _isLoadingExpiring = ValueNotifier<bool>(false);
 //   ValueListenable<bool> get isLoadingLowStock => _isLoadingLowStock;
@@ -80,7 +94,6 @@
 //   final _productTabIndex = ValueNotifier<int>(0);
 //   Timer? _debounce;
 //   final ValueNotifier<int> productTabIndex = ValueNotifier(0);
-//   ValueNotifier<bool> isLoadingNotifier = ValueNotifier<bool>(false);
 //
 //   void init() {
 //     initialize();
@@ -92,7 +105,7 @@
 //         DataTab(title: "Sent"),
 //         DataTab(title: "Received"),
 //       ];
-//   //List<String> get productTabOptions => ['All Product', 'Expiring', 'Low Stock'];
+//
 //   List<DataTab> get productTabOptions => [
 //         DataTab(title: "All Product"),
 //         DataTab(title: "Expiring"),
@@ -100,7 +113,7 @@
 //       ];
 //
 //   Future<void> initialize() async {
-//     final storeId = customerService.activeStoreId;
+//     final storeId = await customerService.activeStoreId;
 //     if (storeId == null) {
 //       errorMessage.value = 'No active store selected.';
 //       showCustomToast('No active store selected.');
@@ -112,7 +125,6 @@
 //       fetchExpiringProducts(storeId),
 //       fetchLowStockProducts(storeId),
 //       fetchInventorySummary(storeId),
-//       fetchTotalStock(storeId),
 //     ]);
 //   }
 //
@@ -121,7 +133,7 @@
 //     codeController.text = product.code ?? '';
 //     categoryController.text = product.category ?? '';
 //     costPriceController.text = product.costPrice?.toStringAsFixed(2) ?? '0.00';
-//     priceController.text = product.price?.toStringAsFixed(2) ?? '0.00';
+//     priceController.text = product.price?.toStringAsFixed(2) ?? '1.00';
 //     quantityController.text = product.quantity?.toString() ?? '1';
 //     minQuantityController.text = product.minQuantity?.toString() ?? '1';
 //     expiryDateController.text = product.expiryDate ?? '';
@@ -145,19 +157,20 @@
 //
 //       print(
 //           'Fetching all products: storeId=$storeId, search=$search, category=$category');
-//       final totalStockResponse =
-//           await productRepository.getTotalStockWithProducts(storeId);
-//       final products = totalStockResponse['products'] as List<dynamic>;
-//       print('Fetched ${products.length} products from total stock: $products');
-//       _allProducts.value =
-//           products.map((json) => Product.fromJson(json)).toList();
+//       final products = await productRepository.getFilteredProducts(
+//         storeId: storeId,
+//         search: search,
+//         category: category,
+//       );
+//       print('Fetched ${products.length} products.');
+//       _allProducts.value = products;
 //       if (_allProducts.value.isEmpty && (search == null || search.isEmpty)) {
 //         errorMessage.value = 'No products found for this store.';
 //       }
 //     } catch (e) {
 //       print('Error fetching all products: $e');
-//       errorMessage.value = 'Failed to fetch products: $e';
-//       showCustomToast('Failed to fetch products.');
+//       errorMessage.value = 'Failed to fetch products: ${e.toString()}';
+//       showCustomToast('Failed to fetch products.', success: false);
 //       _allProducts.value = [];
 //     } finally {
 //       stopLoader();
@@ -176,7 +189,7 @@
 //       }
 //     } catch (e) {
 //       print('Error fetching expiring products: $e');
-//       errorMessage.value = 'Failed to fetch expiring products: $e';
+//       errorMessage.value = 'Failed to fetch expiring products: ${e.toString()}';
 //       showCustomToast('Failed to fetch expiring products.');
 //       _expiringProducts.value = [];
 //     } finally {
@@ -196,8 +209,9 @@
 //       }
 //     } catch (e) {
 //       print('Error fetching low stock products: $e');
-//       errorMessage.value = 'Failed to fetch low stock products: $e';
-//       showCustomToast('Failed to fetch low stock products.');
+//       errorMessage.value =
+//           'Failed to fetch low stock products: ${e.toString()}';
+//       showCustomToast('Failed to fetch low stock products.', success: false);
 //       _lowStockProducts.value = [];
 //     } finally {
 //       _isLoadingLowStock.value = false;
@@ -208,84 +222,52 @@
 //     try {
 //       final summary = await productRepository.getInventorySummary(storeId);
 //       if (summary != null) {
-//         _totalCost.value = (summary['totalCost'] ?? 0).toDouble();
+//         _totalCost.value = (summary['totalCost'] as num? ?? 0).toDouble();
 //         _totalSellingPrice.value =
-//             (summary['totalSellingPrice'] ?? 0).toDouble();
-//         _totalStock.value = (summary['totalQuantity'] ?? 0).toInt();
+//             (summary['totalSellingPrice'] as num? ?? 0).toDouble();
+//         _totalStock.value = (summary['totalQuantity'] as int? ?? 0).toInt();
+//         print(
+//             'Inventory Summary - Total Cost: ${_totalCost.value}, Total Selling Price: ${_totalSellingPrice.value}, Total Quantity: ${_totalStock.value}');
+//       } else {
+//         print('Inventory summary data is null.');
+//         errorMessage.value = 'Failed to load inventory summary.';
 //       }
 //     } catch (e) {
 //       print('Error fetching inventory summary: $e');
-//       errorMessage.value = 'Failed to fetch inventory summary: $e';
-//       showCustomToast('Failed to fetch inventory summary.');
+//       errorMessage.value = 'Failed to fetch inventory summary: ${e.toString()}';
+//       showCustomToast('Failed to fetch inventory summary.', success: false);
 //     }
 //   }
 //
 //   Future<void> fetchTotalStock(String storeId) async {
 //     try {
 //       final total = await productRepository.getTotalStockWithProducts(storeId);
-//       _totalStock.value = (total['totalQuantity'] ?? 0).toInt();
-//       final products = total['products'] as List<dynamic>;
-//       if (_allProducts.value.isEmpty) {
-//         _allProducts.value =
-//             products.map((json) => Product.fromJson(json)).toList();
-//       }
+//       _totalStock.value = (total['totalQuantity'] as int? ?? 0).toInt();
+//       print(
+//           'Fetched total stock (from getTotalStockWithProducts): ${_totalStock.value}');
 //     } catch (e) {
 //       print('Error fetching total stock: $e');
-//       errorMessage.value = 'Failed to fetch total stock: $e';
-//       showCustomToast('Failed to fetch total stock.');
+//       errorMessage.value = 'Failed to fetch total stock: ${e.toString()}';
+//       showCustomToast('Failed to fetch total stock.', success: false);
 //     }
 //   }
 //
-//   // Future<void> fetchProductHistory(String productId, String storeId) async {
-//   //   startLoader();
-//   //   try {
-//   //     final history = await productRepository.getProductHistory(
-//   //         productId: productId, storeId: storeId);
-//   //     _productHistory.value = history;
-//   //   } catch (e) {
-//   //     print('Error fetching product history: $e');
-//   //     showCustomToast('Failed to fetch product history.');
-//   //   } finally {
-//   //     stopLoader();
-//   //   }
-//   // }
-//   Future<void> fetchProductHistory(String productId, String storeId, {int page = 1, int limit = 10}) async {
+//   Future<void> fetchProductHistory(String productId, String storeId) async {
+//     _isLoadingProductHistory.value = true;
 //     try {
-//      startLoader();
-//       isLoadingNotifier.value = true;
-//       notifyListeners();
-//
-//       if (productId.isEmpty || storeId.isEmpty) {
-//         print('Error: Invalid productId or storeId');
-//         showCustomToast('Invalid product or store selected.');
-//         return;
-//       }
-//       print('Fetching product history: productId=$productId, storeId=$storeId, page=$page, limit=$limit');
 //       final history = await productRepository.getProductHistory(
-//         productId: productId,
-//         storeId: storeId,
-//         page: page,
-//         limit: limit,
-//       );
-//       productHistory = history;
-//       totalHistoryItems = history.length;
-//       print('Product history fetched: count=${productHistory.length}, total=$totalHistoryItems');
-//
-//       // Check for low stock and suggest action
-//       if (history.isNotEmpty && history.any((h) => h.stock <= 5)) {
-//         showCustomToast('Low stock detected! Consider restocking.');
-//       }
+//           productId: productId, storeId: storeId);
+//       _productHistory.value = history;
 //     } catch (e) {
 //       print('Error fetching product history: $e');
-//       showCustomToast('Failed to fetch product history: $e');
+//       showCustomToast('Failed to fetch product history.', success: false);
 //     } finally {
-//      stopLoader();
-//       isLoadingNotifier.value = false;
-//       notifyListeners();
+//       _isLoadingProductHistory.value = false;
 //     }
 //   }
 //
-//   Future<void> fetchProductDetailsFromAPI(String barcode) async {
+//   Future<void> fetchProductDetailsFromAPI(String barcode,
+//       {bool silent = false}) async {
 //     isFetchingExternalData.value = true;
 //     notifyListeners();
 //     print('Fetching product details for barcode: $barcode');
@@ -307,58 +289,85 @@
 //               productData['quantity'] ?? productData['net_weight'] ?? '';
 //           productImageUrl = productData['image_front_url'] ?? '';
 //           codeController.text = barcode;
-//           priceController.text = '0.00';
+//           priceController.text = '1.00';
 //           costPriceController.text = '0.00';
 //           quantityController.text = '1';
 //           minQuantityController.text = '5';
 //           descriptionController.text = productData['ingredients_text'] ?? '';
 //           updateTotals();
-//           showCustomToast('Product details fetched successfully!');
+//           if (!silent) {
+//             showCustomToast('Product details fetched successfully!',
+//                 success: true);
+//           }
 //         } else {
 //           clearControllers();
 //           codeController.text = barcode;
-//           showCustomToast('Product not found. Please enter details manually.');
+//           if (!silent) {
+//             showCustomToast(
+//                 'Product not found. Please enter details manually.');
+//           }
 //         }
 //       } else {
 //         clearControllers();
 //         codeController.text = barcode;
-//         showCustomToast('Failed to fetch product details.');
+//         if (!silent) {
+//           showCustomToast('Failed to fetch product details.', success: false);
+//         }
 //       }
 //     } catch (e) {
 //       print('Error fetching product details: $e');
 //       clearControllers();
 //       codeController.text = barcode;
-//       showCustomToast('Error fetching product details.');
+//       if (!silent) {
+//         showCustomToast('Error fetching product details.');
+//       }
 //     } finally {
 //       isFetchingExternalData.value = false;
 //       notifyListeners();
 //     }
 //   }
 //
-//   Future<Product?> checkProductExistence(
-//       String code, BuildContext context) async {
+//   Future<bool> checkProductExistence(String code, BuildContext context) async {
 //     startLoader(message: 'Checking product...');
 //     try {
-//       final storeId = customerService.activeStoreId;
+//       final storeId = await customerService.activeStoreId;
 //       if (storeId == null) {
-//         showCustomToast('No active store selected.');
-//         return null;
+//         showCustomToast('No active store selected.', success: false);
+//         print('checkProductExistence: No active storeId');
+//         return false;
 //       }
 //
 //       print('Checking product existence: code=$code, storeId=$storeId');
 //       final result =
 //           await productRepository.checkProductExistence(code, storeId);
 //       print('Check product response: $result');
-//       if (result['success'] && result['exists'] && result['product'] != null) {
-//         print('Product found: ${result['product'].toJson()}');
-//         return result['product'] as Product;
+//
+//       if (result == null) {
+//         print('checkProductExistence: Null response from repository');
+//         showCustomToast(
+//             'Unable to verify product due to server error. Please try again.',
+//             success: false);
+//         return false;
 //       }
-//       print('No duplicate product found.');
-//       return null;
-//     } catch (e) {
-//       print('Error checking product existence: $e');
-//       showCustomToast('Error checking product: $e');
-//       return null;
+//
+//       if (result['success'] == true && result['exists'] == true) {
+//         print('Product exists for code: $code');
+//         return true;
+//       } else if (result['success'] == true && result['exists'] == false) {
+//         print('No duplicate product found for code: $code');
+//         return false;
+//       } else {
+//         print(
+//             'Unexpected response: success=${result['success']}, exists=${result['exists']}');
+//         showCustomToast('Unable to verify product. Please try again later.',
+//             success: false);
+//         return false;
+//       }
+//     } catch (e, stackTrace) {
+//       print('Error checking product existence: $e\n$stackTrace');
+//       showCustomToast('Failed to check product. Please try again.',
+//           success: false);
+//       return false;
 //     } finally {
 //       stopLoader();
 //       notifyListeners();
@@ -366,77 +375,77 @@
 //   }
 //
 //   Future<void> showDuplicateDialog(BuildContext context, Product? product,
-//       {bool fromSave = false}) async {
-//     if (product == null) {
-//       showCustomToast('Failed to fetch product details.');
-//       return;
-//     }
-//     print(
-//         'Showing duplicate dialog for product: ${product.name}, code: ${product.code}');
+//       {bool fromSave = false, String? barcode}) async {
+//     print('Showing duplicate dialog for barcode: $barcode');
 //     await showDialog(
 //       context: context,
-//       barrierDismissible: false, // Prevent dismissing dialog by tapping outside
+//       barrierDismissible: false,
 //       builder: (context) => AlertDialog(
-//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-//         backgroundColor: Colors.white,
-//         title: Row(
-//           children: [
-//             Icon(Icons.warning_rounded, color: Colors.orange, size: 28),
-//             SizedBox(width: 8),
-//             Text('Duplicate Product Found',
-//                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-//           ],
+//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+//         title: Text(
+//           'Product Already Exists',
+//           style: subHeaderTextStyle.copyWith(color: ColorValues.primaryColor),
 //         ),
-//         content: Column(
-//           mainAxisSize: MainAxisSize.min,
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             Text(
-//               'The product "${product.name}" with barcode "${product.code}" is already in your store.',
-//               style: TextStyle(fontSize: 16, color: Colors.grey[800]),
-//             ),
-//             SizedBox(height: 8),
-//             Text(
-//               'Would you like to edit the existing product or scan/add a different one?',
-//               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-//             ),
-//           ],
+//         content: RichText(
+//           text: TextSpan(
+//               text: 'A product with barcode ',
+//               style: normalTextStyle,
+//               children: <TextSpan>[
+//                 TextSpan(
+//                   text: "$barcode",
+//                   style: normalTextStyle12,
+//                 ),
+//                 TextSpan(
+//                     text:
+//                         ' is already in your store. Would you like to edit it or scan another product?',
+//                     style: normalTextStyle)
+//               ]),
 //         ),
 //         actions: [
 //           TextButton(
 //             onPressed: () {
-//               print('User chose to scan another product');
+//               print('Duplicate dialog: Scan Another selected');
 //               Navigator.pop(context);
 //               if (fromSave) {
-//                 clearControllers();
 //                 navigationService.navigateTo(addProductScannerRoute);
 //               }
 //             },
-//             style: TextButton.styleFrom(
-//               foregroundColor: Colors.grey[600],
-//               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-//             ),
-//             child: Text('Scan Another', style: TextStyle(fontSize: 16)),
+//             child: const Text('Scan Another'),
 //           ),
 //           ElevatedButton(
 //             style: ElevatedButton.styleFrom(
 //               backgroundColor: ColorValues.primaryColor,
 //               shape: RoundedRectangleBorder(
 //                   borderRadius: BorderRadius.circular(12)),
-//               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
 //             ),
-//             onPressed: () {
-//               print('User chose to edit product: ${product.name}');
+//             onPressed: () async {
+//               print('Duplicate dialog: Edit Product selected');
 //               Navigator.pop(context);
-//               navigationService.navigateTo(addProductViewRoute, arguments: {
+//               final storeId = await customerService.activeStoreId;
+//               final ownerId = await customerService.getOwnerId();
+//               if (storeId == null || ownerId == null) {
+//                 showCustomToast('Store or owner information missing.',
+//                     success: false);
+//                 return;
+//               }
+//               // Fetch product details if not provided
+//               Product? existingProduct = product;
+//               if (existingProduct == null && barcode != null) {
+//                 final products = await productRepository.getFilteredProducts(
+//                     storeId: storeId, search: barcode);
+//                 existingProduct = products.firstWhere((p) => p.code == barcode,
+//                     orElse: () => Product(code: barcode, storeId: storeId));
+//               }
+//               await navigationService
+//                   .navigateTo(addProductViewRoute, arguments: {
 //                 'isEditing': true,
-//                 'product': product,
-//                 'storeId': customerService.activeStoreId,
-//                 'ownerId': customerService.getOwnerId(),
+//                 'product': existingProduct,
+//                 'storeId': storeId,
+//                 'ownerId': ownerId,
+//                 'needsImageSelection': false,
 //               });
 //             },
-//             child: Text('Edit Product',
-//                 style: TextStyle(fontSize: 16, color: Colors.white)),
+//             child: const Text('Edit Product'),
 //           ),
 //         ],
 //       ),
@@ -450,40 +459,60 @@
 //     String? scannedCode,
 //     required String ownerId,
 //     required String storeId,
+//     File? selectedImage,
 //   }) async {
 //     if (!formKey.currentState!.validate()) {
 //       showCustomToast('Please fill all required fields with valid values.');
 //       return;
 //     }
 //
-//     if (!_validateForm()) {
-//       showCustomToast('Please ensure all numerical fields are valid.');
+//     final price = double.tryParse(priceController.text);
+//     final costPrice = double.tryParse(costPriceController.text);
+//     final quantity = int.tryParse(quantityController.text);
+//     final minQuantity = int.tryParse(minQuantityController.text);
+//
+//     if (price == null || price <= 0) {
+//       showCustomToast('Price must be greater than 0.');
+//       return;
+//     }
+//     if (costPrice == null || costPrice < 0) {
+//       showCustomToast('Cost price cannot be negative.');
+//       return;
+//     }
+//     if (quantity == null || quantity < 1) {
+//       showCustomToast('Quantity must be at least 1.');
+//       return;
+//     }
+//     if (minQuantity == null || minQuantity < 1) {
+//       showCustomToast('Minimum quantity must be at least 1.');
 //       return;
 //     }
 //
-//     final productCode = codeController.text.trim().isEmpty
-//         ? scannedCode
-//         : codeController.text.trim();
-//     if (!isEditing && productCode != null && productCode.isNotEmpty) {
-//       print('Checking for duplicate product with code: $productCode');
-//       final duplicateProduct =
-//           await checkProductExistence(productCode, context);
-//       if (duplicateProduct != null) {
-//         print('Duplicate product detected: ${duplicateProduct.name}');
-//         stopLoader();
-//         await showDuplicateDialog(context, duplicateProduct, fromSave: true);
+//     String? productCode = isEditing
+//         ? (existingProduct?.code ?? codeController.text.trim())
+//         : (scannedCode ?? codeController.text.trim());
+//
+//     if (productCode == null || productCode.isEmpty) {
+//       showCustomToast('Product code (barcode) cannot be empty.');
+//       return;
+//     }
+//
+//     // Fallback duplicate check before saving
+//     if (!isEditing) {
+//       print(
+//           'saveOrUpdateProduct: Performing fallback duplicate check for code: $productCode');
+//       final exists = await checkProductExistence(productCode, context);
+//       if (exists) {
+//         print('saveOrUpdateProduct: Duplicate found during save: $productCode');
+//         await showDuplicateDialog(context, null,
+//             barcode: productCode, fromSave: true);
 //         return;
 //       }
 //     }
 //
 //     startLoader(
-//         message: isEditing
-//             ? 'Updating product...'
-//             : 'Adding product to your store...');
+//         message: isEditing ? 'Updating product...' : 'Adding product...');
 //     try {
-//       print(
-//           'Saving product: name=${nameController.text}, code=$productCode, scannedCode=$scannedCode');
-//
 //       final productData = Product(
 //         id: existingProduct?.id,
 //         name: nameController.text.trim(),
@@ -491,13 +520,14 @@
 //         category: categoryController.text.trim().isEmpty
 //             ? 'Uncategorized'
 //             : categoryController.text.trim(),
-//         price: double.tryParse(priceController.text)?.toInt() ?? 0,
-//         costPrice: double.tryParse(costPriceController.text)?.toInt() ?? 0,
-//         quantity: int.tryParse(quantityController.text) ?? 1,
-//         minQuantity: int.tryParse(minQuantityController.text) ?? 1,
+//         price: price,
+//         costPrice: costPrice,
+//         quantity: quantity,
+//         minQuantity: minQuantity,
 //         expiryDate: expiryDateController.text.trim().isEmpty
 //             ? null
-//             : expiryDateController.text.trim(),
+//             : DateFormat('yyyy-MM-dd').format(DateFormat('dd MMM yyyy')
+//                 .parse(expiryDateController.text.trim())),
 //         description: descriptionController.text.trim().isEmpty
 //             ? null
 //             : descriptionController.text.trim(),
@@ -507,35 +537,46 @@
 //         brands: brandsController.text.trim().isEmpty
 //             ? null
 //             : brandsController.text.trim(),
-//         store: storeId,
-//         owner: ownerId,
-//         imageUrl: productImageUrl,
+//         storeId: storeId,
+//         imageUrl: selectedImage == null ? productImageUrl : null,
 //       );
 //
 //       if (isEditing && existingProduct != null) {
+//         print('Updating product (isEditing=true)');
 //         final updated = await productRepository.updateProduct(
-//             existingProduct.id!, productData, storeId);
+//           existingProduct.id!,
+//           productData,
+//           storeId,
+//           imageFile: selectedImage,
+//           imageUrl: selectedImage == null ? productImageUrl : null,
+//         );
+//
 //         if (updated != null) {
-//           _updateLists(updated);
-//           await fetchTotalStock(storeId);
-//           showCustomToast('Product updated successfully!');
+//           productImageUrl = updated.imageUrl;
+//           _updateProductLists(updated);
+//           await fetchInventorySummary(storeId);
+//           showCustomToast('Product updated successfully!', success: true);
 //           navigationService.goBack();
 //         } else {
-//           showCustomToast('Failed to update product.');
+//           showCustomToast('Failed to update product.', success: false);
 //         }
 //       } else {
+//         print('Adding new product (isEditing=false)');
 //         final response = await productRepository.scanAndAddProduct(
 //           data: productData,
-//           scannedCode: productCode ?? '',
-//           context: context,
+//           scannedCode: productCode,
 //           storeId: storeId,
+//           imageFile: selectedImage,
 //           ownerId: ownerId,
 //         );
-//         print('Scan and add response: ${response?.data}');
+//
 //         if (response != null && response.success && response.data != null) {
 //           _allProducts.value = [..._allProducts.value, response.data!];
-//           await fetchTotalStock(storeId);
+//           await fetchInventorySummary(storeId);
 //           clearControllers();
+//           showCustomToast(
+//               'Product "${response.data!.name}" added successfully!',
+//               success: true);
 //           navigationService.navigateToWidget(
 //             CelebrationWidget(
 //               title: 'Back to Dashboard',
@@ -543,7 +584,7 @@
 //                 navigationService.navigateTo(dashboardRoute);
 //               },
 //               child: Text(
-//                 'Product "${productData.name}" Added Successfully!',
+//                 'Product "${response.data!.name}" Added Successfully!',
 //                 style:
 //                     const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
 //                 textAlign: TextAlign.center,
@@ -561,16 +602,20 @@
 //           );
 //         } else {
 //           showCustomToast(
-//               'Failed to add product: ${response?.message ?? 'Unknown error'}');
+//               'Failed to add product: ${response?.message ?? 'Unknown error'}',
+//               success: false);
 //         }
 //       }
-//     } on DioException catch (e) {
-//       print('DioError saving/updating product: ${e.response?.data}');
-//       showCustomToast(
-//           'Error: ${e.response?.data['message'] ?? 'Failed to process product'}');
-//     } catch (e) {
-//       print('Error saving/updating product: $e');
-//       showCustomToast('Error processing product: $e');
+//     } catch (e, stackTrace) {
+//       print('Error processing product: $e\n$stackTrace');
+//       if (e.toString().contains('E11000') ||
+//           e.toString().contains('duplicate key')) {
+//         await showDuplicateDialog(context, null,
+//             barcode: productCode, fromSave: true);
+//       } else {
+//         showCustomToast('Error processing product: Please try again.',
+//             success: false);
+//       }
 //     } finally {
 //       stopLoader();
 //       notifyListeners();
@@ -607,7 +652,13 @@
 //
 //     startLoader(message: 'Deleting product...');
 //     try {
-//       final storeId = customerService.activeStoreId!;
+//       final storeId = await customerService.activeStoreId;
+//       if (storeId == null) {
+//         showCustomToast('No active store selected.');
+//         stopLoader();
+//         return;
+//       }
+//
 //       final deleted =
 //           await productRepository.deleteProduct(product.id!, storeId);
 //       if (deleted) {
@@ -617,14 +668,16 @@
 //             _expiringProducts.value.where((p) => p.id != product.id).toList();
 //         _lowStockProducts.value =
 //             _lowStockProducts.value.where((p) => p.id != product.id).toList();
-//         await fetchTotalStock(storeId);
-//         showCustomToast('Product deleted successfully.');
+//
+//         await fetchInventorySummary(storeId);
+//         showCustomToast('Product deleted successfully.', success: true);
 //       } else {
-//         showCustomToast('Failed to delete product.');
+//         showCustomToast('Failed to delete product.', success: false);
 //       }
 //     } catch (e) {
-//       print('Error deleting product: $e');
-//       showCustomToast('Error deleting product: $e');
+//       print('Error deleting product: ${e.toString()}');
+//       showCustomToast('Error deleting product: Please try again.',
+//           success: false);
 //     } finally {
 //       stopLoader();
 //       notifyListeners();
@@ -640,19 +693,26 @@
 //
 //     startLoader(message: 'Restocking product...');
 //     try {
-//       final storeId = customerService.activeStoreId!;
+//       final storeId = await customerService.activeStoreId;
+//       if (storeId == null) {
+//         showCustomToast('No active store selected.');
+//         stopLoader();
+//         return;
+//       }
+//
 //       final updated = await productRepository.supplyProduct(
 //           product.id!, additionalQuantity, storeId);
 //       if (updated != null) {
-//         _updateLists(updated);
-//         await fetchTotalStock(storeId);
-//         showCustomToast('Product restocked successfully!');
+//         _updateProductLists(updated);
+//         await fetchInventorySummary(storeId);
+//         showCustomToast('Product restocked successfully!', success: true);
 //       } else {
-//         showCustomToast('Failed to restock product.');
+//         showCustomToast('Failed to restock product.', success: false);
 //       }
 //     } catch (e) {
-//       print('Error restocking product: $e');
-//       showCustomToast('Error restocking product: $e');
+//       print('Error restocking product: ${e.toString()}');
+//       showCustomToast('Error restocking product: Please try again.',
+//           success: false);
 //     } finally {
 //       stopLoader();
 //       notifyListeners();
@@ -664,7 +724,7 @@
 //       _debounce?.cancel();
 //     }
 //     _debounce = Timer(const Duration(milliseconds: 500), () async {
-//       final storeId = customerService.activeStoreId;
+//       final storeId = await customerService.activeStoreId;
 //       if (storeId == null) {
 //         errorMessage.value = 'No active store selected.';
 //         showCustomToast('No active store selected.');
@@ -675,10 +735,11 @@
 //     });
 //   }
 //
-//   void _updateLists(Product updated) {
+//   void _updateProductLists(Product updated) {
 //     _allProducts.value = _allProducts.value
 //         .map((p) => p.id == updated.id ? updated : p)
 //         .toList();
+//
 //     if (_expiringProducts.value.any((p) => p.id == updated.id)) {
 //       _expiringProducts.value = _expiringProducts.value
 //           .map((p) => p.id == updated.id ? updated : p)
@@ -691,27 +752,9 @@
 //     }
 //   }
 //
-//   bool _validateForm() {
-//     final price = double.tryParse(priceController.text);
-//     final costPrice = double.tryParse(costPriceController.text);
-//     final quantity = int.tryParse(quantityController.text);
-//     final minQuantity = int.tryParse(minQuantityController.text);
-//
-//     return nameController.text.trim().isNotEmpty &&
-//         categoryController.text.trim().isNotEmpty &&
-//         price != null &&
-//         price >= 0.0 &&
-//         costPrice != null &&
-//         costPrice >= 0.0 &&
-//         quantity != null &&
-//         quantity >= 1 &&
-//         minQuantity != null &&
-//         minQuantity >= 1;
-//   }
-//
 //   void updateTotals() {
 //     final price = double.tryParse(priceController.text) ?? 0.0;
-//     final quantity = int.tryParse(quantityController.text) ?? 1;
+//     final quantity = int.tryParse(quantityController.text) ?? 0;
 //     final total = price * quantity;
 //     totalValueController.text = total.toStringAsFixed(2);
 //     notifyListeners();
@@ -727,16 +770,17 @@
 //     nameController.clear();
 //     codeController.clear();
 //     categoryController.clear();
-//     priceController.clear();
-//     costPriceController.clear();
-//     quantityController.clear();
-//     minQuantityController.clear();
+//     priceController.text = '1.00';
+//     costPriceController.text = '0.00';
+//     quantityController.text = '1';
+//     minQuantityController.text = '1';
 //     expiryDateController.clear();
 //     descriptionController.clear();
 //     sizeController.clear();
 //     brandsController.clear();
 //     totalValueController.clear();
 //     productImageUrl = null;
+//     updateTotals();
 //     notifyListeners();
 //   }
 //
@@ -756,36 +800,39 @@
 //     brandsController.dispose();
 //     totalValueController.dispose();
 //     searchController.dispose();
+//     isFetchingExternalData.dispose();
+//     errorMessage.dispose();
+//
 //     _allProducts.dispose();
 //     _expiringProducts.dispose();
 //     _lowStockProducts.dispose();
 //     _productHistory.dispose();
+//     _isLoadingProductHistory.dispose();
 //     _totalCost.dispose();
 //     _totalSellingPrice.dispose();
 //     _totalStock.dispose();
 //     _isLoadingExpiring.dispose();
 //     _isLoadingLowStock.dispose();
 //     _productTabIndex.dispose();
-//     isFetchingExternalData.dispose();
+//     tabIndex.dispose();
+//     productTabIndex.dispose();
+//
 //     super.dispose();
 //   }
 //
 //   final List<Color> containerColor = [
 //     const Color(0xffFFF7E6),
 //     const Color(0xffF0F0FF),
-//     const Color(0xffFEEAFA),
 //   ];
 //
 //   final List<String> productOperations = [
 //     "Add Product",
 //     "Product List",
-//     "Move Products",
 //   ];
 //
 //   final List<String> images = [
 //     SvgAssets.addProduct,
 //     SvgAssets.records,
-//     SvgAssets.newSupplier,
 //   ];
 //
 //   void changeContainer() {
@@ -797,22 +844,29 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:dio/dio.dart';
-import 'package:etegram_business/routes/routes.dart';
+
+import 'package:etegram_business/constants/style.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_toggle_tab/flutter_toggle_tab.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:etegram_business/app_widget/celebration_widget.dart';
+
+import 'package:etegram_business/core/model/product_model.dart';
+import 'package:etegram_business/core/model/product_history_model.dart';
+import 'package:etegram_business/locator.dart';
+import 'package:etegram_business/utils/snack_message.dart';
+
+import '../../../app_widget/celebration_widget.dart';
 import '../../../base/base_vm.dart';
 import '../../../constants/assets.dart';
 import '../../../constants/colors.dart';
-import '../../../core/model/product_history_model.dart';
-import '../../../core/model/product_model.dart';
-import '../../../utils/snack_message.dart';
+import '../../../routes/routes.dart';
+import '../../../service/local/user_service.dart';
 
 class ProductViewModel extends BaseViewModel {
+  final CustomerService customerService = locator<CustomerService>();
+
   int currentIndex = 0;
 
   // Form key
@@ -840,11 +894,11 @@ class ProductViewModel extends BaseViewModel {
     quantityController.addListener(updateTotals);
     costPriceController.addListener(updateTotals);
     minQuantityController.addListener(updateTotals);
-    // Initialize default values
-    priceController.text = '1.00'; // Ensure price > 0
+    priceController.text = '1.00';
     costPriceController.text = '0.00';
     quantityController.text = '1';
     minQuantityController.text = '1';
+    updateTotals();
   }
 
   bool _isValidObjectId(String? id) {
@@ -875,6 +929,7 @@ class ProductViewModel extends BaseViewModel {
 
   // UI state
   String? productImageUrl;
+
   ValueListenable<bool> get isLoadingExpiring => _isLoadingExpiring;
   final _isLoadingExpiring = ValueNotifier<bool>(false);
   ValueListenable<bool> get isLoadingLowStock => _isLoadingLowStock;
@@ -890,18 +945,18 @@ class ProductViewModel extends BaseViewModel {
   final ValueNotifier<int> tabIndex = ValueNotifier(0);
 
   List<DataTab> get tabOptions => [
-        DataTab(title: "Sent"),
-        DataTab(title: "Received"),
-      ];
+    DataTab(title: "Sent"),
+    DataTab(title: "Received"),
+  ];
 
   List<DataTab> get productTabOptions => [
-        DataTab(title: "All Product"),
-        DataTab(title: "Expiring"),
-        DataTab(title: "Low Stock"),
-      ];
+    DataTab(title: "All Product"),
+    DataTab(title: "Expiring"),
+    DataTab(title: "Low Stock"),
+  ];
 
   Future<void> initialize() async {
-    final storeId = customerService.activeStoreId;
+    final storeId = await customerService.activeStoreId;
     if (storeId == null) {
       errorMessage.value = 'No active store selected.';
       showCustomToast('No active store selected.');
@@ -913,8 +968,35 @@ class ProductViewModel extends BaseViewModel {
       fetchExpiringProducts(storeId),
       fetchLowStockProducts(storeId),
       fetchInventorySummary(storeId),
-      fetchTotalStock(storeId),
     ]);
+  }
+
+  Future<AddProductResponse> fetchProductByCode(
+      String code, String storeId, String ownerId) async {
+    try {
+      print('Fetching product by code: code=$code, storeId=$storeId, ownerId=$ownerId');
+      final products = await productRepository.getFilteredProducts(
+        storeId: storeId,
+        search: code,
+      );
+      final product = products.firstWhere(
+            (p) => p.code == code,
+        orElse: () => Product(
+          code: code,
+          storeId: storeId,
+          owner: ownerId,
+          name: '',
+          quantity: 0,
+          price: 1.00,
+        ),
+      );
+      print('Fetched product: ${product.toJson()}');
+      return AddProductResponse(success: true, data: product);
+    } catch (e) {
+      print('Error fetching product by code: $e');
+      return AddProductResponse(
+          success: false, message: 'Failed to fetch product: $e');
+    }
   }
 
   void populateControllers(Product product) {
@@ -925,7 +1007,18 @@ class ProductViewModel extends BaseViewModel {
     priceController.text = product.price?.toStringAsFixed(2) ?? '1.00';
     quantityController.text = product.quantity?.toString() ?? '1';
     minQuantityController.text = product.minQuantity?.toString() ?? '1';
-    expiryDateController.text = product.expiryDate ?? '';
+    // Format ISO 8601 date to 'dd MMM yyyy' if possible
+    if (product.expiryDate != null && product.expiryDate!.isNotEmpty) {
+      try {
+        final date = DateTime.parse(product.expiryDate!);
+        expiryDateController.text = DateFormat('dd MMM yyyy').format(date);
+      } catch (e) {
+        print('Error parsing expiry date: ${product.expiryDate}, error: $e');
+        expiryDateController.text = product.expiryDate!;
+      }
+    } else {
+      expiryDateController.text = '';
+    }
     descriptionController.text = product.description ?? '';
     sizeController.text = product.size ?? '';
     brandsController.text = product.brands ?? '';
@@ -946,19 +1039,20 @@ class ProductViewModel extends BaseViewModel {
 
       print(
           'Fetching all products: storeId=$storeId, search=$search, category=$category');
-      final totalStockResponse =
-          await productRepository.getTotalStockWithProducts(storeId);
-      final products = totalStockResponse['products'] as List<dynamic>;
-      print('Fetched ${products.length} products from total stock: $products');
-      _allProducts.value =
-          products.map((json) => Product.fromJson(json)).toList();
+      final products = await productRepository.getFilteredProducts(
+        storeId: storeId,
+        search: search,
+        category: category,
+      );
+      print('Fetched ${products.length} products.');
+      _allProducts.value = products;
       if (_allProducts.value.isEmpty && (search == null || search.isEmpty)) {
         errorMessage.value = 'No products found for this store.';
       }
     } catch (e) {
       print('Error fetching all products: $e');
-      errorMessage.value = 'Failed to fetch products: $e';
-      showCustomToast('Failed to fetch products.');
+      errorMessage.value = 'Failed to fetch products: ${e.toString()}';
+      showCustomToast('Failed to fetch products.', success: false);
       _allProducts.value = [];
     } finally {
       stopLoader();
@@ -970,14 +1064,14 @@ class ProductViewModel extends BaseViewModel {
     errorMessage.value = null;
     try {
       final products =
-          await productRepository.getExpiringProducts(storeId: storeId);
+      await productRepository.getExpiringProducts(storeId: storeId);
       _expiringProducts.value = products;
       if (products.isEmpty) {
         errorMessage.value = 'No expiring products found.';
       }
     } catch (e) {
       print('Error fetching expiring products: $e');
-      errorMessage.value = 'Failed to fetch expiring products: $e';
+      errorMessage.value = 'Failed to fetch expiring products: ${e.toString()}';
       showCustomToast('Failed to fetch expiring products.');
       _expiringProducts.value = [];
     } finally {
@@ -990,15 +1084,16 @@ class ProductViewModel extends BaseViewModel {
     errorMessage.value = null;
     try {
       final products =
-          await productRepository.getLowStockProducts(storeId: storeId);
+      await productRepository.getLowStockProducts(storeId: storeId);
       _lowStockProducts.value = products;
       if (products.isEmpty) {
         errorMessage.value = 'No low stock products found.';
       }
     } catch (e) {
       print('Error fetching low stock products: $e');
-      errorMessage.value = 'Failed to fetch low stock products: $e';
-      showCustomToast('Failed to fetch low stock products.');
+      errorMessage.value =
+      'Failed to fetch low stock products: ${e.toString()}';
+      showCustomToast('Failed to fetch low stock products.', success: false);
       _lowStockProducts.value = [];
     } finally {
       _isLoadingLowStock.value = false;
@@ -1009,49 +1104,65 @@ class ProductViewModel extends BaseViewModel {
     try {
       final summary = await productRepository.getInventorySummary(storeId);
       if (summary != null) {
-        _totalCost.value = (summary['totalCost'] ?? 0).toDouble();
+        _totalCost.value = (summary['totalCost'] as num? ?? 0).toDouble();
         _totalSellingPrice.value =
-            (summary['totalSellingPrice'] ?? 0).toDouble();
-        _totalStock.value = (summary['totalQuantity'] ?? 0).toInt();
+            (summary['totalSellingPrice'] as num? ?? 0).toDouble();
+        _totalStock.value = (summary['totalQuantity'] as int? ?? 0).toInt();
+        print(
+            'Inventory Summary - Total Cost: ${_totalCost.value}, Total Selling Price: ${_totalSellingPrice.value}, Total Quantity: ${_totalStock.value}');
+      } else {
+        print('Inventory summary data is null.');
+        errorMessage.value = 'Failed to load inventory summary.';
       }
     } catch (e) {
       print('Error fetching inventory summary: $e');
-      errorMessage.value = 'Failed to fetch inventory summary: $e';
-      showCustomToast('Failed to fetch inventory summary.');
+      errorMessage.value = 'Failed to fetch inventory summary: ${e.toString()}';
+      showCustomToast('Failed to fetch inventory summary.', success: false);
     }
   }
 
   Future<void> fetchTotalStock(String storeId) async {
     try {
       final total = await productRepository.getTotalStockWithProducts(storeId);
-      _totalStock.value = (total['totalQuantity'] ?? 0).toInt();
-      final products = total['products'] as List<dynamic>;
-      if (_allProducts.value.isEmpty) {
-        _allProducts.value =
-            products.map((json) => Product.fromJson(json)).toList();
-      }
+      _totalStock.value = (total['totalQuantity'] as int? ?? 0).toInt();
+      print(
+          'Fetched total stock (from getTotalStockWithProducts): ${_totalStock.value}');
     } catch (e) {
       print('Error fetching total stock: $e');
-      errorMessage.value = 'Failed to fetch total stock: $e';
-      showCustomToast('Failed to fetch total stock.');
+      errorMessage.value = 'Failed to fetch total stock: ${e.toString()}';
+      showCustomToast('Failed to fetch total stock.', success: false);
     }
   }
 
   Future<void> fetchProductHistory(String productId, String storeId) async {
     _isLoadingProductHistory.value = true;
     try {
+      print('Fetching product history: productId=$productId, storeId=$storeId');
       final history = await productRepository.getProductHistory(
-          productId: productId, storeId: storeId);
-      _productHistory.value = history;
-    } catch (e) {
-      print('Error fetching product history: $e');
-      showCustomToast('Failed to fetch product history.');
+        productId: productId,
+        storeId: storeId,
+      );
+      print('Raw history from repository: $history');
+      if (history.isNotEmpty) {
+        _productHistory.value = history;
+        print('Updated _productHistory with ${history.length} entries: $history');
+      } else {
+        _productHistory.value = [];
+        print('No history entries found in response');
+      }
+    } catch (e, stackTrace) {
+      print('Error fetching product history: $e\nStack trace: $stackTrace');
+      _productHistory.value = [];
+      showCustomToast('Failed to fetch product history: $e', success: false);
     } finally {
       _isLoadingProductHistory.value = false;
+      notifyListeners();
+      print('Notified listeners, isLoadingProductHistory: ${_isLoadingProductHistory.value}');
     }
   }
 
-  Future<void> fetchProductDetailsFromAPI(String barcode) async {
+  Future<void> fetchProductDetailsFromAPI(String barcode,
+      {bool silent = false}) async {
     isFetchingExternalData.value = true;
     notifyListeners();
     print('Fetching product details for barcode: $barcode');
@@ -1073,58 +1184,85 @@ class ProductViewModel extends BaseViewModel {
               productData['quantity'] ?? productData['net_weight'] ?? '';
           productImageUrl = productData['image_front_url'] ?? '';
           codeController.text = barcode;
-          priceController.text = '1.00'; // Ensure price > 0
+          priceController.text = '1.00';
           costPriceController.text = '0.00';
           quantityController.text = '1';
           minQuantityController.text = '5';
           descriptionController.text = productData['ingredients_text'] ?? '';
           updateTotals();
-          showCustomToast('Product details fetched successfully!');
+          if (!silent) {
+            showCustomToast('Product details fetched successfully!',
+                success: true);
+          }
         } else {
           clearControllers();
           codeController.text = barcode;
-          showCustomToast('Product not found. Please enter details manually.');
+          if (!silent) {
+            showCustomToast(
+                'Product not found. Please enter details manually.');
+          }
         }
       } else {
         clearControllers();
         codeController.text = barcode;
-        showCustomToast('Failed to fetch product details.');
+        if (!silent) {
+          showCustomToast('Failed to fetch product details.', success: false);
+        }
       }
     } catch (e) {
       print('Error fetching product details: $e');
       clearControllers();
       codeController.text = barcode;
-      showCustomToast('Error fetching product details.');
+      if (!silent) {
+        showCustomToast('Error fetching product details.');
+      }
     } finally {
       isFetchingExternalData.value = false;
       notifyListeners();
     }
   }
 
-  Future<Product?> checkProductExistence(
-      String code, BuildContext context) async {
+  Future<bool> checkProductExistence(String code, BuildContext context) async {
     startLoader(message: 'Checking product...');
     try {
-      final storeId = customerService.activeStoreId;
+      final storeId = await customerService.activeStoreId;
       if (storeId == null) {
-        showCustomToast('No active store selected.');
-        return null;
+        showCustomToast('No active store selected.', success: false);
+        print('checkProductExistence: No active storeId');
+        return false;
       }
 
       print('Checking product existence: code=$code, storeId=$storeId');
       final result =
-          await productRepository.checkProductExistence(code, storeId);
+      await productRepository.checkProductExistence(code, storeId);
       print('Check product response: $result');
-      if (result['success'] && result['exists'] && result['product'] != null) {
-        print('Product found: ${result['product'].toJson()}');
-        return result['product'] as Product;
+
+      if (result == null) {
+        print('checkProductExistence: Null response from repository');
+        showCustomToast(
+            'Unable to verify product due to server error. Please try again.',
+            success: false);
+        return false;
       }
-      print('No duplicate product found.');
-      return null;
-    } catch (e) {
-      print('Error checking product existence: $e');
-      showCustomToast('Error checking product: $e');
-      return null;
+
+      if (result['success'] == true && result['exists'] == true) {
+        print('Product exists for code: $code');
+        return true;
+      } else if (result['success'] == true && result['exists'] == false) {
+        print('No duplicate product found for code: $code');
+        return false;
+      } else {
+        print(
+            'Unexpected response: success=${result['success']}, exists=${result['exists']}');
+        showCustomToast('Unable to verify product. Please try again later.',
+            success: false);
+        return false;
+      }
+    } catch (e, stackTrace) {
+      print('Error checking product existence: $e\n$stackTrace');
+      showCustomToast('Failed to check product. Please try again.',
+          success: false);
+      return false;
     } finally {
       stopLoader();
       notifyListeners();
@@ -1132,21 +1270,36 @@ class ProductViewModel extends BaseViewModel {
   }
 
   Future<void> showDuplicateDialog(BuildContext context, Product? product,
-      {bool fromSave = false}) async {
-    if (product == null) {
-      showCustomToast('Failed to fetch product details.');
-      return;
-    }
+      {bool fromSave = false, String? barcode}) async {
+    print('Showing duplicate dialog for barcode: $barcode');
     await showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Product Already Exists'),
-        content: Text(
-            'The product "${product.name}" with barcode "${product.code}" is already in your store. Would you like to edit it or scan another product?'),
+        title: Text(
+          'Product Already Exists',
+          style: subHeaderTextStyle.copyWith(color: ColorValues.primaryColor),
+        ),
+        content: RichText(
+          text: TextSpan(
+              text: 'A product with barcode ',
+              style: normalTextStyle,
+              children: <TextSpan>[
+                TextSpan(
+                  text: "$barcode",
+                  style: normalTextStyle12,
+                ),
+                TextSpan(
+                    text:
+                    ' is already in your store. Would you like to edit it or scan another product?',
+                    style: normalTextStyle)
+              ]),
+        ),
         actions: [
           TextButton(
             onPressed: () {
+              print('Duplicate dialog: Scan Another selected');
               Navigator.pop(context);
               if (fromSave) {
                 navigationService.navigateTo(addProductScannerRoute);
@@ -1160,14 +1313,31 @@ class ProductViewModel extends BaseViewModel {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
-            onPressed: () {
+            onPressed: () async {
+              print('Duplicate dialog: Edit Product selected');
               Navigator.pop(context);
-              navigationService.navigateTo(addProductViewRoute, arguments: {
-                'isEditing': true,
-                'product': product,
-                'storeId': customerService.activeStoreId,
-                'ownerId': customerService.getOwnerId(),
-              });
+              final storeId = await customerService.activeStoreId;
+              final ownerId = await customerService.getOwnerId();
+              if (storeId == null || ownerId == null) {
+                showCustomToast('Store or owner information missing.',
+                    success: false);
+                return;
+              }
+              // Fetch product details if not provided
+              Product? existingProduct = product;
+              if (existingProduct == null && barcode != null) {
+                final response =
+                await fetchProductByCode(barcode, storeId, ownerId);
+                existingProduct = response.data;
+              }
+              await navigationService.navigateTo(addProductViewRoute,
+                  arguments: {
+                    'isEditing': true,
+                    'product': existingProduct,
+                    'storeId': storeId,
+                    'ownerId': ownerId,
+                    'needsImageSelection': false,
+                  });
             },
             child: const Text('Edit Product'),
           ),
@@ -1212,13 +1382,24 @@ class ProductViewModel extends BaseViewModel {
       return;
     }
 
-    final productCode = codeController.text.trim().isEmpty
-        ? scannedCode
-        : codeController.text.trim();
-    if (!isEditing && productCode != null && productCode.isNotEmpty) {
-      final existingProduct = await checkProductExistence(productCode, context);
-      if (existingProduct != null) {
-        await showDuplicateDialog(context, existingProduct, fromSave: true);
+    String? productCode = isEditing
+        ? (existingProduct?.code ?? codeController.text.trim())
+        : (scannedCode ?? codeController.text.trim());
+
+    if (productCode == null || productCode.isEmpty) {
+      showCustomToast('Product code (barcode) cannot be empty.');
+      return;
+    }
+
+    // Fallback duplicate check before saving
+    if (!isEditing) {
+      print(
+          'saveOrUpdateProduct: Performing fallback duplicate check for code: $productCode');
+      final exists = await checkProductExistence(productCode, context);
+      if (exists) {
+        print('saveOrUpdateProduct: Duplicate found during save: $productCode');
+        await showDuplicateDialog(context, null,
+            barcode: productCode, fromSave: true);
         return;
       }
     }
@@ -1226,6 +1407,28 @@ class ProductViewModel extends BaseViewModel {
     startLoader(
         message: isEditing ? 'Updating product...' : 'Adding product...');
     try {
+      // Parse expiry date with fallback for ISO 8601
+      String? formattedExpiryDate;
+      if (expiryDateController.text.trim().isNotEmpty) {
+        try {
+          // Try parsing as 'dd MMM yyyy'
+          final date =
+          DateFormat('dd MMM yyyy').parse(expiryDateController.text.trim());
+          formattedExpiryDate = DateFormat('yyyy-MM-dd').format(date);
+        } catch (e) {
+          print('Failed to parse as dd MMM yyyy, trying ISO 8601: $e');
+          try {
+            // Fallback to ISO 8601
+            final date = DateTime.parse(expiryDateController.text.trim());
+            formattedExpiryDate = DateFormat('yyyy-MM-dd').format(date);
+          } catch (e) {
+            print('Failed to parse expiry date: $e');
+            showCustomToast('Invalid expiry date format.', success: false);
+            return;
+          }
+        }
+      }
+
       final productData = Product(
         id: existingProduct?.id,
         name: nameController.text.trim(),
@@ -1237,9 +1440,7 @@ class ProductViewModel extends BaseViewModel {
         costPrice: costPrice,
         quantity: quantity,
         minQuantity: minQuantity,
-        expiryDate: expiryDateController.text.trim().isEmpty
-            ? null
-            : expiryDateController.text.trim(),
+        expiryDate: formattedExpiryDate,
         description: descriptionController.text.trim().isEmpty
             ? null
             : descriptionController.text.trim(),
@@ -1250,39 +1451,46 @@ class ProductViewModel extends BaseViewModel {
             ? null
             : brandsController.text.trim(),
         storeId: storeId,
-        imageUrl: productImageUrl,
+        owner: ownerId,
+        imageUrl: selectedImage == null ? productImageUrl : null,
       );
 
       if (isEditing && existingProduct != null) {
+        print('Updating product (isEditing=true)');
         final updated = await productRepository.updateProduct(
-            existingProduct.id!, productData, storeId);
+          existingProduct.id!,
+          productData,
+          storeId,
+          imageFile: selectedImage,
+          imageUrl: selectedImage == null ? productImageUrl : null,
+        );
+
         if (updated != null) {
-          if (selectedImage != null) {
-            final imageProduct = await productRepository.uploadProductImage(
-                updated.id!, storeId, selectedImage.path);
-            if (imageProduct != null) {
-              productImageUrl = imageProduct.imageUrl;
-            }
-          }
+          productImageUrl = updated.imageUrl;
           _updateProductLists(updated);
-          await fetchTotalStock(storeId);
-          showCustomToast('Product updated successfully!');
+          await fetchInventorySummary(storeId);
+          showCustomToast('Product updated successfully!', success: true);
           navigationService.goBack();
         } else {
-          showCustomToast('Failed to update product.');
+          showCustomToast('Failed to update product.', success: false);
         }
       } else {
+        print('Adding new product (isEditing=false)');
         final response = await productRepository.scanAndAddProduct(
           data: productData,
-          scannedCode: productCode ?? '',
+          scannedCode: productCode,
           storeId: storeId,
           imageFile: selectedImage,
           ownerId: ownerId,
         );
+
         if (response != null && response.success && response.data != null) {
           _allProducts.value = [..._allProducts.value, response.data!];
-          await fetchTotalStock(storeId);
+          await fetchInventorySummary(storeId);
           clearControllers();
+          showCustomToast(
+              'Product "${response.data!.name}" added successfully!',
+              success: true);
           navigationService.navigateToWidget(
             CelebrationWidget(
               title: 'Back to Dashboard',
@@ -1290,9 +1498,9 @@ class ProductViewModel extends BaseViewModel {
                 navigationService.navigateTo(dashboardRoute);
               },
               child: Text(
-                'Product "${productData.name}" Added Successfully!',
+                'Product "${response.data!.name}" Added Successfully!',
                 style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -1308,11 +1516,20 @@ class ProductViewModel extends BaseViewModel {
           );
         } else {
           showCustomToast(
-              'Failed to add product: ${response?.message ?? 'Unknown error'}');
+              'Failed to add product: ${response?.message ?? 'Unknown error'}',
+              success: false);
         }
       }
-    } catch (e) {
-      showCustomToast('Error processing product: $e');
+    } catch (e, stackTrace) {
+      print('Error processing product: $e\n$stackTrace');
+      if (e.toString().contains('E11000') ||
+          e.toString().contains('duplicate key')) {
+        await showDuplicateDialog(context, null,
+            barcode: productCode, fromSave: true);
+      } else {
+        showCustomToast('Error processing product: Please try again.',
+            success: false);
+      }
     } finally {
       stopLoader();
       notifyListeners();
@@ -1349,9 +1566,15 @@ class ProductViewModel extends BaseViewModel {
 
     startLoader(message: 'Deleting product...');
     try {
-      final storeId = customerService.activeStoreId!;
+      final storeId = await customerService.activeStoreId;
+      if (storeId == null) {
+        showCustomToast('No active store selected.');
+        stopLoader();
+        return;
+      }
+
       final deleted =
-          await productRepository.deleteProduct(product.id!, storeId);
+      await productRepository.deleteProduct(product.id!, storeId);
       if (deleted) {
         _allProducts.value =
             _allProducts.value.where((p) => p.id != product.id).toList();
@@ -1359,14 +1582,16 @@ class ProductViewModel extends BaseViewModel {
             _expiringProducts.value.where((p) => p.id != product.id).toList();
         _lowStockProducts.value =
             _lowStockProducts.value.where((p) => p.id != product.id).toList();
-        await fetchTotalStock(storeId);
-        showCustomToast('Product deleted successfully.');
+
+        await fetchInventorySummary(storeId);
+        showCustomToast('Product deleted successfully.', success: true);
       } else {
-        showCustomToast('Failed to delete product.');
+        showCustomToast('Failed to delete product.', success: false);
       }
     } catch (e) {
-      print('Error deleting product: $e');
-      showCustomToast('Error deleting product: $e');
+      print('Error deleting product: ${e.toString()}');
+      showCustomToast('Error deleting product: Please try again.',
+          success: false);
     } finally {
       stopLoader();
       notifyListeners();
@@ -1382,19 +1607,26 @@ class ProductViewModel extends BaseViewModel {
 
     startLoader(message: 'Restocking product...');
     try {
-      final storeId = customerService.activeStoreId!;
+      final storeId = await customerService.activeStoreId;
+      if (storeId == null) {
+        showCustomToast('No active store selected.');
+        stopLoader();
+        return;
+      }
+
       final updated = await productRepository.supplyProduct(
           product.id!, additionalQuantity, storeId);
       if (updated != null) {
         _updateProductLists(updated);
-        await fetchTotalStock(storeId);
-        showCustomToast('Product restocked successfully!');
+        await fetchInventorySummary(storeId);
+        showCustomToast('Product restocked successfully!', success: true);
       } else {
-        showCustomToast('Failed to restock product.');
+        showCustomToast('Failed to restock product.', success: false);
       }
     } catch (e) {
-      print('Error restocking product: $e');
-      showCustomToast('Error restocking product: $e');
+      print('Error restocking product: ${e.toString()}');
+      showCustomToast('Error restocking product: Please try again.',
+          success: false);
     } finally {
       stopLoader();
       notifyListeners();
@@ -1406,7 +1638,7 @@ class ProductViewModel extends BaseViewModel {
       _debounce?.cancel();
     }
     _debounce = Timer(const Duration(milliseconds: 500), () async {
-      final storeId = customerService.activeStoreId;
+      final storeId = await customerService.activeStoreId;
       if (storeId == null) {
         errorMessage.value = 'No active store selected.';
         showCustomToast('No active store selected.');
@@ -1421,6 +1653,7 @@ class ProductViewModel extends BaseViewModel {
     _allProducts.value = _allProducts.value
         .map((p) => p.id == updated.id ? updated : p)
         .toList();
+
     if (_expiringProducts.value.any((p) => p.id == updated.id)) {
       _expiringProducts.value = _expiringProducts.value
           .map((p) => p.id == updated.id ? updated : p)
@@ -1433,27 +1666,9 @@ class ProductViewModel extends BaseViewModel {
     }
   }
 
-  bool _validateForm() {
-    final price = double.tryParse(priceController.text);
-    final costPrice = double.tryParse(costPriceController.text);
-    final quantity = int.tryParse(quantityController.text);
-    final minQuantity = int.tryParse(minQuantityController.text);
-
-    return nameController.text.trim().isNotEmpty &&
-        categoryController.text.trim().isNotEmpty &&
-        price != null &&
-        price > 0.0 && // Ensure price > 0
-        costPrice != null &&
-        costPrice >= 0.0 &&
-        quantity != null &&
-        quantity >= 1 &&
-        minQuantity != null &&
-        minQuantity >= 1;
-  }
-
   void updateTotals() {
-    final price = double.tryParse(priceController.text) ?? 1.0;
-    final quantity = int.tryParse(quantityController.text) ?? 1;
+    final price = double.tryParse(priceController.text) ?? 0.0;
+    final quantity = int.tryParse(quantityController.text) ?? 0;
     final total = price * quantity;
     totalValueController.text = total.toStringAsFixed(2);
     notifyListeners();
@@ -1467,9 +1682,9 @@ class ProductViewModel extends BaseViewModel {
 
   void clearControllers() {
     nameController.clear();
-    codeController.clear();
+    codeController.text = '';
     categoryController.clear();
-    priceController.text = '1.00'; // Ensure price > 0
+    priceController.text = '1.00';
     costPriceController.text = '0.00';
     quantityController.text = '1';
     minQuantityController.text = '1';
@@ -1479,6 +1694,7 @@ class ProductViewModel extends BaseViewModel {
     brandsController.clear();
     totalValueController.clear();
     productImageUrl = null;
+    updateTotals();
     notifyListeners();
   }
 
@@ -1498,25 +1714,29 @@ class ProductViewModel extends BaseViewModel {
     brandsController.dispose();
     totalValueController.dispose();
     searchController.dispose();
+    isFetchingExternalData.dispose();
+    errorMessage.dispose();
+
     _allProducts.dispose();
     _expiringProducts.dispose();
     _lowStockProducts.dispose();
     _productHistory.dispose();
+    _isLoadingProductHistory.dispose();
     _totalCost.dispose();
     _totalSellingPrice.dispose();
     _totalStock.dispose();
     _isLoadingExpiring.dispose();
     _isLoadingLowStock.dispose();
-    _isLoadingProductHistory.dispose();
     _productTabIndex.dispose();
-    isFetchingExternalData.dispose();
+    tabIndex.dispose();
+    productTabIndex.dispose();
+
     super.dispose();
   }
 
   final List<Color> containerColor = [
     const Color(0xffFFF7E6),
     const Color(0xffF0F0FF),
-   //const Color(0xffFEEAFA),
   ];
 
   final List<String> productOperations = [

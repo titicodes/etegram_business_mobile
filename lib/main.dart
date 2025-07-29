@@ -47,6 +47,8 @@ void main() async {
   };
 }
 
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -80,7 +82,10 @@ class MyApp extends StatelessWidget {
               '',
             ),
           ],
-          navigatorObservers: [FlutterSmartDialog.observer],
+          navigatorObservers: [
+            routeObserver,
+            FlutterSmartDialog.observer,
+          ],
           builder: FlutterSmartDialog.init(),
           initialRoute: splashscreenRoute,
         );
