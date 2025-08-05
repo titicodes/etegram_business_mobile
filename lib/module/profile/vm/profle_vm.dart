@@ -190,7 +190,7 @@ class ProfileViewModel extends BaseViewModel {
       }
       final response = await connect().post(
         'messages',
-        data: {'messageContent': content, 'messageType': 'sender', 'userId': userId},
+        data: {'content': content, 'type': 'sender', 'userId': userId}, // Updated keys
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
       print("ProfileViewModel: sendMessage Response status: ${response.statusCode}, data: ${response.data}");

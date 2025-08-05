@@ -14,7 +14,6 @@ import 'package:get_storage/get_storage.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:etegram_business/core/localization/app_localization.dart';
 import 'package:etegram_business/locator.dart';
-import 'package:etegram_business/module/splash/splash_view.dart';
 
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();

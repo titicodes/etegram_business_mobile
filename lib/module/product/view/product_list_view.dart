@@ -475,7 +475,7 @@ class _AddProductListViewState extends State<AddProductListView> {
           ),
           const SizedBox(height: 8),
           AppText(
-            title == 'Total Stock' ? value : '₦$value',
+            title == 'Total Stock' ? value : value,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,

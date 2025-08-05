@@ -13,7 +13,6 @@ import 'package:etegram_business/module/product/view/product_details_view.dart';
 import 'package:etegram_business/module/profile/view/profile_view.dart';
 import 'package:etegram_business/module/sales/view/owning_records.dart';
 import 'package:etegram_business/module/sales/view/sales_list.dart';
-import 'package:etegram_business/module/splash/splash_view.dart';
 import 'package:etegram_business/module/stores/views/new_stores.dart';
 import 'package:etegram_business/module/supply/view/new_supplier.dart';
 import 'package:etegram_business/module/auth/views/forget_password_view.dart';
