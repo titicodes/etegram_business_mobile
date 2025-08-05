@@ -1,3 +1,5 @@
+//
+//
 // import 'package:etegram_business/utils/widget_extension.dart';
 // import 'package:flutter/material.dart';
 // import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -16,12 +18,14 @@
 // import 'package:intl/intl.dart';
 // import 'package:flutter_image_compress/flutter_image_compress.dart';
 // import 'package:permission_handler/permission_handler.dart';
-//
-// import '../../../app_widget/custom_appbar.dart';
-// import '../../../app_widget/input_fields.dart';
-// import '../../../base/base_ui.dart';
-// import '../../../constants/reuseable.dart';
-// import '../../../constants/style.dart';
+// import 'package:etegram_business/app_widget/custom_appbar.dart';
+// import 'package:etegram_business/app_widget/input_fields.dart';
+// import 'package:etegram_business/base/base_ui.dart';
+// import 'package:etegram_business/constants/reuseable.dart';
+// import 'package:etegram_business/constants/style.dart';
+// import 'package:etegram_business/module/home/drawer/nav_drawer.dart';
+// import 'package:etegram_business/module/home/vm/home_vm.dart';
+// import '../../../service/local/drawer_service.dart';
 // import '../vm/product_viewmodel.dart';
 //
 // class AddProductView extends StatefulWidget {
@@ -50,6 +54,7 @@
 //
 // class _AddProductViewState extends State<AddProductView> {
 //   final ValueNotifier<File?> _selectedImage = ValueNotifier<File?>(null);
+//   final scaffoldKey = GlobalKey<ScaffoldState>();
 //
 //   Future<File?> _compressImage(File file) async {
 //     try {
@@ -59,8 +64,9 @@
 //       final compressedPath = await receivePort.first as String?;
 //       return compressedPath != null ? File(compressedPath) : file;
 //     } catch (e) {
-//       print('Error compressing image: $e');
-//       showCustomToast('Failed to compress image.', success: false);
+//       print('AddProductView: Error compressing image: $e');
+//       showCustomToast('Failed to compress image.',
+//           success: false, context: context);
 //       return file;
 //     }
 //   }
@@ -82,25 +88,6 @@
 //     }
 //   }
 //
-//   @override
-//   void initState() {
-//     super.initState();
-//     print('AddProductView initState: scannedCode=${widget.scannedCode}, isEditing=${widget.isEditing}, needsImageSelection=${widget.needsImageSelection}');
-//
-//     WidgetsBinding.instance.addPostFrameCallback((_) {
-//       if (widget.needsImageSelection) {
-//         // *** INCREASE THE DELAY HERE ***
-//         // Try 500ms first. If it still crashes, try 1000ms (1 second).
-//         // 2000ms (2 seconds) can be a good test to confirm if it's a timing issue at all.
-//         Future.delayed(const Duration(milliseconds: 1000), () { // Changed from 300 to 1000 (1 second)
-//           if (mounted) { // Ensure the widget is still in the tree after the delay
-//             _showImageSourceSelectionDialog();
-//           }
-//         });
-//       }
-//     });
-//   }
-//
 //   Future<void> _pickImage(ImageSource source) async {
 //     PermissionStatus status;
 //
@@ -109,7 +96,8 @@
 //       if (status.isDenied || status.isPermanentlyDenied) {
 //         showCustomToast(
 //             'Camera permission denied. Please enable it in settings.',
-//             success: false);
+//             success: false,
+//             context: context);
 //         if (status.isPermanentlyDenied) {
 //           openAppSettings();
 //         }
@@ -120,7 +108,8 @@
 //       if (status.isDenied || status.isPermanentlyDenied) {
 //         showCustomToast(
 //             'Gallery permission denied. Please enable it in settings.',
-//             success: false);
+//             success: false,
+//             context: context);
 //         if (status.isPermanentlyDenied) {
 //           openAppSettings();
 //         }
@@ -139,69 +128,46 @@
 //       final compressed = await _compressImage(File(pickedFile.path));
 //       if (mounted) {
 //         _selectedImage.value = compressed;
+//         locator<ProductViewModel>().productImageUrl =
+//             null; // Clear remote image
 //       }
 //     } else {
-//       showCustomToast('Image selection cancelled.', success: false);
+//       showCustomToast('Image selection cancelled.',
+//           success: false, context: context);
 //     }
-//   }
-//
-//   void _showImageSourceSelectionDialog() {
-//     showDialog(
-//       context: context,
-//       barrierDismissible: false,
-//       builder: (BuildContext context) {
-//         return AlertDialog(
-//           title: const Text('Add Product Image'),
-//           content: const Text(
-//               'No external image found. You can add a product image or skip for now.'),
-//           actions: <Widget>[
-//             TextButton(
-//               child: const Text('Take Picture'),
-//               onPressed: () {
-//                 Navigator.of(context).pop();
-//                 _pickImage(ImageSource.camera);
-//               },
-//             ),
-//             TextButton(
-//               child: const Text('Select from Gallery'),
-//               onPressed: () {
-//                 Navigator.of(context).pop();
-//                 _pickImage(ImageSource.gallery);
-//               },
-//             ),
-//             TextButton(
-//               child: const Text('Skip'),
-//               onPressed: () {
-//                 Navigator.of(context).pop();
-//               },
-//             ),
-//           ],
-//         );
-//       },
-//     );
 //   }
 //
 //   @override
 //   Widget build(BuildContext context) {
+//     final drawerService = locator<DrawerService>();
 //     return BaseView<ProductViewModel>(
 //       onModelReady: (model) {
+//         drawerService.setScaffoldKey(scaffoldKey);
+//         print('AddProductView: Model ready, instance: ${model.hashCode}');
+//         if (widget.ownerId == null || widget.storeId == null) {
+//           print('AddProductView: Missing ownerId or storeId');
+//           showCustomToast('Error: Owner or store not selected.',
+//               success: false, context: context);
+//           Future.microtask(() => navigationService.goBack());
+//           return;
+//         }
 //         if (!widget.isEditing && widget.product == null) {
 //           model.clearControllers();
 //           if (widget.scannedCode != null && widget.externalProduct != null) {
+//             print(
+//                 'AddProductView: Populating with external product, barcode: ${widget.scannedCode}');
 //             model.populateControllers(widget.externalProduct!);
-//             if (widget.externalProduct!.imageUrl != null &&
-//                 widget.externalProduct!.imageUrl!.isNotEmpty) {
-//               model.productImageUrl = widget.externalProduct!.imageUrl;
-//               _selectedImage.value = null;
-//             } else {
-//               model.productImageUrl = null;
-//             }
+//             model.productImageUrl = widget.externalProduct!.imageUrl;
+//             _selectedImage.value = null;
 //           } else if (widget.scannedCode != null) {
+//             print('AddProductView: Setting barcode: ${widget.scannedCode}');
 //             model.codeController.text = widget.scannedCode!;
 //             model.productImageUrl = null;
 //             _selectedImage.value = null;
 //           }
 //         } else if (widget.isEditing && widget.product != null) {
+//           print(
+//               'AddProductView: Populating with existing product: ${widget.product!.name}');
 //           model.populateControllers(widget.product!);
 //           _selectedImage.value = null;
 //         }
@@ -210,18 +176,30 @@
 //       builder: (context, model, child) => Stack(
 //         children: [
 //           Scaffold(
+//             key: scaffoldKey,
+//             drawer: const NavDrawer(),
 //             backgroundColor: Colors.grey[100],
 //             appBar: CustomAppBar(
 //               title: widget.isEditing ? "Edit Product" : "Add Product",
-//               onBackPressed: () => navigationService.goBack(),
-//               showMenuIcon: false,
+//               onBackPressed: () {
+//                 print('AddProductView: Navigating back');
+//                 navigationService.goBack();
+//               },
+//               showMenuIcon: true,
+//               onMenuPressed: () {
+//                 print('AddProductView: Opening drawer');
+//                 drawerService.openDrawer();
+//               },
 //               actions: [
 //                 if (!widget.isEditing)
 //                   IconButton(
 //                     icon:
 //                         const Icon(Icons.qr_code_scanner, color: Colors.white),
-//                     onPressed: () =>
-//                         navigationService.navigateTo(addProductScannerRoute),
+//                     onPressed: () {
+//                       print(
+//                           'AddProductView: Navigating to addProductScannerRoute');
+//                       navigationService.navigateTo(addProductScannerRoute);
+//                     },
 //                   ),
 //               ],
 //             ),
@@ -263,12 +241,12 @@
 //                                     size: 100, color: Colors.grey),
 //                               10.0.sbH,
 //                               AppButton(
-//                                 text: 'Select Image',
+//                                 text: 'Select Image from Gallery',
 //                                 onTap: () => _pickImage(ImageSource.gallery),
 //                               ),
 //                               10.0.sbH,
 //                               AppButton(
-//                                 text: 'Capture Image',
+//                                 text: 'Capture Image with Camera',
 //                                 onTap: () => _pickImage(ImageSource.camera),
 //                               ),
 //                             ],
@@ -286,8 +264,12 @@
 //                       ),
 //                       20.0.sbH,
 //                       AppTextField(
-//                         hint: "Barcode (Optional)",
+//                         hint: "Barcode",
 //                         controller: model.codeController,
+//                         readOnly:
+//                             widget.scannedCode != null || widget.isEditing,
+//                         validator: (value) =>
+//                             value!.isEmpty ? 'Barcode is required' : null,
 //                         textInputAction: TextInputAction.next,
 //                         onSubmitted: (_) => FocusScope.of(context).nextFocus(),
 //                       ),
@@ -318,7 +300,7 @@
 //                       AppTextField(
 //                         hint: "Description (Optional)",
 //                         controller: model.descriptionController,
-//                         maxLines: 3,
+//                         maxLines: 5,
 //                         textInputAction: TextInputAction.next,
 //                         onSubmitted: (_) => FocusScope.of(context).nextFocus(),
 //                       ),
@@ -336,7 +318,7 @@
 //                           );
 //                           if (date != null && mounted) {
 //                             model.expiryDateController.text =
-//                                 DateFormat('yyyy-MM-dd').format(date);
+//                                 DateFormat('dd MMM yyyy').format(date);
 //                           }
 //                         },
 //                         suffixIcon: const Icon(Icons.calendar_today,
@@ -395,10 +377,11 @@
 //                 isLoading: model.isLoading.value,
 //                 onTap: () async {
 //                   print(
-//                       'Add Product button pressed: ownerId=${widget.ownerId}, storeId=${widget.storeId}');
+//                       'AddProductView: Add/Update button pressed: ownerId=${widget.ownerId}, storeId=${widget.storeId}');
 //                   if (model.formKey.currentState!.validate()) {
 //                     if (widget.ownerId == null || widget.storeId == null) {
-//                       showCustomToast('Error: Owner or store not selected.');
+//                       showCustomToast('Error: Owner or store not selected.',
+//                           success: false, context: context);
 //                       return;
 //                     }
 //                     await model.saveOrUpdateProduct(
@@ -410,8 +393,10 @@
 //                       storeId: widget.storeId!,
 //                       selectedImage: _selectedImage.value,
 //                     );
+//                     // Navigation is handled by ProductViewModel
 //                   } else {
-//                     showCustomToast('Please fill all required fields.');
+//                     showCustomToast('Please fill all required fields.',
+//                         context: context);
 //                   }
 //                 },
 //               ),
@@ -435,7 +420,6 @@
 //   Widget buildStepperField(
 //       String label, TextEditingController controller, ProductViewModel model,
 //       {bool isDecimal = false}) {
-//     Timer? _debounce;
 //     if (controller.text.isEmpty) {
 //       controller.text = isDecimal ? "0.00" : "1";
 //     }
@@ -488,7 +472,7 @@
 //                     color: Colors.grey[200],
 //                   ),
 //                   SizedBox(
-//                     width: 60,
+//                     width: 100,
 //                     child: TextFormField(
 //                       controller: controller,
 //                       keyboardType: isDecimal
@@ -514,28 +498,28 @@
 //                         fillColor: ColorValues.whiteColor,
 //                       ),
 //                       onChanged: (value) {
-//                         if (_debounce?.isActive ?? false) _debounce!.cancel();
-//                         _debounce =
-//                             Timer(const Duration(milliseconds: 500), () {
+//                         if (value.isEmpty) {
 //                           setState(() {
-//                             if (value.isEmpty) {
-//                               controller.text = isDecimal ? "0.00" : "1";
-//                             } else if (isDecimal) {
-//                               final parsed = double.tryParse(value);
-//                               if (parsed == null || parsed < 0) {
-//                                 controller.text = "0.00";
-//                               } else {
-//                                 controller.text = parsed.toStringAsFixed(2);
-//                               }
-//                             } else {
-//                               final parsed = int.tryParse(value);
-//                               if (parsed == null || parsed < 1) {
-//                                 controller.text = "1";
-//                               }
-//                             }
+//                             controller.text = isDecimal ? "0.00" : "1";
 //                             model.updateTotals();
 //                           });
-//                         });
+//                         } else if (isDecimal) {
+//                           final parsed = double.tryParse(value);
+//                           if (parsed != null && parsed >= 0) {
+//                             setState(() {
+//                               controller.text = parsed.toStringAsFixed(2);
+//                               model.updateTotals();
+//                             });
+//                           }
+//                         } else {
+//                           final parsed = int.tryParse(value);
+//                           if (parsed != null && parsed >= 1) {
+//                             setState(() {
+//                               controller.text = parsed.toString();
+//                               model.updateTotals();
+//                             });
+//                           }
+//                         }
 //                       },
 //                       validator: (value) {
 //                         if (value == null || value.isEmpty) {
@@ -598,36 +582,34 @@
 //
 //   @override
 //   void dispose() {
+//     print('AddProductView: Disposing');
 //     _selectedImage.dispose();
 //     super.dispose();
 //   }
 // }
 
-
+import 'dart:io';
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:etegram_business/constants/colors.dart';
-import 'package:etegram_business/locator.dart';
-import 'package:etegram_business/service/local/user_service.dart';
-import 'package:etegram_business/utils/snack_message.dart';
-import 'package:etegram_business/app_widget/app_button.dart';
-import 'package:etegram_business/core/model/product_model.dart';
-import 'package:etegram_business/routes/routes.dart';
-import 'dart:io';
-import 'dart:async';
-import 'dart:isolate';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+import '../../../app_widget/app_button.dart';
 import '../../../app_widget/custom_appbar.dart';
 import '../../../app_widget/input_fields.dart';
 import '../../../base/base_ui.dart';
+import '../../../constants/colors.dart';
 import '../../../constants/reuseable.dart';
 import '../../../constants/style.dart';
+import '../../../core/model/product_model.dart';
+import '../../../locator.dart';
+import '../../../routes/routes.dart';
+import '../../../service/local/drawer_service.dart';
+import '../../../utils/snack_message.dart';
+import '../../home/drawer/nav_drawer.dart';
 import '../vm/product_viewmodel.dart';
 
 class AddProductView extends StatefulWidget {
@@ -638,6 +620,7 @@ class AddProductView extends StatefulWidget {
   final String? storeId;
   final Product? externalProduct;
   final bool needsImageSelection;
+  final bool hasMissingFields;
 
   const AddProductView({
     super.key,
@@ -648,6 +631,7 @@ class AddProductView extends StatefulWidget {
     this.storeId,
     this.externalProduct,
     this.needsImageSelection = false,
+    this.hasMissingFields = false,
   });
 
   @override
@@ -656,122 +640,207 @@ class AddProductView extends StatefulWidget {
 
 class _AddProductViewState extends State<AddProductView> {
   final ValueNotifier<File?> _selectedImage = ValueNotifier<File?>(null);
+  final scaffoldKey = GlobalKey<ScaffoldState>();
 
-  Future<File?> _compressImage(File file) async {
+  Future<File?> _persistImage(XFile pickedFile) async {
     try {
-      final receivePort = ReceivePort();
-      await Isolate.spawn(
-          _compressImageIsolate, [file.path, receivePort.sendPort]);
-      final compressedPath = await receivePort.first as String?;
-      return compressedPath != null ? File(compressedPath) : file;
-    } catch (e) {
-      print('Error compressing image: $e');
-      showCustomToast('Failed to compress image.', success: false);
-      return file;
-    }
-  }
+      final tempDir = await getTemporaryDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final targetPath = '${tempDir.path}/product_image_$timestamp.jpg';
+      final targetFile = File(targetPath);
+      await targetFile.writeAsBytes(await pickedFile.readAsBytes());
+      if (await targetFile.exists()) {
+        print('AddProductView: Persisted image to: $targetPath');
+        return targetFile;
+      }
 
-  static void _compressImageIsolate(List<dynamic> args) async {
-    final path = args[0] as String;
-    final sendPort = args[1] as SendPort;
-    try {
-      final compressedFile = await FlutterImageCompress.compressAndGetFile(
-        path,
-        "${path}_compressed.jpg",
-        quality: 70,
-        minWidth: 800,
-        minHeight: 800,
-      );
-      sendPort.send(compressedFile?.path);
-    } catch (e) {
-      sendPort.send(null);
+      final cacheDir = await getApplicationCacheDirectory();
+      final fallbackPath = '${cacheDir.path}/product_image_$timestamp.jpg';
+      final fallbackFile = File(fallbackPath);
+      await fallbackFile.writeAsBytes(await pickedFile.readAsBytes());
+      if (await fallbackFile.exists()) {
+        print('AddProductView: Persisted image to fallback: $fallbackPath');
+        return fallbackFile;
+      }
+
+      print(
+          'AddProductView: Failed to persist image to both temp and cache directories');
+      return null;
+    } catch (e, stackTrace) {
+      print('AddProductView: Error persisting image: $e\n$stackTrace');
+      return null;
     }
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    PermissionStatus status;
+    try {
+      if (source == ImageSource.gallery && mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Center(
+            child: SpinKitWave(
+              size: 50.0,
+              color: ColorValues.primaryColor,
+            ),
+          ),
+        );
+      }
 
-    if (source == ImageSource.camera) {
-      status = await Permission.camera.request();
-      if (status.isDenied || status.isPermanentlyDenied) {
-        showCustomToast(
-            'Camera permission denied. Please enable it in settings.',
-            success: false);
-        if (status.isPermanentlyDenied) {
-          openAppSettings();
+      PermissionStatus status;
+      if (source == ImageSource.camera) {
+        status = await Permission.camera.request();
+        if (status.isDenied || status.isPermanentlyDenied) {
+          if (mounted) {
+            if (source == ImageSource.gallery) Navigator.pop(context);
+            showCustomToast(
+              'Camera permission denied. Please enable it in settings.',
+              success: false,
+              context: context,
+            );
+            if (status.isPermanentlyDenied) {
+              await openAppSettings();
+            }
+          }
+          return;
+        }
+      } else {
+        status = await Permission.photos.request();
+        if (status.isDenied || status.isPermanentlyDenied) {
+          if (mounted) {
+            Navigator.pop(context);
+            showCustomToast(
+              'Gallery permission denied. Please enable it in settings.',
+              success: false,
+              context: context,
+            );
+            if (status.isPermanentlyDenied) {
+              await openAppSettings();
+            }
+          }
+          return;
+        }
+      }
+
+      if (source == ImageSource.camera) {
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
+
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        maxHeight: 600,
+        maxWidth: 600,
+        imageQuality: 50,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+
+      if (pickedFile == null) {
+        print('AddProductView: Image selection cancelled');
+        if (mounted && source == ImageSource.gallery) {
+          Navigator.pop(context);
+        }
+        if (mounted) {
+          showCustomToast('Image selection cancelled.',
+              success: false, context: context);
         }
         return;
       }
-    } else {
-      status = await Permission.photos.request();
-      if (status.isDenied || status.isPermanentlyDenied) {
-        showCustomToast(
-            'Gallery permission denied. Please enable it in settings.',
-            success: false);
-        if (status.isPermanentlyDenied) {
-          openAppSettings();
+
+      final imageFile = await _persistImage(pickedFile);
+      if (imageFile == null || !await imageFile.exists()) {
+        print(
+            'AddProductView: Persisted image file does not exist: ${pickedFile.path}');
+        if (mounted && source == ImageSource.gallery) {
+          Navigator.pop(context);
+        }
+        if (mounted) {
+          showCustomToast('Selected image is invalid.',
+              success: false, context: context);
         }
         return;
       }
-    }
 
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: source,
-      maxHeight: 800,
-      maxWidth: 800,
-      imageQuality: 70,
-    );
-    if (pickedFile != null && mounted) {
-      final compressed = await _compressImage(File(pickedFile.path));
       if (mounted) {
-        _selectedImage.value = compressed;
+        _selectedImage.value = imageFile;
+        locator<ProductViewModel>().productImageUrl = null;
+        print('AddProductView: Image selected: ${imageFile.path}');
+        if (source == ImageSource.gallery) {
+          Navigator.pop(context);
+        }
       }
-    } else {
-      showCustomToast('Image selection cancelled.', success: false);
+    } catch (e, stackTrace) {
+      print('AddProductView: Error picking image: $e\n$stackTrace');
+      if (mounted && source == ImageSource.gallery) {
+        Navigator.pop(context);
+      }
+      if (mounted) {
+        showCustomToast('Failed to select image: $e',
+            success: false, context: context);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final drawerService = locator<DrawerService>();
     return BaseView<ProductViewModel>(
       onModelReady: (model) {
+        drawerService.setScaffoldKey(scaffoldKey);
+        print('AddProductView: Model ready, instance: ${model.hashCode}');
         if (!widget.isEditing && widget.product == null) {
           model.clearControllers();
           if (widget.scannedCode != null && widget.externalProduct != null) {
+            print(
+                'AddProductView: Populating with external product, barcode: ${widget.scannedCode}');
             model.populateControllers(widget.externalProduct!);
-            if (widget.externalProduct!.imageUrl != null &&
-                widget.externalProduct!.imageUrl!.isNotEmpty) {
-              model.productImageUrl = widget.externalProduct!.imageUrl;
-              _selectedImage.value = null;
-            } else {
-              model.productImageUrl = null;
-            }
+            model.productImageUrl = widget.externalProduct!.imageUrl;
+            _selectedImage.value = null;
           } else if (widget.scannedCode != null) {
+            print('AddProductView: Setting barcode: ${widget.scannedCode}');
             model.codeController.text = widget.scannedCode!;
             model.productImageUrl = null;
             _selectedImage.value = null;
           }
         } else if (widget.isEditing && widget.product != null) {
+          print(
+              'AddProductView: Populating with existing product: ${widget.product!.name}');
           model.populateControllers(widget.product!);
           _selectedImage.value = null;
+        }
+        if (widget.hasMissingFields) {
+          showCustomToast('Please fill in missing product details.',
+              success: false, context: context);
         }
         model.updateTotals();
       },
       builder: (context, model, child) => Stack(
         children: [
           Scaffold(
+            key: scaffoldKey,
+            drawer: const NavDrawer(),
             backgroundColor: Colors.grey[100],
             appBar: CustomAppBar(
               title: widget.isEditing ? "Edit Product" : "Add Product",
-              onBackPressed: () => navigationService.goBack(),
-              showMenuIcon: false,
+              onBackPressed: () {
+                print('AddProductView: Navigating back');
+                navigationService.goBack();
+              },
+              showMenuIcon: true,
+              onMenuPressed: () {
+                print('AddProductView: Opening drawer');
+                drawerService.openDrawer();
+              },
               actions: [
                 if (!widget.isEditing)
                   IconButton(
-                    icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-                    onPressed: () =>
-                        navigationService.navigateTo(addProductScannerRoute),
+                    icon:
+                        const Icon(Icons.qr_code_scanner, color: Colors.white),
+                    onPressed: () {
+                      print(
+                          'AddProductView: Navigating to addProductScannerRoute');
+                      navigationService.navigateTo(addProductScannerRoute);
+                    },
                   ),
               ],
             ),
@@ -795,8 +864,11 @@ class _AddProductViewState extends State<AddProductView> {
                                   width: 100,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.image_not_supported,
-                                      size: 100, color: Colors.grey),
+                                      const Icon(
+                                    Icons.image_not_supported,
+                                    size: 100,
+                                    color: Colors.grey,
+                                  ),
                                 )
                               else if (image != null)
                                 Image.file(
@@ -805,12 +877,36 @@ class _AddProductViewState extends State<AddProductView> {
                                   width: 100,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.image_not_supported,
-                                      size: 100, color: Colors.grey),
+                                      const Icon(
+                                    Icons.image_not_supported,
+                                    size: 100,
+                                    color: Colors.grey,
+                                  ),
                                 )
                               else
-                                const Icon(Icons.image_not_supported,
-                                    size: 100, color: Colors.grey),
+                                Container(
+                                  height: 100,
+                                  width: 100,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: widget.hasMissingFields
+                                          ? Colors.red
+                                          : Colors.grey,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.image_not_supported,
+                                    size: 100,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              if (widget.hasMissingFields)
+                                const Text(
+                                  'Please select a product image',
+                                  style: TextStyle(
+                                      color: Colors.red, fontSize: 12),
+                                ),
                               10.0.sbH,
                               AppButton(
                                 text: 'Select Image from Gallery',
@@ -830,7 +926,7 @@ class _AddProductViewState extends State<AddProductView> {
                         hint: "Product Name",
                         controller: model.nameController,
                         validator: (value) =>
-                        value!.isEmpty ? 'Product name is required' : null,
+                            value!.isEmpty ? 'Product name is required' : null,
                         textInputAction: TextInputAction.next,
                         onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       ),
@@ -838,9 +934,10 @@ class _AddProductViewState extends State<AddProductView> {
                       AppTextField(
                         hint: "Barcode",
                         controller: model.codeController,
-                        readOnly: widget.scannedCode != null,
+                        readOnly:
+                            widget.scannedCode != null || widget.isEditing,
                         validator: (value) =>
-                        value!.isEmpty ? 'Barcode is required' : null,
+                            value!.isEmpty ? 'Barcode is required' : null,
                         textInputAction: TextInputAction.next,
                         onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       ),
@@ -849,7 +946,7 @@ class _AddProductViewState extends State<AddProductView> {
                         hint: "Category",
                         controller: model.categoryController,
                         validator: (value) =>
-                        value!.isEmpty ? 'Category is required' : null,
+                            value!.isEmpty ? 'Category is required' : null,
                         textInputAction: TextInputAction.next,
                         onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       ),
@@ -872,7 +969,6 @@ class _AddProductViewState extends State<AddProductView> {
                         hint: "Description (Optional)",
                         controller: model.descriptionController,
                         maxLines: 5,
-
                         textInputAction: TextInputAction.next,
                         onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       ),
@@ -884,13 +980,19 @@ class _AddProductViewState extends State<AddProductView> {
                         onTap: () async {
                           final date = await showDatePicker(
                             context: context,
-                            initialDate: DateTime.now(),
+                            initialDate:
+                                model.expiryDateController.text.isNotEmpty
+                                    ? DateTime.tryParse(
+                                            model.expiryDateController.text) ??
+                                        DateTime.now()
+                                    : DateTime.now(),
                             firstDate: DateTime.now(),
                             lastDate: DateTime(2100),
                           );
                           if (date != null && mounted) {
                             model.expiryDateController.text =
                                 DateFormat('dd MMM yyyy').format(date);
+                            model.updateTotals();
                           }
                         },
                         suffixIcon: const Icon(Icons.calendar_today,
@@ -900,20 +1002,38 @@ class _AddProductViewState extends State<AddProductView> {
                       ),
                       20.0.sbH,
                       buildStepperField(
-                          "Cost Price", model.costPriceController, model,
-                          isDecimal: true),
+                        "Cost Price",
+                        model.costPriceController,
+                        model,
+                        isDecimal: true,
+                        hasError: widget.hasMissingFields &&
+                            (model.costPriceController.text == '0.00' ||
+                                model.costPriceController.text.isEmpty),
+                      ),
                       20.0.sbH,
                       buildStepperField(
-                          "Selling Price", model.priceController, model,
-                          isDecimal: true),
+                        "Selling Price",
+                        model.priceController,
+                        model,
+                        isDecimal: true,
+                        hasError: widget.hasMissingFields &&
+                            (model.priceController.text == '1.00' ||
+                                model.priceController.text.isEmpty),
+                      ),
                       20.0.sbH,
                       buildStepperField(
-                          "Quantity", model.quantityController, model,
-                          isDecimal: false),
+                        "Quantity",
+                        model.quantityController,
+                        model,
+                        isDecimal: false,
+                      ),
                       20.0.sbH,
-                      buildStepperField("Minimum Quantity",
-                          model.minQuantityController, model,
-                          isDecimal: false),
+                      buildStepperField(
+                        "Minimum Quantity",
+                        model.minQuantityController,
+                        model,
+                        isDecimal: false,
+                      ),
                       20.0.sbH,
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -948,23 +1068,21 @@ class _AddProductViewState extends State<AddProductView> {
                 text: widget.isEditing ? "Update Product" : "Add Product",
                 isLoading: model.isLoading.value,
                 onTap: () async {
-                  print('Add Product button pressed: ownerId=${widget.ownerId}, storeId=${widget.storeId}');
+                  print(
+                      'AddProductView: Add/Update button pressed: ownerId=${widget.ownerId}, storeId=${widget.storeId}');
                   if (model.formKey.currentState!.validate()) {
-                    if (widget.ownerId == null || widget.storeId == null) {
-                      showCustomToast('Error: Owner or store not selected.');
-                      return;
-                    }
                     await model.saveOrUpdateProduct(
                       context: context,
                       isEditing: widget.isEditing,
                       existingProduct: widget.product,
                       scannedCode: widget.scannedCode,
-                      ownerId: widget.ownerId!,
-                      storeId: widget.storeId!,
+                      ownerId: widget.ownerId,
+                      storeId: widget.storeId,
                       selectedImage: _selectedImage.value,
                     );
                   } else {
-                    showCustomToast('Please fill all required fields.');
+                    showCustomToast('Please fill all required fields.',
+                        context: context);
                   }
                 },
               ),
@@ -986,8 +1104,12 @@ class _AddProductViewState extends State<AddProductView> {
   }
 
   Widget buildStepperField(
-      String label, TextEditingController controller, ProductViewModel model,
-      {bool isDecimal = false}) {
+    String label,
+    TextEditingController controller,
+    ProductViewModel model, {
+    bool isDecimal = false,
+    bool hasError = false,
+  }) {
     if (controller.text.isEmpty) {
       controller.text = isDecimal ? "0.00" : "1";
     }
@@ -1008,12 +1130,13 @@ class _AddProductViewState extends State<AddProductView> {
                   Container(
                     width: 50,
                     alignment: Alignment.center,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: ColorValues.whiteColor,
-                      borderRadius: BorderRadius.only(
+                      borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(10),
                         bottomLeft: Radius.circular(10),
                       ),
+                      border: hasError ? Border.all(color: Colors.red) : null,
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.remove,
@@ -1040,7 +1163,7 @@ class _AddProductViewState extends State<AddProductView> {
                     color: Colors.grey[200],
                   ),
                   SizedBox(
-                    width: 100, // Increased width for better usability
+                    width: 100,
                     child: TextFormField(
                       controller: controller,
                       keyboardType: isDecimal
@@ -1057,16 +1180,16 @@ class _AddProductViewState extends State<AddProductView> {
                       ],
                       decoration: InputDecoration(
                         contentPadding:
-                        const EdgeInsets.symmetric(vertical: 10),
+                            const EdgeInsets.symmetric(vertical: 10),
                         border: const OutlineInputBorder(
                           borderRadius: BorderRadius.zero,
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
                         fillColor: ColorValues.whiteColor,
+                        errorText: hasError ? 'Please update $label' : null,
                       ),
                       onChanged: (value) {
-                        // Only update if the input is valid to prevent cursor jumps
                         if (value.isEmpty) {
                           setState(() {
                             controller.text = isDecimal ? "0.00" : "1";
@@ -1075,7 +1198,6 @@ class _AddProductViewState extends State<AddProductView> {
                         } else if (isDecimal) {
                           final parsed = double.tryParse(value);
                           if (parsed != null && parsed >= 0) {
-                            // Update without resetting cursor
                             setState(() {
                               controller.text = parsed.toStringAsFixed(2);
                               model.updateTotals();
@@ -1118,12 +1240,13 @@ class _AddProductViewState extends State<AddProductView> {
                   Container(
                     width: 50,
                     alignment: Alignment.center,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: ColorValues.whiteColor,
-                      borderRadius: BorderRadius.only(
+                      borderRadius: const BorderRadius.only(
                         topRight: Radius.circular(10),
                         bottomRight: Radius.circular(10),
                       ),
+                      border: hasError ? Border.all(color: Colors.red) : null,
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.add, color: ColorValues.greyColor),
@@ -1152,6 +1275,7 @@ class _AddProductViewState extends State<AddProductView> {
 
   @override
   void dispose() {
+    print('AddProductView: Disposing');
     _selectedImage.dispose();
     super.dispose();
   }

@@ -1,8 +1,6 @@
 import 'package:etegram_business/app_widget/app_text.dart';
 import 'package:etegram_business/constants/style.dart';
 import 'package:etegram_business/locator.dart';
-import 'package:etegram_business/module/product/view/add_product.dart';
-import 'package:etegram_business/module/product/view/move_products.dart';
 import 'package:etegram_business/module/product/view/product_list_view.dart';
 import 'package:etegram_business/module/product/view/search_view.dart';
 import 'package:etegram_business/routes/routes.dart';
@@ -12,39 +10,48 @@ import 'package:etegram_business/base/base_ui.dart';
 import 'package:etegram_business/constants/colors.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:etegram_business/constants/assets.dart';
-import '../../../app_widget/custom_appbar.dart';
-import '../../../app_widget/input_fields.dart';
-import '../../../constants/reuseable.dart';
-import '../../../utils/snack_message.dart';
-import '../../home/drawer/nav_drawer.dart';
-import '../../home/vm/home_vm.dart';
-import '../vm/product_viewmodel.dart';
+import 'package:etegram_business/app_widget/custom_appbar.dart';
+import 'package:etegram_business/app_widget/input_fields.dart';
+import 'package:etegram_business/constants/reuseable.dart';
+import 'package:etegram_business/utils/snack_message.dart';
+import 'package:etegram_business/module/home/drawer/nav_drawer.dart';
+import 'package:etegram_business/module/product/vm/product_viewmodel.dart';
 import 'package:etegram_business/core/model/product_model.dart';
 import 'package:etegram_business/service/local/user_service.dart';
+
+import '../../../service/local/drawer_service.dart';
+import '../../../service/local/navigation_service.dart';
 
 class ProductView extends StatelessWidget {
   const ProductView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    bool isEditing = false;
-    var logic = locator<HomeViewModel>();
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    final drawerService = locator<DrawerService>();
+
     return BaseView<ProductViewModel>(
-      onModelReady: (model) => model.init(),
+      onModelReady: (model) {
+        print('ProductView: Model ready, instance: ${model.hashCode}');
+        model.init();
+        drawerService.setScaffoldKey(scaffoldKey); // Set the scaffold key
+      },
       builder: (_, model, child) => Scaffold(
-        key: logic.scaffoldKey,
+        key: scaffoldKey,
         backgroundColor: ColorValues.backgroundColor,
+        drawer: const NavDrawer(),
         appBar: CustomAppBar(
           title: 'Products',
           onBackPressed: () {
-            navigationService.navigateTo(dashboardRoute);
+            print('ProductView: Navigating to dashboardRoute');
+            locator<NavigationService>().navigateTo(dashboardRoute);
           },
           showMenuIcon: true,
           onMenuPressed: () {
-            logic.openDrawer();
+            print('ProductView: Opening drawer');
+            drawerService.openDrawer(); // Use DrawerService
           },
         ),
-        drawer: NavDrawer(),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
@@ -56,29 +63,34 @@ class ProductView extends StatelessWidget {
                   hint: 'Search for a product',
                   prefix: const Icon(Icons.search),
                   onTap: () {
-                    navigationService.navigateToWidget(SearchProductView());
+                    print('ProductView: Navigating to SearchProductView');
+                    locator<NavigationService>()
+                        .navigateToWidget(const SearchProductView());
                   },
                 ),
                 40.0.sbH,
                 InkWell(
                   onTap: () async {
                     print('ProductView: Navigating to addProductScannerRoute');
-                    final result = await Navigator.pushNamed(context, addProductScannerRoute);
+                    final result = await Navigator.pushNamed(
+                        context, addProductScannerRoute);
                     if (!context.mounted) return;
                     final customerService = locator<CustomerService>();
                     final storeId = await customerService.getActiveStoreId();
                     final ownerId = await customerService.getOwnerId();
                     if (storeId == null || ownerId == null) {
-                      showCustomToast('No active store or owner selected.', success: false);
+                      showCustomToast('No active store or owner selected.',
+                          success: false);
                       return;
                     }
                     if (result is Product) {
                       print('ProductView: Scanned product: ${result.name}');
-                      await model.showDuplicateDialog(context, result);
+                      await model.showDuplicateDialog(context, result,
+                          barcode: result.code);
                     } else if (result is String) {
-                      print('ProductView: Scanned barcode (not found): $result');
-                      Navigator.pushNamed(
-                        context,
+                      print(
+                          'ProductView: Scanned barcode (not found): $result');
+                      locator<NavigationService>().navigateTo(
                         addProductViewRoute,
                         arguments: {
                           'scannedCode': result,
@@ -98,21 +110,27 @@ class ProductView extends StatelessWidget {
                     return GestureDetector(
                       onTap: () async {
                         final customerService = locator<CustomerService>();
-                        final storeId = await customerService.getActiveStoreId();
+                        final storeId =
+                            await customerService.getActiveStoreId();
                         final ownerId = await customerService.getOwnerId();
                         switch (index) {
                           case 0:
-                            navigationService.navigateTo(addProductViewRoute, arguments: {
-                              'isEditing': false,
-                              'storeId': storeId,
-                              'ownerId': ownerId,
-                            });
+                            print(
+                                'ProductView: Navigating to addProductViewRoute');
+                            locator<NavigationService>().navigateTo(
+                              addProductViewRoute,
+                              arguments: {
+                                'isEditing': false,
+                                'storeId': storeId,
+                                'ownerId': ownerId,
+                              },
+                            );
                             break;
                           case 1:
-                            navigationService.navigateToWidget(AddProductListView());
-                            break;
-                          case 2:
-                            navigationService.navigateToWidget(MoveProducts());
+                            print(
+                                'ProductView: Navigating to AddProductListView');
+                            locator<NavigationService>()
+                                .navigateToWidget(const AddProductListView());
                             break;
                         }
                       },
@@ -120,7 +138,7 @@ class ProductView extends StatelessWidget {
                         width: 90,
                         height: 100,
                         alignment: Alignment.center,
-                        margin: EdgeInsets.all(8.0),
+                        margin: const EdgeInsets.all(8.0),
                         color: model.containerColor[index],
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -136,7 +154,7 @@ class ProductView extends StatelessWidget {
                               style: normalTextStyle.copyWith(
                                   fontSize: 12, fontWeight: FontWeight.w700),
                               align: TextAlign.center,
-                            )
+                            ),
                           ],
                         ),
                       ),

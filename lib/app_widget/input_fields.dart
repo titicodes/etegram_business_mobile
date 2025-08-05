@@ -9,11 +9,20 @@ import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import '../constants/style.dart';
 import 'app_text.dart';
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:etegram_business/app_widget/app_text.dart';
+import 'package:etegram_business/constants/colors.dart';
+import 'package:etegram_business/constants/style.dart';
+import 'package:etegram_business/utils/widget_extension.dart';
+import 'package:iconsax/iconsax.dart';
+
 class AppTextField extends StatefulWidget {
   final String? hintText;
   final String? Function(String?)? validator;
   final String? hint;
   final String? labelText;
+  final String? errorText; // Added errorText parameter
   final bool readOnly;
   final bool borderless;
   final bool isPassword;
@@ -32,7 +41,7 @@ class AppTextField extends StatefulWidget {
   final VoidCallback? onTap;
   final InputBorder? enabledBorder;
   final int? maxLines;
-  final int? maxLength; // Added to correctly handle max characters
+  final int? maxLength;
   final int maxHeight;
   final bool? haveText;
   final TextCapitalization? textCapitalization;
@@ -46,6 +55,7 @@ class AppTextField extends StatefulWidget {
   final double? boxWidth;
   final void Function(String)? onSubmitted;
   final TextInputAction? textInputAction;
+  final FocusNode? focusNode;
 
   const AppTextField({
     super.key,
@@ -54,6 +64,7 @@ class AppTextField extends StatefulWidget {
     this.isPassword = false,
     this.hintText,
     this.hint,
+    this.errorText, // Added
     this.onSubmitted,
     this.textInputAction,
     this.onChanged,
@@ -68,7 +79,7 @@ class AppTextField extends StatefulWidget {
     this.textSize,
     this.haveText,
     this.maxLines,
-    this.maxLength, // Added
+    this.maxLength,
     this.labelText,
     this.label,
     this.contentPadding,
@@ -85,6 +96,7 @@ class AppTextField extends StatefulWidget {
     this.boxWidth,
     this.borderRadius,
     this.textCapitalization,
+    this.focusNode,
   });
 
   @override
@@ -140,8 +152,8 @@ class _AppTextFieldState extends State<AppTextField> {
             textCapitalization:
                 widget.textCapitalization ?? TextCapitalization.none,
             maxLines: widget.maxLines ?? widget.maxHeight,
-            focusNode: _focusNode,
-            maxLength: widget.maxLength, // Use maxLength instead of maxLines
+            focusNode: widget.focusNode ?? _focusNode,
+            maxLength: widget.maxLength,
             onChanged: widget.onChanged,
             onTap: widget.onTap,
             readOnly: widget.readOnly,
@@ -153,10 +165,11 @@ class _AppTextFieldState extends State<AppTextField> {
             decoration: InputDecoration(
               filled: true,
               errorMaxLines: 3,
-              counterText: '', // Hide character counter unless needed
+              counterText: '',
               hintText: widget.hint,
               enabled: widget.enabled ?? true,
               fillColor: widget.fillColor ?? Colors.transparent,
+              errorText: widget.errorText, // Use errorText
               error: widget.errorWidget,
               prefixIconColor: widget.overrideIconColor == true
                   ? null
@@ -229,7 +242,7 @@ class _AppTextFieldState extends State<AppTextField> {
                       BorderRadius.circular(widget.borderRadius ?? 8)),
             ),
             keyboardType: widget.keyboardType,
-          )
+          ),
         ],
       ),
     );

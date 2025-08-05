@@ -71,6 +71,8 @@ dependencies:
   change_app_package_name: ^1.5.0
   device_info_plus: ^11.5.0
   mime_type: ^1.0.1
+  jwt_decoder: ^2.0.1
+
 
 
 

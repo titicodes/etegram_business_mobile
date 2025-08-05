@@ -11,6 +11,7 @@ import 'package:etegram_business/module/home/vm/home_vm.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
+import '../../../service/local/drawer_service.dart';
 import 'edit_expenses.dart';
 
 class AllExpenses extends StatelessWidget {
@@ -18,20 +19,24 @@ class AllExpenses extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final homeViewModel = locator<HomeViewModel>();
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    final drawerService = locator<DrawerService>();
     return BaseView<ExpensesViewModel>(
-      onModelReady: (model) => model.init(),
+      onModelReady: (model) {
+        model.init();
+        drawerService.setScaffoldKey(scaffoldKey);
+      },
       builder: (context, model, child) => Stack(
         children: [
           Scaffold(
-            key: homeViewModel.scaffoldKey,
+            key: scaffoldKey,
             backgroundColor: ColorValues.backgroundColor,
             drawer: const NavDrawer(),
             appBar: CustomAppBar(
               title: 'All Expenses',
               onBackPressed: () => navigationService.goBack(),
               showMenuIcon: true,
-              onMenuPressed: () => homeViewModel.openDrawer(),
+              onMenuPressed: () => drawerService.openDrawer(),
             ),
             body: model.expenses.isEmpty
                 ? Center(

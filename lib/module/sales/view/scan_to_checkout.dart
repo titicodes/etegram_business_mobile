@@ -11,8 +11,6 @@ import 'package:etegram_business/utils/snack_message.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:lottie/lottie.dart';
 import 'package:etegram_business/routes/routes.dart';
-
-import '../../../../app_widget/barcode_scanner_view.dart';
 import '../../../../core/model/get_scan_response.dart';
 
 class ScanToCheckoutView extends StatefulWidget {
@@ -91,12 +89,12 @@ class _ScanToCheckoutViewState extends State<ScanToCheckoutView>
     return BaseView<SaleViewModel>(
       builder: (context, model, child) {
         print(
-            "Cart items in ScanToCheckoutView: ${model.cartItems.value.length}");
+            "ScanToCheckoutView: Model instance: ${model.hashCode}, Cart items: ${model.cartItems.value.length}");
         return Scaffold(
           backgroundColor: Colors.grey[100],
           appBar: CustomAppBar(
             title: 'Cart',
-            onBackPressed: navigationService.goBack,
+            onBackPressed: () => Navigator.pop(context),
             showMenuIcon: false,
             actions: [
               ValueListenableBuilder<List<Cart>>(
@@ -200,8 +198,7 @@ class _ScanToCheckoutViewState extends State<ScanToCheckoutView>
                             text: 'Scan More',
                             backGroundColor: Colors.grey[300],
                             textColor: Colors.black,
-                            onTap: () => navigationService
-                                .navigateToWidget(const CheckoutScannerView()),
+                            onTap: () => Navigator.pop(context),
                           ),
                         ),
                         10.0.sbW,
@@ -214,10 +211,8 @@ class _ScanToCheckoutViewState extends State<ScanToCheckoutView>
                                 isLoading: model.isLoading.value,
                                 onTap: cartItems.isEmpty
                                     ? null
-                                    : () => navigationService.navigateTo(
-                                          reviewScreenRoute,
-                                          arguments: {'cartItems': cartItems},
-                                        ),
+                                    : () => Navigator.pushNamed(
+                                        context, reviewScreenRoute),
                               );
                             },
                           ),

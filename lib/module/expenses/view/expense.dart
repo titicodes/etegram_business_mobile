@@ -15,18 +15,21 @@ import 'package:etegram_business/app_widget/app_button.dart';
 import 'package:etegram_business/app_widget/custom_dropdown.dart';
 import 'package:etegram_business/app_widget/input_fields.dart';
 
+import '../../../service/local/drawer_service.dart';
+
 class Expense extends StatelessWidget {
   const Expense({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final homeVm = locator<HomeViewModel>();
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    final drawerService = locator<DrawerService>();
     return BaseView<ExpensesViewModel>(
-      onModelReady: (model) => model.init(),
+      onModelReady: (model)  {model.init(); drawerService.setScaffoldKey(scaffoldKey);},
       builder: (context, model, child) => Stack(
         children: [
           Scaffold(
-            key: homeVm.scaffoldKey,
+            key: scaffoldKey,
             drawer: const NavDrawer(),
             backgroundColor: ColorValues.backgroundColor,
             body: CustomScrollView(
@@ -35,7 +38,7 @@ class Expense extends StatelessWidget {
                   title: 'New Expense',
                   onBackPressed: () => navigationService.goBack(),
                   showMenuIcon: true,
-                  onMenuPressed: () => homeVm.openDrawer(),
+                  onMenuPressed: () => drawerService.openDrawer(),
                   showLogo: true,
                   logoAsset: SvgAssets.appLogo,
                 ),

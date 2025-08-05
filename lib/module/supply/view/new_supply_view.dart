@@ -14,6 +14,7 @@ import '../../../app_widget/input_fields.dart';
 import '../../../constants/assets.dart';
 import '../../../constants/colors.dart';
 import '../../../locator.dart';
+import '../../../service/local/drawer_service.dart';
 import '../../home/drawer/nav_drawer.dart';
 import '../../home/vm/home_vm.dart';
 import '../../product/view/add_product.dart';
@@ -24,11 +25,14 @@ class NewSupplyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var homeVm = locator<HomeViewModel>();
-    var model = locator<ProductViewModel>();
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    final drawerService = locator<DrawerService>();
     return BaseView<SupplierListViewModel>(
+      onModelReady: (model){
+        drawerService.setScaffoldKey(scaffoldKey);
+      },
       builder: (_, logic, child) => Scaffold(
-          key: homeVm.scaffoldKey,
+          key: scaffoldKey,
           drawer: NavDrawer(),
           backgroundColor: ColorValues.backgroundColor,
           body: CustomScrollView(
@@ -40,7 +44,8 @@ class NewSupplyView extends StatelessWidget {
                 },
                 showMenuIcon: true,
                 onMenuPressed: () {
-                  homeVm.openDrawer();
+                  print('OtherView: Opening drawer');
+                  drawerService.openDrawer(); // Use DrawerService
                 },
                 showLogo: true,
                 logoAsset: SvgAssets.appLogo,

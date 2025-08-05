@@ -16,6 +16,7 @@ import '../../../constants/colors.dart';
 import '../../../constants/reuseable.dart';
 import '../../../constants/strings.dart';
 import '../../../constants/style.dart';
+import '../../../service/local/drawer_service.dart';
 import '../view_model/supplier_list_vm.dart';
 import 'new_supplier.dart';
 
@@ -24,20 +25,26 @@ class ListOfSuppliers extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var homeVm = locator<HomeViewModel>();
-
+    final drawerService = locator<DrawerService>();
+    final scaffoldKey = GlobalKey<ScaffoldState>();
     return BaseView<SupplierListViewModel>(
-      onModelReady: (model) => model.loadSuppliers(),
+      onModelReady: (model) {
+        model.loadSuppliers();
+        drawerService.setScaffoldKey(scaffoldKey);
+      },
       builder: (context, logic, child) {
         return Scaffold(
           backgroundColor: ColorValues.backgroundColor,
-          key: homeVm.scaffoldKey,
+          key: scaffoldKey,
           drawer: NavDrawer(),
           appBar: CustomAppBar(
             title: StringValues.suppliers,
-            onBackPressed: () => homeVm.openDrawer(),
+            onBackPressed: () => navigationService.goBack(),
             showMenuIcon: true,
-            onMenuPressed: () => navigationService.goBack(),
+            onMenuPressed: () {
+              print('OtherView: Opening drawer');
+              drawerService.openDrawer(); // Use DrawerService
+            },
             showNotificationIcon: false,
           ),
           floatingActionButton: FloatingActionButton(
@@ -80,7 +87,6 @@ class ListOfSuppliers extends StatelessWidget {
                         );
                       },
                     ),
-
                   ],
                 ),
               ),

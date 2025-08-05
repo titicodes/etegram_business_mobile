@@ -132,38 +132,43 @@
 //
 // }
 
-import 'dart:convert';
-
 import 'get_scan_response.dart';
 
 class CheckoutResponse {
   final bool? success;
   final CheckoutData? data;
   final String? message;
+  final String? emailWarning;
 
   CheckoutResponse({
     this.success,
     this.data,
     this.message,
+    this.emailWarning,
   });
 
   factory CheckoutResponse.fromJson(Map<String, dynamic> json) {
-    print('Parsing CheckoutResponse: $json'); // Debug log
+    print('CheckoutResponse: Parsing JSON: $json');
     return CheckoutResponse(
-      success: json["success"] ?? false,
-      data: json["data"] == null ? null : CheckoutData.fromJson(json["data"] as Map<String, dynamic>),
-      message: json["message"]?.toString() ?? "Unknown error",
+      success: json['success'] ?? false,
+      data: json['data'] != null && json['data']['checkout'] != null
+          ? CheckoutData.fromJson(json['data']['checkout'])
+          : null,
+      message: json['message'] ?? 'Unknown error',
+      emailWarning: json['emailWarning'],
     );
   }
 
   Map<String, dynamic> toJson() => {
-    "success": success,
-    "data": data?.toJson(),
-    "message": message,
+    'success': success,
+    'data': data?.toJson(),
+    'message': message,
+    'emailWarning': emailWarning,
   };
 }
 
 class CheckoutData {
+  final String? checkoutId;
   final List<CartItem>? cartItems;
   final double? totalPrice;
   final double? discountedPrice;
@@ -173,12 +178,13 @@ class CheckoutData {
   final String? paymentMethod;
   final String? store;
   final bool? isCredit;
+  final String? customerName;
+  final String? deliveryAddress;
   final DateTime? createdAt;
-  final String? id;
   final DateTime? updatedAt;
-  final int? v;
 
   CheckoutData({
+    this.checkoutId,
     this.cartItems,
     this.totalPrice,
     this.discountedPrice,
@@ -188,47 +194,48 @@ class CheckoutData {
     this.paymentMethod,
     this.store,
     this.isCredit,
+    this.customerName,
+    this.deliveryAddress,
     this.createdAt,
-    this.id,
     this.updatedAt,
-    this.v,
   });
 
   factory CheckoutData.fromJson(Map<String, dynamic> json) {
-    print('Parsing CheckoutData: $json'); // Debug log
     return CheckoutData(
-      cartItems: json["cartItems"] == null
-          ? []
-          : List<CartItem>.from((json["cartItems"] as List).map((x) => CartItem.fromJson(x as Map<String, dynamic>))),
-      totalPrice: (json["totalPrice"] as num?)?.toDouble() ?? 0.0,
-      discountedPrice: (json["discountedPrice"] as num?)?.toDouble() ?? 0.0,
-      totalPriceWithTax: (json["totalPriceWithTax"] as num?)?.toDouble() ?? 0.0,
-      user: json["user"]?.toString() ?? "",
-      status: json["status"]?.toString() ?? "",
-      paymentMethod: json["paymentMethod"]?.toString() ?? "",
-      store: json["store"]?.toString() ?? "",
-      isCredit: json["isCredit"] ?? false,
-      createdAt: DateTime.tryParse(json["createdAt"]?.toString() ?? "") ?? DateTime.now(),
-      id: json["_id"]?.toString() ?? "",
-      updatedAt: DateTime.tryParse(json["updatedAt"]?.toString() ?? "") ?? DateTime.now(),
-      v: (json["__v"] as num?)?.toInt() ?? 0,
+      checkoutId: json['_id'],
+      cartItems: json['cartItems'] != null
+          ? List<CartItem>.from(json['cartItems'].map((x) => CartItem.fromJson(x)))
+          : null,
+      totalPrice: (json['totalPrice'] as num?)?.toDouble(),
+      discountedPrice: (json['discountedPrice'] as num?)?.toDouble(),
+      totalPriceWithTax: (json['totalPriceWithTax'] as num?)?.toDouble(),
+      user: json['user'],
+      status: json['status'],
+      paymentMethod: json['paymentMethod'],
+      store: json['store'],
+      isCredit: json['isCredit'],
+      customerName: json['customerName'],
+      deliveryAddress: json['deliveryAddress'],
+      createdAt: DateTime.tryParse(json['createdAt'] ?? ''),
+      updatedAt: DateTime.tryParse(json['updatedAt'] ?? ''),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    "cartItems": cartItems?.map((x) => x.toJson()).toList(),
-    "totalPrice": totalPrice,
-    "discountedPrice": discountedPrice,
-    "totalPriceWithTax": totalPriceWithTax,
-    "user": user,
-    "status": status,
-    "paymentMethod": paymentMethod,
-    "store": store,
-    "isCredit": isCredit,
-    "createdAt": createdAt?.toIso8601String(),
-    "_id": id,
-    "updatedAt": updatedAt?.toIso8601String(),
-    "__v": v,
+    '_id': checkoutId,
+    'cartItems': cartItems?.map((x) => x.toJson()).toList(),
+    'totalPrice': totalPrice,
+    'discountedPrice': discountedPrice,
+    'totalPriceWithTax': totalPriceWithTax,
+    'user': user,
+    'status': status,
+    'paymentMethod': paymentMethod,
+    'store': store,
+    'isCredit': isCredit,
+    'customerName': customerName,
+    'deliveryAddress': deliveryAddress,
+    'createdAt': createdAt?.toIso8601String(),
+    'updatedAt': updatedAt?.toIso8601String(),
   };
 }
 
@@ -246,21 +253,18 @@ class CartItem {
   });
 
   factory CartItem.fromJson(Map<String, dynamic> json) {
-    print('Parsing CartItem: $json'); // Debug log
     return CartItem(
-      code: json["code"]?.toString() ?? "",
-      quantity: (json["quantity"] as num?)?.toInt() ?? 1,
-      subtotal: (json["subtotal"] as num?)?.toDouble() ?? 0.0,
-      product: json["product"] == null
-          ? null
-          : ScanProduct.fromJson(json["product"] as Map<String, dynamic>),
+      code: json['code'],
+      quantity: (json['quantity'] as num?)?.toInt(),
+      subtotal: (json['subtotal'] as num?)?.toDouble(),
+      product: json['product'] != null ? ScanProduct.fromJson(json['product']) : null,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    "code": code,
-    "quantity": quantity,
-    "subtotal": subtotal,
-    "product": product?.toJson(),
+    'code': code,
+    'quantity': quantity,
+    'subtotal': subtotal,
+    'product': product?.toJson(),
   };
 }

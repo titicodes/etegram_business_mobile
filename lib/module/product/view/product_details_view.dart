@@ -3,18 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
-import '../../../app_widget/app_text.dart';
-import '../../../base/base_ui.dart';
-import '../../../constants/assets.dart';
-import '../../../constants/colors.dart';
-import '../../../constants/reuseable.dart';
-import '../../../constants/style.dart';
-import '../../../core/model/product_history_model.dart';
-import '../../../core/model/product_model.dart';
-import '../../../locator.dart';
-import '../../../routes/routes.dart';
-import '../../../service/local/user_service.dart';
-import '../../../utils/snack_message.dart';
+import 'package:etegram_business/app_widget/app_text.dart';
+import 'package:etegram_business/base/base_ui.dart';
+import 'package:etegram_business/constants/assets.dart';
+import 'package:etegram_business/constants/colors.dart';
+import 'package:etegram_business/constants/reuseable.dart';
+import 'package:etegram_business/constants/style.dart';
+import 'package:etegram_business/core/model/product_history_model.dart';
+import 'package:etegram_business/core/model/product_model.dart';
+import 'package:etegram_business/locator.dart';
+import 'package:etegram_business/routes/routes.dart';
+import 'package:etegram_business/service/local/user_service.dart';
+import 'package:etegram_business/utils/snack_message.dart';
+import '../../../service/local/navigation_service.dart';
 import '../vm/product_viewmodel.dart';
 
 class ProductDetailsView extends StatelessWidget {
@@ -26,9 +27,13 @@ class ProductDetailsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BaseView<ProductViewModel>(
       onModelReady: (model) {
-        // Call fetchProductHistory without expecting a return value
-        model.fetchProductHistory(
-            product.id!, locator<CustomerService>().activeStoreId!);
+        print('ProductDetailsView: Model ready, instance: ${model.hashCode}');
+        final storeId = locator<CustomerService>().activeStoreId;
+        if (storeId != null && product.id != null) {
+          model.fetchProductHistory(product.id!, storeId);
+        } else {
+          print('ProductDetailsView: Missing storeId or product.id');
+        }
       },
       builder: (context, model, child) => Scaffold(
         backgroundColor: ColorValues.backgroundColor,
@@ -37,19 +42,30 @@ class ProductDetailsView extends StatelessWidget {
           backgroundColor: ColorValues.backgroundColor,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => navigationService.goBack(),
+            onPressed: () {
+              print('ProductDetailsView: Navigating back');
+              locator<NavigationService>().goBack();
+            },
           ),
           actions: [
             IconButton(
               icon: const Icon(Icons.edit),
               onPressed: () async {
                 final ownerId = await locator<CustomerService>().getOwnerId();
-                navigationService.navigateTo(
+                final storeId = locator<CustomerService>().activeStoreId;
+                if (ownerId == null || storeId == null) {
+                  showCustomToast('Store or owner information missing.',
+                      success: false, context: context);
+                  return;
+                }
+                print(
+                    'ProductDetailsView: Navigating to addProductViewRoute for editing ${product.name}');
+                locator<NavigationService>().navigateTo(
                   addProductViewRoute,
                   arguments: {
                     'isEditing': true,
                     'product': product,
-                    'storeId': locator<CustomerService>().activeStoreId,
+                    'storeId': storeId,
                     'ownerId': ownerId,
                   },
                 );
@@ -57,7 +73,10 @@ class ProductDetailsView extends StatelessWidget {
             ),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => model.deleteProduct(context, product),
+              onPressed: () {
+                print('ProductDetailsView: Deleting product ${product.name}');
+                model.deleteProduct(context, product);
+              },
             ),
           ],
         ),
@@ -66,7 +85,6 @@ class ProductDetailsView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Product Image
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -91,8 +109,6 @@ class ProductDetailsView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Product Details Card
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
@@ -155,128 +171,134 @@ class ProductDetailsView extends StatelessWidget {
                         ),
                       if (product.size != null)
                         _buildDetailRow('Size', product.size!),
-                      if (product.brands != null && product.brands!.isNotEmpty)
-                        _buildDetailRow(
-                          'Brands',
-                          product.brands != null &&
-                                  product.brands!.trim().isNotEmpty
-                              ? product.brands!
-                              : 'No Brand',
-                        ),
+                      _buildDetailRow('Brands', product.displayBrands),
                       if (product.description != null)
                         _buildDetailRow('Description', product.description!),
                     ],
                   ),
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // Product History Section
               AppText(
                 'Product History',
                 style: subHeaderTextStyle.copyWith(fontSize: 18),
               ),
               const SizedBox(height: 8),
               ValueListenableBuilder<bool>(
-                valueListenable:
-                    model.isLoading, // Use BaseViewModel's isLoading
+                valueListenable: model.isLoadingProductHistory,
                 builder: (context, isLoading, _) {
                   return AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     child: isLoading
                         ? const ShimmerHistoryList()
                         : ValueListenableBuilder<List<ProductHistory>>(
-                      valueListenable: model.productHistory,
-                      builder: (context, history, _) {
-                        print('ProductDetailsView: Rendering with history: $history');
-                        if (history.isEmpty) {
-                          return Center(
-                            child: Column(
-                              children: [
-                                SvgPicture.asset(SvgAssets.noRecord, height: 100),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'No history available',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: ColorValues.greyColor,
+                            valueListenable: model.productHistory,
+                            builder: (context, history, _) {
+                              print(
+                                  'ProductDetailsView: Rendering with history: $history');
+                              if (history.isEmpty) {
+                                return Center(
+                                  child: Column(
+                                    children: [
+                                      SvgPicture.asset(SvgAssets.noRecord,
+                                          height: 100),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        'No history available',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: ColorValues.greyColor,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                        return ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: history.length,
-                          itemBuilder: (context, index) {
-                            final entry = history[index];
-                            print('Rendering history entry $index: ${entry.toJson()}');
-                            return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 4.0),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.all(12.0),
-                                leading: Icon(
-                                  entry.action == 'CREATED' ? Icons.add_circle : Icons.update,
-                                  color: entry.quantity! <= 5 ? Colors.red : ColorValues.primaryColor,
-                                ),
-                                title: Text(
-                                  '${entry.action}: ${entry.quantity} units',
-                                  style: normalTextStyle12.copyWith(fontWeight: FontWeight.w600),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (entry.stock != null)
-                                      Text(
-                                        'Stock: ${entry.stock}',
+                                );
+                              }
+                              return ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: history.length,
+                                itemBuilder: (context, index) {
+                                  final entry = history[index];
+                                  print(
+                                      'Rendering history entry $index: ${entry.toJson()}');
+                                  return Card(
+                                    margin: const EdgeInsets.symmetric(
+                                        vertical: 4.0),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8)),
+                                    child: ListTile(
+                                      contentPadding:
+                                          const EdgeInsets.all(12.0),
+                                      leading: Icon(
+                                        entry.action == 'CREATED'
+                                            ? Icons.add_circle
+                                            : Icons.update,
+                                        color: entry.quantity! <= 5
+                                            ? Colors.red
+                                            : ColorValues.primaryColor,
+                                      ),
+                                      title: Text(
+                                        '${entry.action}: ${entry.quantity} units',
                                         style: normalTextStyle12.copyWith(
-                                          color: entry.stock! <= 5 ? Colors.red : Colors.black87,
-                                        ),
+                                            fontWeight: FontWeight.w600),
                                       ),
-                                    if (entry.price != null)
-                                      Text(
-                                        'Price: ${NumberFormat.currency(symbol: '₦', decimalDigits: 2).format(entry.price)}',
-                                        style: normalTextStyle12,
+                                      subtitle: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          if (entry.stock != null)
+                                            Text(
+                                              'Stock: ${entry.stock}',
+                                              style: normalTextStyle12.copyWith(
+                                                color: entry.stock! <= 5
+                                                    ? Colors.red
+                                                    : Colors.black87,
+                                              ),
+                                            ),
+                                          if (entry.price != null)
+                                            Text(
+                                              'Price: ${NumberFormat.currency(symbol: '₦', decimalDigits: 2).format(entry.price)}',
+                                              style: normalTextStyle12,
+                                            ),
+                                          Text(
+                                            'Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(entry.timestamp)}',
+                                            style: normalTextStyle12,
+                                          ),
+                                          if (entry.notes != null)
+                                            Text(
+                                              'Notes: ${entry.notes}',
+                                              style: normalTextStyle12,
+                                            ),
+                                          if (entry.stock != null &&
+                                              entry.stock! <= 5)
+                                            Text(
+                                              'Action: Restock recommended',
+                                              style: normalTextStyle12.copyWith(
+                                                color: Colors.red,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                        ],
                                       ),
-                                    Text(
-                                      'Date: ${DateFormat('dd MMM yyyy, hh:mm a').format(entry.timestamp)}',
-                                      style: normalTextStyle12,
+                                      trailing: entry.action == 'UPDATED'
+                                          ? IconButton(
+                                              icon: const Icon(
+                                                  Icons.info_outline),
+                                              onPressed: () {
+                                                showCustomToast(
+                                                  'Stock: ${entry.stock ?? 'N/A'}, Price: ₦${entry.price?.toStringAsFixed(2) ?? 'N/A'}',
+                                                  context: context,
+                                                );
+                                              },
+                                            )
+                                          : null,
                                     ),
-                                    if (entry.notes != null)
-                                      Text(
-                                        'Notes: ${entry.notes}',
-                                        style: normalTextStyle12,
-                                      ),
-                                    if (entry.stock != null && entry.stock! <= 5)
-                                      Text(
-                                        'Action: Restock recommended',
-                                        style: normalTextStyle12.copyWith(
-                                          color: Colors.red,
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                trailing: entry.action == 'UPDATED'
-                                    ? IconButton(
-                                  icon: const Icon(Icons.info_outline),
-                                  onPressed: () {
-                                    showCustomToast(
-                                      'Stock: ${entry.stock ?? 'N/A'}, Price: ₦${entry.price ?? 'N/A'}',
-                                    );
-                                  },
-                                )
-                                    : null,
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    )
+                                  );
+                                },
+                              );
+                            },
+                          ),
                   );
                 },
               ),

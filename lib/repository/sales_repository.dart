@@ -9,7 +9,6 @@ class SalesRepository {
 
   Future<GetScanResponse?> getScanProduct({
     required String code,
-    required String ownerId,
     required String storeId,
   }) async {
     try {
@@ -21,7 +20,7 @@ class SalesRepository {
         );
       }
 
-      if (ownerId.isEmpty || storeId.isEmpty) {
+      if (storeId.isEmpty) {
         return GetScanResponse(
           success: false,
           message: 'Owner ID or Store ID missing',
@@ -31,7 +30,6 @@ class SalesRepository {
 
       final response = await _salesApiService.getScanProduct(
         code: code,
-        ownerId: ownerId,
         storeId: storeId,
       );
 
@@ -46,18 +44,17 @@ class SalesRepository {
     }
   }
 
-  Future<GetScanResponse?> checkout({
+  Future<CheckoutResponse?> checkout({
     required List<Map<String, dynamic>> cartItems,
-    double discount = 0.0,
-    double tax = 0.0,
+    required double discount,
+    required double tax,
     required String paymentMethod,
     required String storeId,
-    String? customerId,
-    String? supplierId,
+    String? deliveryAddress,
   }) async {
     try {
       if (cartItems.isEmpty) {
-        return GetScanResponse(
+        return CheckoutResponse(
           success: false,
           message: 'Cart is empty',
           data: null,
@@ -65,7 +62,7 @@ class SalesRepository {
       }
 
       if (storeId.isEmpty) {
-        return GetScanResponse(
+        return CheckoutResponse(
           success: false,
           message: 'Store ID is missing',
           data: null,
@@ -80,19 +77,17 @@ class SalesRepository {
       }).toList();
 
       final response = await _salesApiService.checkout(
-        cartItems: sanitizedCartItems,
-        discount: discount,
-        tax: tax,
-        paymentMethod: paymentMethod,
-        storeId: storeId,
-        customerId: customerId,
-        supplierId: supplierId,
-      );
+          cartItems: sanitizedCartItems,
+          discount: discount,
+          tax: tax,
+          paymentMethod: paymentMethod,
+          storeId: storeId,
+          deliveryAddress: deliveryAddress);
 
       return response;
     } catch (e, stackTrace) {
       print('Error in SalesRepository.checkout: $e\n$stackTrace');
-      return GetScanResponse(
+      return CheckoutResponse(
         success: false,
         message: 'Failed to process checkout: $e',
         data: null,

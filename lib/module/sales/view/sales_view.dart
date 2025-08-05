@@ -8,6 +8,7 @@ import 'package:etegram_business/locator.dart';
 import 'package:etegram_business/module/home/drawer/nav_drawer.dart';
 import 'package:etegram_business/module/home/vm/home_vm.dart';
 import 'package:etegram_business/module/product/view/search_view.dart';
+import 'package:etegram_business/service/local/drawer_service.dart';
 // import 'package:etegram_business/module/sales/vm/sales_vm.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';
@@ -23,11 +24,15 @@ class SAles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool isEditing = false;
-    var homeModel = locator<HomeViewModel>();
-   // var model = locator<ProductViewModel>();
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    var drawerService = locator<DrawerService>();
+    // var model = locator<ProductViewModel>();
     return BaseView<SaleViewModel>(
+      onModelReady: (model) {
+        drawerService.setScaffoldKey(scaffoldKey);
+      },
       builder: (_, logic, child) => Scaffold(
-        key: homeModel.scaffoldKey,
+        key: scaffoldKey,
         backgroundColor: ColorValues.backgroundColor,
         appBar: CustomAppBar(
           title: StringValues.sales,
@@ -35,7 +40,8 @@ class SAles extends StatelessWidget {
           showNotificationIcon: false,
           showMenuIcon: true,
           onMenuPressed: () {
-            homeModel.openDrawer();
+            print('OtherView: Opening drawer');
+            drawerService.openDrawer(); // Use DrawerService
           },
         ),
         drawer: NavDrawer(),
@@ -68,7 +74,7 @@ class SAles extends StatelessWidget {
                       // onSubmitted: (query) async {
                       //   await logic.searchProduct(query);
                       // },
-                      onTap: (){
+                      onTap: () {
                         navigationService.navigateToWidget(SearchProductView());
                       },
                     ),

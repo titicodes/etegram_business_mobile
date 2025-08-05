@@ -1,16 +1,12 @@
-
-
 import 'package:etegram_business/app_widget/app_text.dart';
 import 'package:etegram_business/app_widget/input_fields.dart';
 import 'package:etegram_business/base/base_ui.dart';
 import 'package:etegram_business/constants/assets.dart';
 import 'package:etegram_business/constants/colors.dart';
-import 'package:etegram_business/constants/reuseable.dart';
 import 'package:etegram_business/constants/strings.dart';
 import 'package:etegram_business/core/model/product_model.dart';
 import 'package:etegram_business/locator.dart';
 import 'package:etegram_business/module/home/drawer/nav_drawer.dart';
-import 'package:etegram_business/module/home/vm/home_vm.dart';
 import 'package:etegram_business/module/product/view/product_details_view.dart';
 import 'package:etegram_business/module/product/view/search_view.dart';
 import 'package:etegram_business/routes/routes.dart';
@@ -18,10 +14,12 @@ import 'package:etegram_business/utils/snack_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_toggle_tab/flutter_toggle_tab.dart';
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
-
-import '../../../service/local/user_service.dart';
-import '../../../utils/string_extension.dart';
+import 'package:etegram_business/service/local/user_service.dart';
+import 'package:etegram_business/utils/string_extension.dart';
+import '../../../service/local/drawer_service.dart';
+import '../../../service/local/navigation_service.dart';
 import '../vm/product_viewmodel.dart';
 
 class AddProductListView extends StatefulWidget {
@@ -34,11 +32,16 @@ class AddProductListView extends StatefulWidget {
 class _AddProductListViewState extends State<AddProductListView> {
   @override
   Widget build(BuildContext context) {
-    final homeModel = locator<HomeViewModel>();
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    final drawerService = locator<DrawerService>();
     return BaseView<ProductViewModel>(
-      onModelReady: (vm) => vm.initialize(),
+      onModelReady: (vm) {
+        print('AddProductListView: Model ready, instance: ${vm.hashCode}');
+        vm.initialize();
+        drawerService.setScaffoldKey(scaffoldKey);
+      },
       builder: (context, logic, _) => Scaffold(
-        key: homeModel.scaffoldKey,
+        key: scaffoldKey,
         drawer: const NavDrawer(),
         backgroundColor: ColorValues.backgroundColor,
         appBar: AppBar(
@@ -46,16 +49,25 @@ class _AddProductListViewState extends State<AddProductListView> {
           backgroundColor: ColorValues.backgroundColor,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => navigationService.goBack(),
+            onPressed: () {
+              print('AddProductListView: Navigating back');
+              locator<NavigationService>().goBack();
+            },
           ),
           actions: [
             IconButton(
               icon: const Icon(Icons.menu),
-              onPressed: () => homeModel.openDrawer(),
+              onPressed: () {
+                print('AddProductListView: Opening drawer');
+                drawerService.openDrawer();
+              },
             ),
             IconButton(
               icon: const Icon(Icons.refresh),
-              onPressed: () => logic.initialize(),
+              onPressed: () {
+                print('AddProductListView: Refreshing product list');
+                logic.initialize();
+              },
             ),
           ],
         ),
@@ -90,8 +102,12 @@ class _AddProductListViewState extends State<AddProductListView> {
                       prefix: const Icon(Icons.search,
                           color: ColorValues.greyColor),
                       hint: StringValues.tapToChech,
-                      onTap: () => navigationService
-                          .navigateToWidget(const SearchProductView()),
+                      onTap: () {
+                        print(
+                            'AddProductListView: Navigating to SearchProductView');
+                        locator<NavigationService>()
+                            .navigateToWidget(const SearchProductView());
+                      },
                     ),
                     const SizedBox(height: 20),
                     ValueListenableBuilder<int>(
@@ -269,9 +285,11 @@ class _AddProductListViewState extends State<AddProductListView> {
                     Text('Category: ${product.category}'),
                   if (product.quantity != null)
                     Text('Stock: ${product.quantity}'),
+                  if (product.brands?.isNotEmpty == true)
+                    Text('Brands: ${product.displayBrands}'),
                   if (isExpiring && product.expiryDate != null)
                     Text(
-                      'Expires: ${product.expiryDate}',
+                      'Expires: ${DateFormat('dd MMM yyyy').format(DateTime.parse(product.expiryDate!))}',
                       style: const TextStyle(color: Colors.red),
                     ),
                   if (isLowStock && product.minQuantity != null)
@@ -286,20 +304,33 @@ class _AddProductListViewState extends State<AddProductListView> {
                   PopupMenuItem(
                     value: 'details',
                     child: const Text('View Details'),
-                    onTap: () => navigationService
-                        .navigateToWidget(ProductDetailsView(product: product)),
+                    onTap: () {
+                      print(
+                          'AddProductListView: Navigating to ProductDetailsView for ${product.name}');
+                      locator<NavigationService>().navigateToWidget(
+                          ProductDetailsView(product: product));
+                    },
                   ),
                   PopupMenuItem(
                     value: 'edit',
                     child: const Text('Edit'),
                     onTap: () async {
-                      final ownerId = await locator<CustomerService>().getOwnerId();
-                      navigationService.navigateTo(
+                      final ownerId =
+                          await locator<CustomerService>().getOwnerId();
+                      final storeId = locator<CustomerService>().activeStoreId;
+                      if (ownerId == null || storeId == null) {
+                        showCustomToast('Store or owner information missing.',
+                            success: false, context: context);
+                        return;
+                      }
+                      print(
+                          'AddProductListView: Navigating to addProductViewRoute for editing ${product.name}');
+                      locator<NavigationService>().navigateTo(
                         addProductViewRoute,
                         arguments: {
                           'isEditing': true,
                           'product': product,
-                          'storeId': locator<CustomerService>().activeStoreId,
+                          'storeId': storeId,
                           'ownerId': ownerId,
                         },
                       );
@@ -309,18 +340,30 @@ class _AddProductListViewState extends State<AddProductListView> {
                     value: 'delete',
                     child: const Text('Delete',
                         style: TextStyle(color: Colors.red)),
-                    onTap: () => logic.deleteProduct(context, product),
+                    onTap: () {
+                      print(
+                          'AddProductListView: Deleting product ${product.name}');
+                      logic.deleteProduct(context, product);
+                    },
                   ),
                   if (isLowStock)
                     PopupMenuItem(
                       value: 'restock',
                       child: const Text('Restock'),
-                      onTap: () => _showRestockDialog(context, product),
+                      onTap: () {
+                        print(
+                            'AddProductListView: Showing restock dialog for ${product.name}');
+                        _showRestockDialog(context, product);
+                      },
                     ),
                 ],
               ),
-              onTap: () => navigationService
-                  .navigateToWidget(ProductDetailsView(product: product)),
+              onTap: () {
+                print(
+                    'AddProductListView: Tapped product ${product.name}, navigating to ProductDetailsView');
+                locator<NavigationService>()
+                    .navigateToWidget(ProductDetailsView(product: product));
+              },
             ),
           );
         },
@@ -350,7 +393,10 @@ class _AddProductListViewState extends State<AddProductListView> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              print('AddProductListView: Restock dialog cancelled');
+              Navigator.pop(context);
+            },
             child: const Text('Cancel'),
           ),
           ElevatedButton(
@@ -362,11 +408,14 @@ class _AddProductListViewState extends State<AddProductListView> {
             onPressed: () async {
               final qty = int.tryParse(controller.text);
               if (qty != null && qty > 0) {
+                print(
+                    'AddProductListView: Restocking ${product.name} with quantity $qty');
                 Navigator.pop(context);
                 await locator<ProductViewModel>()
                     .supplyProduct(context, product, qty);
               } else {
-                showCustomToast('Please enter a valid quantity.');
+                showCustomToast('Please enter a valid quantity.',
+                    context: context);
               }
             },
             child: const Text('Restock'),
@@ -426,7 +475,7 @@ class _AddProductListViewState extends State<AddProductListView> {
           ),
           const SizedBox(height: 8),
           AppText(
-            title == 'Total Stock' ? value : manualFormat(value),
+            title == 'Total Stock' ? value : '₦$value',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,

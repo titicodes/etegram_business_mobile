@@ -36,4 +36,5 @@ const String subscriptionRoute = "subscription-route";
 const String owningRecordsRoute = "owning-record-screen";
 const String howItWorksRoute = '/how-it-works';
 const String notificationViewRoute = '/navigation-route';
+const String checkoutScannerRoute = '/checkout-scanner-route';
 

@@ -12,84 +12,77 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:etegram_business/core/localization/app_localization.dart';
+import 'package:etegram_business/locator.dart';
+import 'package:etegram_business/module/splash/splash_view.dart';
 
-import 'core/localization/app_localization.dart';
-import 'locator.dart';
+
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Make app always in portrait
-  SystemChrome.setPreferredOrientations(
-    [
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ],
-  );
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+   // FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+    await GetStorage.init();
+    setupLocator();
+  } catch (e, stackTrace) {
+    if (kDebugMode) {
+      print('Main: Initialization error: $e\n$stackTrace');
+    }
+  }
 
-  // Change status bar theme based on theme of app
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
 
-  await GetStorage.init();
-
-  // set up locator services
-  await setupLocator();
-
   runApp(const MyApp());
-  (dynamic error, dynamic stack) {
+  FlutterError.onError = (details) {
     if (kDebugMode) {
-      print(error);
-      print(stack);
+      print('Main: Flutter error: ${details.exception}\n${details.stack}');
     }
   };
 }
 
-final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return OKToast(
-        child: ScreenUtilInit(
-      //setup to fit into bigger screens
-      designSize: const Size(390, 844),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (BuildContext context, Widget? child) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: Styles.themeData(),
-          navigatorKey: locator<NavigationService>().navigatorKey,
-          scaffoldMessengerKey: locator<NavigationService>().snackBarKey,
-          title: StringValues.appName,
-          // theme: Styles.themeData(context),
-          onGenerateRoute: Routers.generateRoute,
-          localizationsDelegates: const [
-            AppLocalizationDelegate(),
-            // GlobalMaterialLocalizations.delegate,
-            // GlobalWidgetsLocalizations.delegate,
-            // GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale(
-              'en',
-              '',
-            ),
-          ],
-          navigatorObservers: [
-            routeObserver,
-            FlutterSmartDialog.observer,
-          ],
-          builder: FlutterSmartDialog.init(),
-          initialRoute: splashscreenRoute,
-        );
-      },
-    ));
+      child: ScreenUtilInit(
+        designSize: const Size(390, 844),
+        minTextAdapt: true,
+        splitScreenMode: true,
+        builder: (BuildContext context, Widget? child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: Styles.themeData(),
+            navigatorKey: locator<NavigationService>().navigatorKey,
+            scaffoldMessengerKey: locator<NavigationService>().snackBarKey,
+            title: StringValues.appName,
+            onGenerateRoute: Routers.generateRoute,
+            localizationsDelegates: const [
+              AppLocalizationDelegate(),
+            ],
+            supportedLocales: const [
+              Locale('en', ''),
+            ],
+            navigatorObservers: [
+              routeObserver,
+              FlutterSmartDialog.observer,
+            ],
+            builder: FlutterSmartDialog.init(),
+            initialRoute: splashscreenRoute,
+          );
+        },
+      ),
+    );
   }
 }

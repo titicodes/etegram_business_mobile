@@ -5,7 +5,6 @@ import 'package:etegram_business/constants/colors.dart';
 import 'package:etegram_business/constants/reuseable.dart';
 import 'package:etegram_business/constants/strings.dart';
 import 'package:etegram_business/constants/style.dart';
-import 'package:etegram_business/module/auth/views/signin_view.dart';
 import 'package:etegram_business/routes/routes.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';

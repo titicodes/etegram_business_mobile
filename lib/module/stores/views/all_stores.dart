@@ -6,6 +6,7 @@ import 'package:etegram_business/module/home/drawer/nav_drawer.dart';
 import 'package:etegram_business/module/home/vm/home_vm.dart';
 import 'package:etegram_business/module/stores/views/widgets/store_card.dart';
 import 'package:etegram_business/module/stores/vm/stores_vm.dart';
+import 'package:etegram_business/service/local/drawer_service.dart';
 import 'package:etegram_business/utils/widget_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -21,11 +22,16 @@ class AllStores extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final logic = locator<HomeViewModel>();
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    final drawerService = locator<DrawerService>();
+
     return BaseView<StoresViewModel>(
-      onModelReady: (model) => model.onInit(),
+      onModelReady: (model) {
+        model.onInit();
+        drawerService.setScaffoldKey(scaffoldKey);
+      },
       builder: (_, model, child) => Scaffold(
-        key: logic.scaffoldKey,
+        key: scaffoldKey,
         backgroundColor: ColorValues.backgroundColor,
         drawer: NavDrawer(),
         body: Stack(
@@ -38,7 +44,10 @@ class AllStores extends StatelessWidget {
                     title: "All Stores",
                     onBackPressed: () => navigationService.goBack(),
                     showMenuIcon: true,
-                    onMenuPressed: () => logic.openDrawer(),
+                    onMenuPressed: () {
+                      print('OtherView: Opening drawer');
+                      drawerService.openDrawer(); // Use DrawerService
+                    },
                   ),
                   SliverToBoxAdapter(
                     child: Padding(

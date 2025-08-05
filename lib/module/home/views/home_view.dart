@@ -283,6 +283,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 import '../../../constants/colors.dart';
 import '../../../core/model/notification_model.dart';
+import '../../../service/local/drawer_service.dart';
 import '../../account/viewmodel/notification_vm.dart';
 
 class HomeView extends StatelessWidget {
@@ -290,17 +291,17 @@ class HomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final homeViewModel = locator<HomeViewModel>();
+    final scaffoldKey = GlobalKey<ScaffoldState>();
     final notificationViewModel = locator<NotificationViewModel>();
-
+    final drawerService = locator<DrawerService>();
     return BaseView<HomeViewModel>(
       onModelReady: (model) {
-        model.context = context;
+        drawerService.setScaffoldKey(scaffoldKey);
         model.init();
         notificationViewModel.init();
       },
       builder: (_, model, child) => Scaffold(
-        key: model.scaffoldKey,
+        key: scaffoldKey,
         backgroundColor: ColorValues.backgroundColor,
         drawer: const NavDrawer(),
         appBar: AppBar(
@@ -433,7 +434,10 @@ class HomeView extends StatelessWidget {
                   ),
                   const SizedBox(width: 16.0),
                   InkWell(
-                    onTap: () => model.openDrawer(),
+                    onTap: () {
+                      print('HomeView: Opening drawer');
+                      drawerService.openDrawer();
+                    },
                     child: SvgPicture.asset(
                       SvgAssets.menu,
                       height: 40,

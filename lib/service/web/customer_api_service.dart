@@ -1,4 +1,3 @@
-// customer_api_service.dart
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:etegram_business/constants/app_url.dart';
@@ -32,10 +31,11 @@ class CustomerApiService {
     };
     try {
       Response response =
-      await connect().post(AppUrls.createCustomerUrl, data: payload);
+          await connect().post(AppUrls.createCustomerUrl, data: payload);
       // MODIFIED: Extract CustomerData directly from the CustomerResponse
       final customerResponse = CustomerResponse.fromJson(response.data);
-      return customerResponse.data?.first; // Assuming 'data' contains a list with one item
+      return customerResponse
+          .data?.first; // Assuming 'data' contains a list with one item
     } on DioException catch (e) {
       print('Dio error: ${e.response}');
       return null;
@@ -65,7 +65,8 @@ class CustomerApiService {
           .put('${AppUrls.createCustomerUrl}/$customerId', data: payload);
       // MODIFIED: Extract CustomerData directly from the CustomerResponse
       final customerResponse = CustomerResponse.fromJson(response.data);
-      return customerResponse.data?.first; // Assuming 'data' contains a list with one item
+      return customerResponse
+          .data?.first; // Assuming 'data' contains a list with one item
     } on DioException catch (e) {
       print('Dio error: ${e.response}');
       return null;
@@ -113,7 +114,7 @@ class CustomerApiService {
     if (customerId.isEmpty) return null;
     try {
       Response response =
-      await connect().get('${AppUrls.createCustomerUrl}/$customerId');
+          await connect().get('${AppUrls.createCustomerUrl}/$customerId');
       // MODIFIED: Parse as CustomerResponse first, then extract the single item
       final customerResponse = CustomerResponse.fromJson(response.data);
       return customerResponse.data?.first; // Access the first item in the list

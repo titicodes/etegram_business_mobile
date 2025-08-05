@@ -16,6 +16,8 @@ import 'package:etegram_business/app_widget/app_button.dart';
 import 'package:etegram_business/app_widget/custom_dropdown.dart';
 import 'package:etegram_business/app_widget/input_fields.dart';
 
+import '../../../service/local/drawer_service.dart';
+
 class EditExpense extends StatelessWidget {
   final ExpenseData expense;
 
@@ -23,7 +25,8 @@ class EditExpense extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final homeVm = locator<HomeViewModel>();
+    final scaffoldKey = GlobalKey<ScaffoldState>();
+    final drawerService = locator<DrawerService>();
     return BaseView<ExpensesViewModel>(
       onModelReady: (model) {
         model.init();
@@ -35,11 +38,12 @@ class EditExpense extends StatelessWidget {
         model.paymentMethod = expense.paymentMethod ?? '';
         model.selectedDate = expense.date;
         model.validateForm();
+        drawerService.setScaffoldKey(scaffoldKey);
       },
       builder: (context, model, child) => Stack(
         children: [
           Scaffold(
-            key: homeVm.scaffoldKey,
+            key: scaffoldKey,
             drawer: const NavDrawer(),
             backgroundColor: ColorValues.backgroundColor,
             body: CustomScrollView(
@@ -48,7 +52,7 @@ class EditExpense extends StatelessWidget {
                   title: 'Edit Expense',
                   onBackPressed: () => navigationService.goBack(),
                   showMenuIcon: true,
-                  onMenuPressed: () => homeVm.openDrawer(),
+                  onMenuPressed: () => drawerService.openDrawer(),
                   showLogo: true,
                   logoAsset: SvgAssets.appLogo,
                 ),
