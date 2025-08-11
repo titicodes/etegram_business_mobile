@@ -42,9 +42,11 @@ class ProductView extends StatelessWidget {
         drawer: const NavDrawer(),
         appBar: CustomAppBar(
           title: 'Products',
+          showBackButton: false,
           onBackPressed: () {
             print('ProductView: Navigating to dashboardRoute');
-            locator<NavigationService>().navigateTo(dashboardRoute);
+            locator<NavigationService>().goBack();
+
           },
           showMenuIcon: true,
           onMenuPressed: () {

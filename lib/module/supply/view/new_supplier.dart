@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:etegram_business/base/base_ui.dart'; // Import SupplierViewModel
+import 'package:etegram_business/base/base_ui.dart';
 import '../../../app_widget/app_button.dart';
-import '../../../app_widget/app_text.dart';
 import '../../../app_widget/input_fields.dart';
 import '../../../constants/colors.dart';
 import '../../../constants/reuseable.dart';
 import '../../../constants/strings.dart';
 import '../../../app_widget/custom_sliver_appbar.dart';
-import '../../../app_widget/celebration_widget.dart';
-import '../view_model/supply_vm.dart'; // Import CelebrationWidget
+import '../view_model/supply_vm.dart';
 
 class NewSupplierView extends StatelessWidget {
   const NewSupplierView({super.key});
@@ -16,7 +14,6 @@ class NewSupplierView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BaseView<SupplierViewModel>(
-      // Use SupplierViewModel
       notDefaultLoading: true,
       onModelReady: (model) => model.onInit(),
       builder: (_, logic, child) => Scaffold(

@@ -39,6 +39,7 @@ class SAles extends StatelessWidget {
           onBackPressed: () => navigationService.goBack(),
           showNotificationIcon: false,
           showMenuIcon: true,
+          showBackButton: false,
           onMenuPressed: () {
             print('OtherView: Opening drawer');
             drawerService.openDrawer(); // Use DrawerService

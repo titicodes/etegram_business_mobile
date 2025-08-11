@@ -9,13 +9,6 @@ import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import '../constants/style.dart';
 import 'app_text.dart';
 
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:etegram_business/app_widget/app_text.dart';
-import 'package:etegram_business/constants/colors.dart';
-import 'package:etegram_business/constants/style.dart';
-import 'package:etegram_business/utils/widget_extension.dart';
-import 'package:iconsax/iconsax.dart';
 
 class AppTextField extends StatefulWidget {
   final String? hintText;

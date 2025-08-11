@@ -17,6 +17,7 @@ import 'package:lottie/lottie.dart';
 import '../../../base/base_ui.dart';
 import '../view/widgets/review_card.dart';
 import 'new_sales_vm.dart';
+import 'package:etegram_business/module/sales/view/widgets/checkout_success.dart';
 
 class ReviewScreen extends StatefulWidget {
   const ReviewScreen({super.key});
@@ -38,8 +39,15 @@ class _ReviewScreenState extends State<ReviewScreen>
   void initState() {
     super.initState();
     final model = locator<SaleViewModel>();
+    _deliveryAddressController.text = model.temporaryDeliveryAddress ?? '';
     _discountController.text =
         model.discount.value == 0 ? '' : model.discount.value.toString();
+    _deliveryAddressController.addListener(() {
+      final value = _deliveryAddressController.text.trim();
+      model.temporaryDeliveryAddress = value.isEmpty ? null : value;
+      print(
+          'ReviewScreen: Updated delivery address: ${model.temporaryDeliveryAddress}');
+    });
     _discountController.addListener(() {
       final text = _discountController.text;
       if (text.isEmpty) {
@@ -101,7 +109,7 @@ class _ReviewScreenState extends State<ReviewScreen>
             AppButton(
               text: 'Back to Home',
               onTap: () {
-                Navigator.of(context).pop(); // Close bottom sheet
+                Navigator.of(context).pop();
                 navigationService.navigateToAndRemoveUntil(dashboardRoute);
               },
             ),
@@ -119,7 +127,7 @@ class _ReviewScreenState extends State<ReviewScreen>
     return BaseView<SaleViewModel>(
       builder: (context, model, child) {
         print(
-            'ReviewScreen: Model instance: ${model.hashCode}, Cart items: ${model.cartItems.value.length}');
+            'ReviewScreen: Model instance: ${model.hashCode}, Cart items: ${model.cartItems.value.length}, Delivery address: ${model.temporaryDeliveryAddress}');
         return Scaffold(
           backgroundColor: ColorValues.backgroundColor,
           appBar: CustomAppBar(
@@ -249,12 +257,7 @@ class _ReviewScreenState extends State<ReviewScreen>
                             textInputAction: TextInputAction.next,
                             onSubmitted: (_) => FocusScope.of(context)
                                 .requestFocus(_discountFocus),
-                            onChanged: (value) {
-                              model.temporaryDeliveryAddress =
-                                  value.isEmpty ? null : value;
-                              print(
-                                  'ReviewScreen: Updated delivery address: ${model.temporaryDeliveryAddress}');
-                            },
+                            onChanged: null, // Listener handles updates
                           ),
                           10.0.sbH,
                           FutureBuilder<String?>(
@@ -396,11 +399,14 @@ class _ReviewScreenState extends State<ReviewScreen>
                                   final total =
                                       await model.calculateTotalPrice();
                                   final deliveryAddress =
-                                      _deliveryAddressController.text.isEmpty
+                                      _deliveryAddressController.text
+                                              .trim()
+                                              .isEmpty
                                           ? null
-                                          : _deliveryAddressController.text;
+                                          : _deliveryAddressController.text
+                                              .trim();
                                   print(
-                                      'ReviewScreen: Payment method: ${model.paymentMethod}, Total: $total');
+                                      'ReviewScreen: Proceeding with delivery address: $deliveryAddress');
                                   if (model.paymentMethod == 'CARD' ||
                                       model.paymentMethod == 'TRANSFER') {
                                     print(

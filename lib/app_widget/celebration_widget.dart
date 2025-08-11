@@ -58,12 +58,12 @@ class _CelebrationWidgetState extends State<CelebrationWidget> {
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
               confettiController: _controllerCenter,
-              blastDirection: pi / 2, // Upward direction for floating bubbles
-              emissionFrequency: 0.05, // Frequent bubble emission
-              numberOfParticles: 20, // Moderate number of bubbles
-              minBlastForce: 2, // Gentle force for floating effect
-              maxBlastForce: 5, // Controlled burst
-              gravity: 0.05, // Low gravity for slow floating
+              blastDirection: pi / 2,
+              emissionFrequency: 0.05,
+              numberOfParticles: 20,
+              minBlastForce: 2,
+              maxBlastForce: 5,
+              gravity: 0.05,
               colors: const [
                 Colors.lightBlueAccent,
                 Colors.white70,
@@ -84,8 +84,7 @@ class _CelebrationWidgetState extends State<CelebrationWidget> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (widget.child != null)
-                  widget.child!,
+                if (widget.child != null) widget.child!,
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: AppButton(

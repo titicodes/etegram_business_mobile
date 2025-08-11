@@ -3,10 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:etegram_business/base/base_vm.dart';
 import 'package:etegram_business/core/model/get_scan_response.dart';
-import 'package:etegram_business/core/model/checkout_response.dart';
 import 'package:etegram_business/locator.dart';
 import 'package:etegram_business/service/local/user_service.dart';
 import 'package:etegram_business/utils/snack_message.dart';
+
+import '../../../core/model/product_model.dart';
 
 class SaleViewModel extends BaseViewModel {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
@@ -15,7 +16,7 @@ class SaleViewModel extends BaseViewModel {
   double tax = 0.0;
   String paymentMethod = 'CASH';
   String? temporaryDeliveryAddress;
-  final CustomerService _customerService = locator<CustomerService>();
+  final CustomerService customerService = locator<CustomerService>();
   final Map<String, ScanProduct> _productCache = {};
   final Set<String> scannedBarcodes = {};
   Timer? _debounceTimer;
@@ -26,7 +27,7 @@ class SaleViewModel extends BaseViewModel {
   }
 
   Future<void> _checkUserRole() async {
-    final role = await _customerService.getUserRole();
+    final role = await customerService.getUserRole();
     _isStoreOwner = role?.contains('STORE_OWNER') ?? false;
     print('SaleViewModel: User isStoreOwner: $_isStoreOwner');
     notifyListeners();
@@ -264,7 +265,7 @@ class SaleViewModel extends BaseViewModel {
 
   Future<String?> processCheckout(List<Cart> cartItems,
       {String? deliveryAddress}) async {
-    final storeId = await _customerService.getActiveStoreId();
+    final storeId = await customerService.getActiveStoreId();
     if (storeId == null) {
       print('SaleViewModel: Checkout failed: Store ID is missing');
       showCustomToast('Store ID is missing.', success: false);
@@ -292,13 +293,17 @@ class SaleViewModel extends BaseViewModel {
               })
           .toList();
 
+      final checkoutDeliveryAddress = deliveryAddress?.trim().isNotEmpty == true
+          ? deliveryAddress!.trim()
+          : null;
+
       print('SaleViewModel: Initiating checkout with:');
       print('Cart: $formattedCartItems');
       print('Store ID: $storeId');
       print('Discount: ${discount.value}');
       print('Tax: $tax');
       print('Payment Method: $paymentMethod');
-      print('Delivery Address: ${deliveryAddress ?? 'Not provided'}');
+      print('Delivery Address: ${checkoutDeliveryAddress ?? 'Not provided'}');
 
       final response = await salesRepository.checkout(
         cartItems: formattedCartItems,
@@ -306,7 +311,7 @@ class SaleViewModel extends BaseViewModel {
         tax: tax,
         paymentMethod: paymentMethod,
         storeId: storeId,
-        deliveryAddress: deliveryAddress,
+        deliveryAddress: checkoutDeliveryAddress,
       );
 
       print('SaleViewModel: Checkout response:');
@@ -375,6 +380,37 @@ class SaleViewModel extends BaseViewModel {
         ],
       ),
     );
+  }
+
+  void addProductDirectly(Product product) {
+    if (product.quantity == null || product.quantity! <= 0) {
+      showCustomToast('Product ${product.name ?? 'Unknown'} is out of stock.', success: false);
+      return;
+    }
+    final scanProduct = ScanProduct(
+      id: product.id ?? '',
+      name: product.name ?? 'Unknown Product',
+      code: product.code ?? '',
+      price: product.price ?? 0.0,
+      quantity: product.quantity ?? 0,
+      size: product.size ?? '',
+      categoryId: product.category ?? '',
+      availableQuantity: product.quantity ?? 0,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      v: 0,
+      description: product.description,
+      brands: product.brands,
+      expiryDate: product.expiryDate != null ? DateTime.tryParse(product.expiryDate!) : null,
+      costPrice: product.costPrice,
+      store: product.storeId,
+      owner: product.owner,
+      stock: product.quantity ?? 0,
+      imageUrl: product.imageUrl,
+      minQuantity: product.minQuantity ?? 1,
+    );
+    _addOrUpdateCartItem(scanProduct);
+    showCustomToast('Added ${product.name} to cart', success: true);
   }
 
   @override

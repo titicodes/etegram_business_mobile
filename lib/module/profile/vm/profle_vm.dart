@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:etegram_business/core/model/subscription_model.dart';
-import 'package:etegram_business/constants/app_url.dart';
 import 'package:etegram_business/base/base_vm.dart';
 import 'package:etegram_business/utils/snack_message.dart';
 import 'package:flutter/material.dart';
@@ -281,7 +279,7 @@ class ProfileViewModel extends BaseViewModel {
       if (updatedCustomer != null) {
         await _customerService.storeUser(updatedCustomer);
         profileImageUrl.value = updatedCustomer.imageUrl;
-        showCustomToast('Profile image uploaded successfully!');
+        showCustomToast('Profile image uploaded successfully!', success: true);
         notifyListeners();
       } else {
         showCustomToast('Failed to upload profile image. Please try again.', success: false);

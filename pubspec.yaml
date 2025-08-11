@@ -78,8 +78,6 @@ dependencies:
 
 
 
-
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -104,6 +102,7 @@ flutter:
      - assets/nigeria_states.json
      - assets/nigerian-banks.json
      - assets/animations/
+     - assets/fonts/
 
 
   fonts:

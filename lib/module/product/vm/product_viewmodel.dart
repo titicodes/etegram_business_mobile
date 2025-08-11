@@ -12,6 +12,7 @@ import 'package:etegram_business/core/model/product_model.dart';
 import 'package:etegram_business/core/model/product_history_model.dart';
 import 'package:etegram_business/locator.dart';
 import 'package:etegram_business/utils/snack_message.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../app_widget/celebration_widget.dart';
 import '../../../base/base_vm.dart';
 import '../../../constants/assets.dart';
@@ -34,22 +35,20 @@ class ProductViewModel extends BaseViewModel {
   final descriptionController = TextEditingController();
   final sizeController = TextEditingController();
   final brandsController = TextEditingController();
-  final totalValueController = TextEditingController();
+  final totalValue = ValueNotifier<String>('');
   final searchController = TextEditingController();
   final ValueNotifier<bool> isFetchingExternalData = ValueNotifier<bool>(false);
   final errorMessage = ValueNotifier<String?>(null);
   File? selectedImage;
+  String? localImagePath;
 
   ProductViewModel() {
     priceController.addListener(_debouncedUpdateTotals);
-    quantityController.addListener(_debouncedUpdateTotals);
     costPriceController.addListener(_debouncedUpdateTotals);
+    quantityController.addListener(_debouncedUpdateTotals);
     minQuantityController.addListener(_debouncedUpdateTotals);
-    priceController.text = '1.00';
-    costPriceController.text = '0.00';
-    quantityController.text = '1';
-    minQuantityController.text = '1';
-    _debouncedUpdateTotals();
+    print(
+        'ProductViewModel: Added listeners for price, costPrice, quantity, minQuantity');
     print('ProductViewModel: Initialized instance ${hashCode}');
   }
 
@@ -96,12 +95,7 @@ class ProductViewModel extends BaseViewModel {
     } else if (scannedCode != null) {
       codeController.text = scannedCode;
       categoryController.text = 'Uncategorized';
-      priceController.text = '1.00';
-      costPriceController.text = '0.00';
-      quantityController.text = '1';
-      minQuantityController.text = '1';
     }
-    _debouncedUpdateTotals();
     print(
         'ProductViewModel: Initialized with scannedCode=$scannedCode, isEditing=$isEditing');
   }
@@ -205,6 +199,7 @@ class ProductViewModel extends BaseViewModel {
     brandsController.text = product.brands?.join(', ') ?? '';
     productImageUrl = product.imageUrl;
     selectedImage = null;
+    localImagePath = null;
     _debouncedUpdateTotals();
     print(
         'ProductViewModel: Controllers populated - name: ${nameController.text}, code: ${codeController.text}, brands: ${brandsController.text}, imageUrl: $productImageUrl');
@@ -600,8 +595,7 @@ class ProductViewModel extends BaseViewModel {
       return;
     }
 
-    print(
-        'ProductViewModel: Performing duplicate check for code: $productCode');
+    print('ProductViewModel: Performing duplicate check for code: $productCode');
     final exists = await checkProductExistence(productCode, context);
     if (exists) {
       print('ProductViewModel: Product exists for code: $productCode');
@@ -612,8 +606,7 @@ class ProductViewModel extends BaseViewModel {
             barcode: productCode, fromSave: true);
         return;
       }
-      print(
-          'ProductViewModel: Fetching product by code for editing: $productCode');
+      print('ProductViewModel: Fetching product by code for editing: $productCode');
       final response = await fetchProductByCode(
           productCode, effectiveStoreId, effectiveOwnerId);
       if (!response.success || response.data?.id == null) {
@@ -628,8 +621,7 @@ class ProductViewModel extends BaseViewModel {
       }
       existingProduct = response.data;
     } else if (isEditing) {
-      print(
-          'ProductViewModel: Product does not exist for editing: $productCode');
+      print('ProductViewModel: Product does not exist for editing: $productCode');
       showCustomToast(
         'Error: Product not found for editing. Please add it as a new product.',
         success: false,
@@ -638,14 +630,13 @@ class ProductViewModel extends BaseViewModel {
       return;
     }
 
-    startLoader(
-        message: isEditing ? 'Updating product...' : 'Adding product...');
+    startLoader(message: isEditing ? 'Updating product...' : 'Adding product...');
     try {
       String? formattedExpiryDate;
       if (expiryDateController.text.trim().isNotEmpty) {
         try {
           final date =
-              DateFormat('dd MMM yyyy').parse(expiryDateController.text.trim());
+          DateFormat('dd MMM yyyy').parse(expiryDateController.text.trim());
           formattedExpiryDate = DateFormat('yyyy-MM-dd').format(date);
         } catch (e) {
           print(
@@ -682,11 +673,7 @@ class ProductViewModel extends BaseViewModel {
             : sizeController.text.trim(),
         brands: brandsController.text.trim().isEmpty
             ? null
-            : brandsController.text
-                .trim()
-                .split(',')
-                .map((e) => e.trim())
-                .toList(),
+            : brandsController.text.trim().split(',').map((e) => e.trim()).toList(),
         storeId: effectiveStoreId,
         owner: effectiveOwnerId,
         imageUrl: selectedImage == null ? productImageUrl : null,
@@ -694,11 +681,8 @@ class ProductViewModel extends BaseViewModel {
 
       print('ProductViewModel: Saving product data: ${productData.toJson()}');
 
-      if (isEditing &&
-          productData.id != null &&
-          _isValidObjectId(productData.id!)) {
-        print(
-            'ProductViewModel: Updating product (isEditing=true): ${productData.id}');
+      if (isEditing && productData.id != null && _isValidObjectId(productData.id!)) {
+        print('ProductViewModel: Updating product (isEditing=true): ${productData.id}');
         final updated = await productRepository.updateProduct(
           productData.id!,
           productData,
@@ -738,30 +722,21 @@ class ProductViewModel extends BaseViewModel {
             success: true,
             context: context,
           );
-          navigationService.navigateToWidget(
+          // Navigate to CelebrationWidget and clear the stack
+          navigationService.navigateToWidgetAndRemoveUntil(
             CelebrationWidget(
               title: 'Back to Dashboard',
               onTap: () {
                 print(
-                    'ProductViewModel: CelebrationWidget: Navigating to dashboardRoute');
-                navigationService.navigateTo(dashboardRoute);
+                    'ProductViewModel: CelebrationWidget: Navigating to dashboardRoute and clearing stack');
+                navigationService.navigateToAndRemoveUntil(dashboardRoute);
               },
               child: Text(
                 'Product "${response.data!.name}" Added Successfully!',
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
             ),
-            transitionBuilder: (context, animation, secondaryAnimation, child) {
-              return SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(1.0, 0.0),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
-              );
-            },
           );
         } else {
           showCustomToast(
@@ -779,8 +754,7 @@ class ProductViewModel extends BaseViewModel {
       }
     } catch (e, stackTrace) {
       print('ProductViewModel: Error processing product: $e\n$stackTrace');
-      if (e.toString().contains('E11000') ||
-          e.toString().contains('duplicate key')) {
+      if (e.toString().contains('E11000') || e.toString().contains('duplicate key')) {
         print(
             'ProductViewModel: Duplicate key error detected, fetching product to edit');
         final response = await fetchProductByCode(
@@ -940,24 +914,30 @@ class ProductViewModel extends BaseViewModel {
       _debounce?.cancel();
     }
     _debounce = Timer(const Duration(milliseconds: 500), () {
+      print('ProductViewModel: priceController.text = ${priceController.text}');
+      print(
+          'ProductViewModel: quantityController.text = ${quantityController.text}');
       final price = double.tryParse(priceController.text) ?? 0.0;
       final quantity = int.tryParse(quantityController.text) ?? 0;
       final total = price * quantity;
-      totalValueController.text = total.toStringAsFixed(2);
-      print(
-          'ProductViewModel: Updated totals - price: $price, quantity: $quantity, total: $total');
-      notifyListeners();
+      final newTotal = total == 0.0 ? '' : total.toStringAsFixed(2);
+      if (totalValue.value != newTotal) {
+        totalValue.value = newTotal;
+        print(
+            'ProductViewModel: Updated totals - price: $price, quantity: $quantity, total: $total');
+        notifyListeners();
+      } else {
+        print('ProductViewModel: No update needed - total unchanged: $total');
+      }
     });
+  }
+
+  String getTotalValue() {
+    return totalValue.value.isEmpty ? '0.00' : totalValue.value;
   }
 
   void updateTotals() {
     _debouncedUpdateTotals();
-  }
-
-  String getTotalValue() {
-    return totalValueController.text.isEmpty
-        ? '0.00'
-        : totalValueController.text;
   }
 
   Future<void> selectExpiryDate(BuildContext context) async {
@@ -976,19 +956,44 @@ class ProductViewModel extends BaseViewModel {
     }
   }
 
-  Future<void> pickImage(BuildContext context) async {
+  Future<void> pickImage(BuildContext context,
+      {required ImageSource source}) async {
     try {
-      final pickedFile =
-          await ImagePicker().pickImage(source: ImageSource.gallery);
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        maxHeight: 600,
+        maxWidth: 600,
+        imageQuality: 50,
+        preferredCameraDevice: CameraDevice.rear,
+      );
       if (pickedFile != null) {
-        selectedImage = File(pickedFile.path);
-        productImageUrl = null;
+        final tempDir = await getTemporaryDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final targetPath = '${tempDir.path}/product_image_$timestamp.jpg';
+        final targetFile = File(targetPath);
+        await targetFile.writeAsBytes(await pickedFile.readAsBytes());
+        if (await targetFile.exists()) {
+          selectedImage = targetFile;
+          localImagePath = targetFile.path;
+          productImageUrl = null;
+          print(
+              'ProductViewModel: Image picked and persisted: ${targetFile.path}');
+        } else {
+          print('ProductViewModel: Failed to persist image to: $targetPath');
+          showCustomToast('Failed to persist image.',
+              success: false, context: context);
+        }
         notifyListeners();
-        print('ProductViewModel: Image picked: ${pickedFile.path}');
+      } else {
+        print('ProductViewModel: Image selection cancelled');
+        showCustomToast('Image selection cancelled.',
+            success: false, context: context);
       }
     } catch (e, stackTrace) {
       print('ProductViewModel: Error picking image: $e\n$stackTrace');
-      showCustomToast('Failed to pick image.', success: false);
+      showCustomToast('Failed to pick image.',
+          success: false, context: context);
     }
   }
 
@@ -996,18 +1001,18 @@ class ProductViewModel extends BaseViewModel {
     nameController.clear();
     codeController.clear();
     categoryController.clear();
-    priceController.text = '1.00';
-    costPriceController.text = '0.00';
-    quantityController.text = '1';
-    minQuantityController.text = '1';
+    priceController.clear();
+    costPriceController.clear();
+    quantityController.clear();
+    minQuantityController.clear();
     expiryDateController.clear();
     descriptionController.clear();
     sizeController.clear();
     brandsController.clear();
-    totalValueController.clear();
+    totalValue.value = '';
     productImageUrl = null;
     selectedImage = null;
-    _debouncedUpdateTotals();
+    localImagePath = null;
     print('ProductViewModel: Cleared controllers');
     notifyListeners();
   }
@@ -1027,7 +1032,7 @@ class ProductViewModel extends BaseViewModel {
     descriptionController.dispose();
     sizeController.dispose();
     brandsController.dispose();
-    totalValueController.dispose();
+    totalValue.dispose();
     searchController.dispose();
     isFetchingExternalData.dispose();
     errorMessage.dispose();

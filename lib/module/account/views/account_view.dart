@@ -141,6 +141,7 @@ class AccountView extends StatelessWidget {
           navigationService.navigateTo(dashboardRoute);
         },
         showNotificationIcon: false,
+        showBackButton: false,
         showMenuIcon: true,
         onMenuPressed: () {
           print('AccountView: Opening drawer');

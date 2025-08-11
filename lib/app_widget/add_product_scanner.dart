@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:etegram_business/constants/style.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -256,8 +257,16 @@ class _AddProductScannerViewState extends State<AddProductScannerView>
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Product Already Exists'),
-        content: Text(
-            'A product with barcode "$barcodeValue" is already in the database.'),
+        content: RichText(
+          text: TextSpan(
+            text: 'A product with barcode ',
+            style: DefaultTextStyle.of(context).style,
+            children: <TextSpan>[
+              TextSpan(text: barcodeValue, style: normalTextStyle12),
+              TextSpan(text: ' is already in the database.'),
+            ],
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () {

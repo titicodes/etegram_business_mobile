@@ -1,4 +1,3 @@
-//Loading State
 import 'package:etegram_business/service/local/user_service.dart';
 import 'package:flutter/material.dart';
 
