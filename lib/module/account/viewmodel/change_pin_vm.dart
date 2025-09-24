@@ -23,7 +23,7 @@ class ChangePinViewModel extends BaseViewModel {
   }
 
   void onChange(String? val) {
-    _validateForm(); // Call validation when input changes
+    _validateForm();
   }
 
   void _validateForm() {

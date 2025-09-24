@@ -61,7 +61,6 @@ class AccountView extends StatelessWidget {
                 print('AccountView: Logout confirmed');
                 try {
                   await locator<CustomerService>().logout();
-                  // No need to navigate or show toast here; handled in CustomerService.logout()
                 } catch (e) {
                   print('AccountView: Logout error: $e');
                   Navigator.of(dialogContext).pop();
@@ -93,19 +92,17 @@ class AccountView extends StatelessWidget {
     final drawerService = locator<DrawerService>();
     final customerService = locator<CustomerService>();
     final profileViewModel = locator<ProfileViewModel>();
-    bool isLogoutTapped = false; // Debounce flag
+    bool isLogoutTapped = false;
 
-    // Set the scaffold key in DrawerService
     WidgetsBinding.instance.addPostFrameCallback((_) {
       drawerService.setScaffoldKey(scaffoldKey);
       print(
           'AccountView: Scaffold key set in DrawerService: ${scaffoldKey.hashCode}');
     });
 
-    // Check for payment methods on load
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future.delayed(const Duration(milliseconds: 100));
-      if (!context.mounted) return; // Prevent actions if widget is disposed
+      if (!context.mounted) return;
       try {
         bool hasPayments = await customerService.hasPaymentMethods();
         if (!hasPayments) {
@@ -286,9 +283,9 @@ class AccountView extends StatelessWidget {
                   onTap: () {
                     if (!isLogoutTapped) {
                       isLogoutTapped = true;
-                      _showLogoutDialog(bodyContext); // Use bodyContext
+                      _showLogoutDialog(bodyContext);
                       Future.delayed(const Duration(seconds: 1), () {
-                        isLogoutTapped = false; // Reset after 1 second
+                        isLogoutTapped = false;
                       });
                     }
                   },

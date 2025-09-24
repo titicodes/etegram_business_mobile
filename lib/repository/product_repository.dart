@@ -45,16 +45,14 @@ class ProductRepository {
     );
   }
 
-  // --- IMPORTANT CORRECTION HERE ---
-  // Modify updateProduct to accept imageFile and imageUrl
   Future<Product?> updateProduct(String id, Product data, String storeId,
       {File? imageFile, String? imageUrl}) async {
     final updatedProduct = await apiService.updateProduct(
       id,
       data,
       storeId,
-      imageFile: imageFile, // Pass the imageFile
-      imageUrl: imageUrl, // Pass the imageUrl
+      imageFile: imageFile,
+      imageUrl: imageUrl,
     );
     if (updatedProduct != null) {
       // Store locally after successful API update
@@ -67,7 +65,7 @@ class ProductRepository {
     }
     return updatedProduct;
   }
-  // --- END OF IMPORTANT CORRECTION ---
+
 
   Future<bool> deleteProduct(String id, String storeId) async {
     final deleted = await apiService.deleteProduct(id, storeId);
@@ -92,10 +90,6 @@ class ProductRepository {
     return updatedProduct;
   }
 
-  // This method is no longer directly called from ProductViewModel's saveOrUpdateProduct
-  // as image upload is now integrated into updateProduct/scanAndAddProduct in ProductApiService.
-  // You might keep it if there's another specific use case for standalone image upload,
-  // but it's not part of the standard product update flow anymore.
   Future<Product?> uploadProductImage(
       String productId, String storeId, String filePath) async {
     try {
@@ -112,7 +106,7 @@ class ProductRepository {
     } catch (e) {
       print('Error uploading product image: $e');
       showCustomToast(
-          'Failed to upload product image.'); // Consider if this toast should be here or only in ViewModel
+          'Failed to upload product image.');
       return null;
     }
   }
@@ -156,7 +150,6 @@ class ProductRepository {
     int limit = 10,
   }) async {
     try {
-      // Added try-catch for robustness
       final response = await apiService.getExpiringProducts(
         storeId: storeId,
         days: days,
@@ -186,7 +179,6 @@ class ProductRepository {
     int limit = 10,
   }) async {
     try {
-      // Added try-catch for robustness
       final response = await apiService.getLowStockProducts(
         storeId: storeId,
         threshold: threshold,
@@ -214,8 +206,6 @@ class ProductRepository {
   }
 
   Future<Map<String, dynamic>> getTotalStockWithProducts(String storeId) async {
-    // This method returns a map that includes 'totalQuantity' and 'products' list.
-    // Ensure the API service returns this structure.
     return apiService.getTotalStockWithProducts(storeId);
   }
 

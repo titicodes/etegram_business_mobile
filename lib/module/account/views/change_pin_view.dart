@@ -35,8 +35,7 @@ class ChangePinView extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(10.0),
             child: Form(
-              // Wrap your Column with a Form Widget.
-              key: logic.formKey, // Assign the formKey.
+              key: logic.formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
